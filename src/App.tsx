@@ -47,6 +47,33 @@ function App() {
     []
   )
 
+  const stacksAppIcon = useMemo(
+    () =>
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/vite.svg`
+        : 'http://localhost/vite.svg',
+    []
+  )
+
+  const handleStacksConnect = () => {
+    showConnect({
+      userSession: stacksUserSession,
+      manifestPath: '/manifest.json',
+      redirectTo: typeof window !== 'undefined' ? window.location.origin : '/',
+      appDetails: {
+        name: 'Stacks AMM Demo',
+        icon: stacksAppIcon,
+      },
+      onFinish: () => {
+        const data = stacksUserSession.loadUserData()
+        const address =
+          data?.profile?.stxAddress?.testnet ||
+          data?.profile?.stxAddress?.mainnet
+        if (address) setStacksAddress(address)
+      },
+    })
+  }
+
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0
     return (burnShares ? Number(burnShares) || 0 : 0) / pool.totalShares
@@ -170,36 +197,18 @@ function App() {
           </p>
         </div>
         <div className="connect-actions">
-      <button
-        className="primary"
-        onClick={() => {
-          showConnect({
-            userSession: stacksUserSession,
-            appDetails: {
-              name: 'Stacks AMM Demo',
-              icon: 'https://walletconnect.com/walletconnect-logo.png',
-            },
-                onFinish: () => {
-                  const data = stacksUserSession.loadUserData()
-                  const address =
-                    data?.profile?.stxAddress?.testnet ||
-                    data?.profile?.stxAddress?.mainnet
-                  if (address) setStacksAddress(address)
-                },
-              })
-            }}
-          >
+          <button className="primary" onClick={handleStacksConnect}>
             Connect Stacks (Stacks Connect)
           </button>
-      <button
-        className="ghost"
-        onClick={() => {
-          appKit.open()
-          setBtcStatus(
-            'Modal opened. Choose Leather, Xverse, or WalletConnect QR to link a Bitcoin wallet.'
-          )
-        }}
-      >
+          <button
+            className="ghost"
+            onClick={() => {
+              appKit.open()
+              setBtcStatus(
+                'Modal opened. Choose Leather, Xverse, or WalletConnect QR to link a Bitcoin wallet.'
+              )
+            }}
+          >
             Connect Bitcoin (Leather / Xverse / QR)
           </button>
         </div>

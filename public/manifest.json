@@ -1,0 +1,13 @@
+{
+  "name": "Stacks AMM Demo",
+  "short_name": "Stacks AMM",
+  "start_url": "/",
+  "description": "Demo AMM UI for Stacks-based swaps and liquidity.",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
