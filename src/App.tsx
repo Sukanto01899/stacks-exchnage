@@ -19,6 +19,12 @@ const FEE_BPS = 30
 const BPS = 10_000
 const FAUCET_AMOUNT = 5_000
 const STACKS_NETWORK = 'testnet'
+const FAUCET_API =
+  (typeof import.meta !== 'undefined' &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      'VITE_FAUCET_URL'
+    ]) ||
+  'http://localhost:8787'
 
 const shortAddress = (addr: string) =>
   addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
@@ -58,6 +64,7 @@ function App() {
   const [burnMessage, setBurnMessage] = useState<string | null>(null)
 
   const [faucetMessage, setFaucetMessage] = useState<string | null>(null)
+  const [faucetPending, setFaucetPending] = useState(false)
 
   const [stacksAddress, setStacksAddress] = useState<string | null>(null)
   const [btcStatus, setBtcStatus] = useState<string | null>(null)
@@ -254,26 +261,48 @@ function App() {
     )
   }
 
-  const handleFaucet = (token?: 'x' | 'y') => {
-    setFaucetMessage(null)
-    setBalances((prev) => ({
-      tokenX: prev.tokenX + (token === 'y' ? 0 : FAUCET_AMOUNT),
-      tokenY: prev.tokenY + (token === 'x' ? 0 : FAUCET_AMOUNT),
-      lpShares: prev.lpShares,
-    }))
-    if (!token) {
-      setFaucetMessage(
-        `Airdropped ${formatNumber(FAUCET_AMOUNT)} X and ${formatNumber(
-          FAUCET_AMOUNT
-        )} Y to your wallet.`
-      )
-      return
+  const requestFaucet = async (token: 'x' | 'y') => {
+    if (!stacksAddress) {
+      throw new Error('Connect a Stacks wallet to receive testnet tokens.')
     }
-    setFaucetMessage(
-      `Airdropped ${formatNumber(FAUCET_AMOUNT)} ${
-        token === 'x' ? 'X' : 'Y'
-      } to your wallet.`
-    )
+    const response = await fetch(`${FAUCET_API}/faucet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: stacksAddress, token }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(data.error || 'Faucet request failed.')
+    }
+    return data
+  }
+
+  const handleFaucet = async (token?: 'x' | 'y') => {
+    try {
+      setFaucetPending(true)
+      setFaucetMessage('Requesting testnet faucet mint...')
+      const targets = token ? [token] : ['x', 'y']
+      const results = []
+      for (const t of targets) {
+        const res = await requestFaucet(t as 'x' | 'y')
+        results.push(`${t.toUpperCase()}: ${res.txid}`)
+      }
+      setBalances((prev) => ({
+        tokenX: prev.tokenX + (targets.includes('x') ? FAUCET_AMOUNT : 0),
+        tokenY: prev.tokenY + (targets.includes('y') ? FAUCET_AMOUNT : 0),
+        lpShares: prev.lpShares,
+      }))
+      setFaucetMessage(
+        `Faucet sent ${targets.map((t) => t.toUpperCase()).join(' & ')} on testnet. Txid(s): ${results.join(
+          ' | '
+        )}`
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Faucet failed. Try again.'
+      setFaucetMessage(message)
+    } finally {
+      setFaucetPending(false)
+    }
   }
 
   const handleSyncToPoolRatio = () => {
@@ -390,7 +419,7 @@ function App() {
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
               Match pool ratio
             </button>
-            <button className="tiny ghost" onClick={() => handleFaucet()}>
+            <button className="tiny ghost" onClick={() => handleFaucet()} disabled={faucetPending}>
               Faucet both
             </button>
           </div>
@@ -472,7 +501,7 @@ function App() {
           </div>
         </div>
         <div className="top-actions">
-          <button className="chip" onClick={() => handleFaucet()}>
+          <button className="chip" onClick={() => handleFaucet()} disabled={faucetPending}>
             Faucet 5k X + 5k Y
           </button>
           {stacksAddress ? (
@@ -597,10 +626,10 @@ function App() {
               contract-calls.
             </p>
             <div className="chip-row">
-              <button className="chip ghost" onClick={() => handleFaucet('x')}>
+              <button className="chip ghost" onClick={() => handleFaucet('x')} disabled={faucetPending}>
                 Faucet 5k X only
               </button>
-              <button className="chip ghost" onClick={() => handleFaucet('y')}>
+              <button className="chip ghost" onClick={() => handleFaucet('y')} disabled={faucetPending}>
                 Faucet 5k Y only
               </button>
             </div>
