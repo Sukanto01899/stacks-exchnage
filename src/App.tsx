@@ -9,7 +9,7 @@ import {
   standardPrincipalCV,
   uintCV,
 } from '@stacks/transactions'
-import { STACKS_TESTNET, createNetwork } from '@stacks/network'
+import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from '@stacks/network'
 import './App.css'
 import { appKit } from './wallets/appkit'
 
@@ -28,14 +28,21 @@ type Balances = {
 const FEE_BPS = 30
 const BPS = 10_000
 const FAUCET_AMOUNT = 5_000
-const STACKS_NETWORK_NAME = 'testnet'
-const STACKS_NETWORK = STACKS_NETWORK_NAME
+const STACKS_NETWORK_NAME =
+  (typeof import.meta !== 'undefined' &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      'VITE_STACKS_NETWORK'
+    ]) ||
+  'testnet'
 const STACKS_API =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
       'VITE_STACKS_API'
     ]) ||
-  'https://api.testnet.hiro.so'
+  (STACKS_NETWORK_NAME === 'mainnet'
+    ? 'https://api.hiro.so'
+    : 'https://api.testnet.hiro.so')
+const IS_MAINNET = STACKS_NETWORK_NAME === 'mainnet'
 const CONTRACT_ADDRESS =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -57,7 +64,7 @@ const TOKEN_CONTRACTS = {
           'VITE_TOKEN_X'
         ]) as string | undefined,
       'token-x'
-    ) || `${CONTRACT_ADDRESS}.token-x::token-x`,
+    ) || `${CONTRACT_ADDRESS}.token-x-c4::token-x`,
   y:
     normalizeTokenId(
       (typeof import.meta !== 'undefined' &&
@@ -65,7 +72,7 @@ const TOKEN_CONTRACTS = {
           'VITE_TOKEN_Y'
         ]) as string | undefined,
       'token-y'
-    ) || `${CONTRACT_ADDRESS}.token-y::token-y`,
+    ) || `${CONTRACT_ADDRESS}.token-y-c4::token-y`,
 }
 const TOKEN_DECIMALS = 1_000_000
 const MINIMUM_LIQUIDITY = 1_000n
@@ -74,7 +81,7 @@ const POOL_CONTRACT_ID =
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
       'VITE_POOL_CONTRACT'
     ]) ||
-  `${CONTRACT_ADDRESS}.pool-v5`
+  `${CONTRACT_ADDRESS}.pool-v5-c4`
 const FAUCET_API =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -83,7 +90,7 @@ const FAUCET_API =
   'http://localhost:8787'
 
 const shortAddress = (addr: string) =>
-  addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
+  addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr
 
 const formatNumber = (value: number) =>
   value.toLocaleString(undefined, {
@@ -91,8 +98,13 @@ const formatNumber = (value: number) =>
     minimumFractionDigits: 0,
   })
 
-const isTestnetAddress = (addr: string | null) =>
-  !!addr && /^S[NT][A-Z0-9]{38,}$/.test(addr)
+const isNetworkAddress = (addr: string | null) => {
+  if (!addr) return false
+  if (STACKS_NETWORK_NAME === 'mainnet') {
+    return /^SP[A-Z0-9]{38,}$/.test(addr)
+  }
+  return /^S[NT][A-Z0-9]{38,}$/.test(addr)
+}
 
 const parseContractId = (id: string) => {
   const [address, nameWithAsset] = id.split('.')
@@ -152,7 +164,7 @@ function App() {
   const network = useMemo(
     () =>
       createNetwork({
-        ...STACKS_TESTNET,
+        ...(STACKS_NETWORK_NAME === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET),
         client: { baseUrl: STACKS_API },
       }),
     [STACKS_API]
@@ -315,6 +327,18 @@ function App() {
     fetchPoolState(stacksAddress)
   }, [])
 
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('stacks-address')
+      if (cached && isNetworkAddress(cached)) {
+        setStacksAddress(cached)
+        syncBalances(cached, { silent: true })
+      }
+    } catch (error) {
+      console.warn('Stacks cache read failed', error)
+    }
+  }, [])
+
   const handleStacksConnect = async () => {
     try {
       const result = await connect({
@@ -326,13 +350,20 @@ function App() {
         ?.map((entry: any) =>
           typeof entry === 'string' ? entry : (entry?.address as string | undefined)
         )
-        .find((a: string | undefined) => isTestnetAddress(a || null))
+        .find((a: string | undefined) => isNetworkAddress(a || null))
 
       if (!addr) {
-        throw new Error('No Stacks testnet address returned. Switch wallet to a Stacks testnet account.')
+        throw new Error(
+          `No Stacks ${STACKS_NETWORK_NAME} address returned. Switch wallet to a Stacks ${STACKS_NETWORK_NAME} account.`
+        )
       }
 
       setStacksAddress(addr)
+      try {
+        localStorage.setItem('stacks-address', addr)
+      } catch (error) {
+        console.warn('Stacks cache write failed', error)
+      }
       await syncBalances(addr)
     } catch (error) {
       console.error('Stacks connect error', error)
@@ -340,7 +371,7 @@ function App() {
       setFaucetMessage(
         error instanceof Error
           ? error.message
-          : 'Failed to connect a Stacks testnet wallet. Use an ST/SN address.'
+          : `Failed to connect a Stacks ${STACKS_NETWORK_NAME} wallet.`
       )
     }
   }
@@ -350,13 +381,14 @@ function App() {
     try {
       localStorage.removeItem('stacks-connect-selected-provider')
       localStorage.removeItem('stacks-connect-addresses')
+      localStorage.removeItem('stacks-address')
     } catch (error) {
       console.warn('Stacks disconnect cleanup failed', error)
     }
   }
 
   const handleBtcConnect = () => {
-    setBtcStatus('Opening modal…')
+    setBtcStatus('Opening modal...')
     appKit
       .open({ view: 'Connect' })
       .then(() =>
@@ -580,11 +612,16 @@ function App() {
   }
 
   const requestFaucet = async (token: 'x' | 'y') => {
+    if (IS_MAINNET) {
+      throw new Error('Faucet is only available on testnet.')
+    }
     if (!stacksAddress) {
       throw new Error('Connect a Stacks wallet to receive testnet tokens.')
     }
-    if (!isTestnetAddress(stacksAddress)) {
-      throw new Error('Connected address is not testnet (must start with ST or SN). Switch wallet to testnet.')
+    if (!isNetworkAddress(stacksAddress)) {
+      throw new Error(
+        `Connected address is not ${STACKS_NETWORK_NAME} (must match network prefix). Switch wallet network.`
+      )
     }
     const response = await fetch(`${FAUCET_API}/faucet`, {
       method: 'POST',
@@ -600,6 +637,10 @@ function App() {
 
   const handleFaucet = async (token?: 'x' | 'y') => {
     try {
+      if (IS_MAINNET) {
+        setFaucetMessage('Faucet is disabled on mainnet.')
+        return
+      }
       setFaucetPending(true)
       setFaucetMessage('Requesting testnet faucet mint...')
       const targets = token ? [token] : ['x', 'y']
@@ -656,6 +697,13 @@ function App() {
     setBurnShares(String(balances.lpShares || '0'))
   }
 
+  const priceImpact = useMemo(() => {
+    const amount = Number(swapInput || 0)
+    const reserve = swapDirection === 'x-to-y' ? pool.reserveX : pool.reserveY
+    if (!amount || reserve <= 0) return 0
+    return (amount / reserve) * 100
+  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY])
+
   const SwapCard = () => (
     <div className="swap-card">
       <div className="token-card">
@@ -663,10 +711,10 @@ function App() {
           <span className="muted">From</span>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={() => setSwapDirection('x-to-y')}>
-              X → Y
+              X -&gt; Y
             </button>
             <button className="tiny ghost" onClick={() => setSwapDirection('y-to-x')}>
-              Y → X
+              Y -&gt; X
             </button>
             <button className="tiny" onClick={setMaxSwap}>
               Max
@@ -681,9 +729,16 @@ function App() {
             min="0"
             placeholder="0.0"
           />
-          <span className="token-pill">
-            {swapDirection === 'x-to-y' ? 'Token X' : 'Token Y'}
-          </span>
+          <select
+            className="token-select"
+            value={swapDirection === 'x-to-y' ? 'x' : 'y'}
+            onChange={(e) =>
+              setSwapDirection(e.target.value === 'x' ? 'x-to-y' : 'y-to-x')
+            }
+          >
+            <option value="x">Token X</option>
+            <option value="y">Token Y</option>
+          </select>
         </div>
         <p className="muted small">
           Balance:{' '}
@@ -699,15 +754,16 @@ function App() {
           setSwapDirection((prev) => (prev === 'x-to-y' ? 'y-to-x' : 'x-to-y'))
         }
       >
-        ⇅
+        Switch
       </button>
 
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">To</span>
-          <span className="pill-small">
-            {swapDirection === 'x-to-y' ? 'Token Y' : 'Token X'}
-          </span>
+          <select className="token-select" value={swapDirection === 'x-to-y' ? 'y' : 'x'} disabled>
+            <option value="x">Token X</option>
+            <option value="y">Token Y</option>
+          </select>
         </div>
         <div className="token-output">
           <h3>{swapOutput !== null ? formatNumber(swapOutput) : '0.0'}</h3>
@@ -717,10 +773,8 @@ function App() {
 
       <div className="inline-stats">
         <div>
-          <p className="muted small">Price (X→Y)</p>
-          <strong>
-            {currentPrice ? `1 X ≈ ${formatNumber(currentPrice)} Y` : 'N/A'}
-          </strong>
+          <p className="muted small">Price (X-&gt;Y)</p>
+          <strong>{currentPrice ? `1 X ~ ${formatNumber(currentPrice)} Y` : 'N/A'}</strong>
         </div>
         <div>
           <p className="muted small">Fee</p>
@@ -729,7 +783,20 @@ function App() {
         <div>
           <p className="muted small">Pool reserves</p>
           <strong>
-            {formatNumber(pool.reserveX)} X · {formatNumber(pool.reserveY)} Y
+            {formatNumber(pool.reserveX)} X / {formatNumber(pool.reserveY)} Y
+          </strong>
+        </div>
+      </div>
+      <div className="breakdown">
+        <div>
+          <span className="muted small">Price impact</span>
+          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : '—'}</strong>
+        </div>
+        <div>
+          <span className="muted small">Minimum received</span>
+          <strong>
+            {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : '—'}
+            {swapDirection === 'x-to-y' ? 'Y' : 'X'}
           </strong>
         </div>
       </div>
@@ -745,7 +812,7 @@ function App() {
     <div className="lp-stack">
       <div className="token-card">
         <div className="token-card-head">
-          <span className="muted">Add liquidity</span>
+          <span className="muted">Add to pool</span>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
               Match pool ratio
@@ -765,9 +832,7 @@ function App() {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">
-              Balance: {formatNumber(balances.tokenX)}
-            </p>
+            <p className="muted small">Balance: {formatNumber(balances.tokenX)}</p>
           </div>
           <div>
             <label>Token Y</label>
@@ -778,9 +843,7 @@ function App() {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">
-              Balance: {formatNumber(balances.tokenY)}
-            </p>
+            <p className="muted small">Balance: {formatNumber(balances.tokenY)}</p>
           </div>
         </div>
         <button className="primary" onClick={handleAddLiquidity}>
@@ -791,7 +854,7 @@ function App() {
 
       <div className="token-card">
         <div className="token-card-head">
-          <span className="muted">Remove liquidity</span>
+          <span className="muted">Remove from pool</span>
           <button className="tiny ghost" onClick={setMaxBurn}>
             Max
           </button>
@@ -807,11 +870,10 @@ function App() {
           <span className="token-pill">LP shares</span>
         </div>
         <p className="muted small">
-          Your LP: {formatNumber(balances.lpShares)} · Pool share:{' '}
-          {(poolShare * 100).toFixed(2)}%
+          Your LP: {formatNumber(balances.lpShares)} / Pool share: {(poolShare * 100).toFixed(2)}%
         </p>
         <button className="primary" onClick={handleRemoveLiquidity}>
-          Remove liquidity
+          Remove from pool
         </button>
         {burnMessage && <p className="note">{burnMessage}</p>}
       </div>
@@ -819,22 +881,22 @@ function App() {
   )
 
   return (
-    <div className="shell">
-      <header className="topbar">
+    <div className="page single">
+      <header className="nav">
         <div className="brand">
-          <div className="mark">⇌</div>
+          <span className="brand-mark" />
           <div>
-            <p className="eyebrow">Stacks DEX demo</p>
-            <h1>Uniswap-style swap desk</h1>
-            <p className="muted">
-              Simulate swaps and LP actions before wiring real Clarity calls.
-            </p>
+            <p className="eyebrow">Stacks Exchange</p>
+            <h1>Swap</h1>
           </div>
         </div>
-        <div className="top-actions">
-          <button className="chip" onClick={() => handleFaucet()} disabled={faucetPending}>
-            Faucet 5k X + 5k Y
-          </button>
+        <div className="nav-actions">
+          {!IS_MAINNET && (
+            <button className="chip" onClick={() => handleFaucet()} disabled={faucetPending}>
+              Faucet 5k X + 5k Y
+            </button>
+          )}
+          {IS_MAINNET && <span className="chip success">Mainnet live</span>}
           <button
             className="chip ghost"
             onClick={() => stacksAddress && syncBalances(stacksAddress)}
@@ -869,39 +931,9 @@ function App() {
         </div>
       </header>
 
-      <div className="status-row top">
-        <div>
-          <p className="muted small">Stacks</p>
-          <strong>{stacksAddress || 'Not connected'}</strong>
-        </div>
-        <div>
-          <p className="muted small">Stacks network</p>
-          <strong>{STACKS_NETWORK_NAME}</strong>
-        </div>
-        <div>
-          <p className="muted small">Bitcoin</p>
-          <strong>{btcStatus || 'Not connected'}</strong>
-        </div>
-        <div>
-          <p className="muted small">Wallet balances</p>
-          <strong>
-            {formatNumber(balances.tokenX)} X · {formatNumber(balances.tokenY)}{' '}
-            Y · {formatNumber(balances.lpShares)} LP
-          </strong>
-        </div>
-      </div>
-
-      <div className="main-grid">
+      <main className="content single">
         <section className="panel swap-panel">
           <div className="panel-head">
-            <div>
-              <p className="eyebrow">Swap box</p>
-              <h2>
-                {activeTab === 'swap'
-                  ? 'Trade tokens instantly'
-                  : 'Manage liquidity'}
-              </h2>
-            </div>
             <div className="tabs">
               <button
                 className={activeTab === 'swap' ? 'active' : ''}
@@ -913,12 +945,18 @@ function App() {
                 className={activeTab === 'liquidity' ? 'active' : ''}
                 onClick={() => setActiveTab('liquidity')}
               >
-                Liquidity
+                Pool
               </button>
+            </div>
+            <div className="panel-subtitle">
+              {activeTab === 'swap'
+                ? 'Trade tokens with a simple quote and confirm.'
+                : 'Add or remove liquidity from the pool.'}
             </div>
           </div>
 
           {activeTab === 'swap' ? <SwapCard /> : <LiquidityCard />}
+
           {faucetMessage && <p className="note subtle">{faucetMessage}</p>}
           {faucetTxids.length > 0 && (
             <div className="note subtle">
@@ -939,59 +977,8 @@ function App() {
             </div>
           )}
         </section>
-
-        <aside className="panel info">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">Pool + sim</p>
-              <h3>Live math preview</h3>
-            </div>
-            <span className="pill-small">Sim only</span>
-          </div>
-          <div className="stat-grid">
-            <div>
-              <p className="muted small">Reserves</p>
-              <strong>
-                {formatNumber(pool.reserveX)} X / {formatNumber(pool.reserveY)} Y
-              </strong>
-            </div>
-            <div>
-              <p className="muted small">LP supply</p>
-              <strong>{formatNumber(pool.totalShares)} shares</strong>
-            </div>
-            <div>
-              <p className="muted small">Your pool share</p>
-              <strong>{(poolShare * 100).toFixed(2)}%</strong>
-            </div>
-            <div>
-              <p className="muted small">Price impact (est.)</p>
-              <strong>
-                {swapOutput
-                  ? `${(Number(swapInput || 0) / (pool.reserveX || 1)).toFixed(
-                      4
-                    )}%`
-                  : 'Enter amount'}
-              </strong>
-            </div>
-          </div>
-          <div className="info-note">
-            <p className="muted">
-              This UI mirrors Uniswap-style UX: one swap box, live quotes, and a
-              faucet to fill your wallet with demo tokens so you can practice
-              swapping and adding/removing liquidity before wiring real
-              contract-calls.
-            </p>
-            <div className="chip-row">
-              <button className="chip ghost" onClick={() => handleFaucet('x')} disabled={faucetPending}>
-                Faucet 5k X only
-              </button>
-              <button className="chip ghost" onClick={() => handleFaucet('y')} disabled={faucetPending}>
-                Faucet 5k Y only
-              </button>
-            </div>
-          </div>
-        </aside>
-      </div>
+      </main>
+      {poolPending && <span className="sr-only">Loading pool data</span>}
     </div>
   )
 }
