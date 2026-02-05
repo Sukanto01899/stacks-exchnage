@@ -704,6 +704,65 @@ function App() {
     return (amount / reserve) * 100
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY])
 
+  const simulator = useMemo(() => {
+    const amount = Number(swapInput || 0)
+    const fromX = swapDirection === 'x-to-y'
+    const reserveX = pool.reserveX
+    const reserveY = pool.reserveY
+    const fee = (amount * FEE_BPS) / BPS
+    const output = quoteSwap(amount, fromX)
+    const nextReserveX = fromX ? reserveX + amount : reserveX - output
+    const nextReserveY = fromX ? reserveY - output : reserveY + amount
+    const nextPrice =
+      nextReserveX > 0 && nextReserveY > 0 ? nextReserveY / nextReserveX : 0
+    return {
+      amount,
+      fee,
+      output,
+      nextReserveX,
+      nextReserveY,
+      nextPrice,
+    }
+  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY])
+
+  const curvePreview = useMemo(() => {
+    if (pool.reserveX <= 0 || pool.reserveY <= 0) return null
+    const k = pool.reserveX * pool.reserveY
+    const xMin = pool.reserveX * 0.3
+    const xMax = pool.reserveX * 1.7
+    const points: { x: number; y: number }[] = []
+    const total = 26
+    for (let i = 0; i <= total; i += 1) {
+      const x = xMin + ((xMax - xMin) * i) / total
+      const y = k / x
+      points.push({ x, y })
+    }
+    const yMax = k / xMin
+    const yMin = k / xMax
+    const mapPoint = (x: number, y: number) => ({
+      x: ((x - xMin) / (xMax - xMin)) * 100,
+      y: 100 - ((y - yMin) / (yMax - yMin)) * 100,
+    })
+    const path = points
+      .map((pt, index) => {
+        const mapped = mapPoint(pt.x, pt.y)
+        return `${index === 0 ? 'M' : 'L'}${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`
+      })
+      .join(' ')
+    const current = mapPoint(pool.reserveX, pool.reserveY)
+    const simulated =
+      simulator.nextReserveX > 0 && simulator.nextReserveY > 0
+        ? mapPoint(simulator.nextReserveX, simulator.nextReserveY)
+        : null
+    return { path, current, simulated }
+  }, [pool.reserveX, pool.reserveY, simulator.nextReserveX, simulator.nextReserveY])
+
+  const maxSwap = useMemo(() => {
+    const balance = swapDirection === 'x-to-y' ? balances.tokenX : balances.tokenY
+    if (!balance || balance <= 0) return 0
+    return Math.max(0, Number(balance.toFixed(4)))
+  }, [balances.tokenX, balances.tokenY, swapDirection])
+
   const SwapCard = () => (
     <div className="swap-card">
       <div className="token-card">
@@ -798,6 +857,74 @@ function App() {
             {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : '—'}
             {swapDirection === 'x-to-y' ? 'Y' : 'X'}
           </strong>
+        </div>
+      </div>
+
+      <div className="simulator">
+        <div className="sim-header">
+          <div>
+            <p className="eyebrow">Swap Simulator</p>
+            <h3>Live curve preview</h3>
+          </div>
+          <span className="pill-small">Drag to preview</span>
+        </div>
+        <div className="sim-body">
+          <div className="sim-controls">
+            <label>Simulated amount</label>
+            <input
+              type="range"
+              min="0"
+              max={maxSwap || 0}
+              step="0.01"
+              value={Math.min(Number(swapInput || 0), maxSwap || 0)}
+              onChange={(e) => setSwapInput(e.target.value)}
+              disabled={maxSwap <= 0}
+            />
+            <div className="sim-meta">
+              <span className="muted small">
+                {formatNumber(simulator.amount)} {swapDirection === 'x-to-y' ? 'X' : 'Y'}
+              </span>
+              <span className="muted small">Max {formatNumber(maxSwap)}</span>
+            </div>
+          </div>
+          <div className="sim-curve">
+            {curvePreview ? (
+              <svg viewBox="0 0 100 100" role="img" aria-label="Swap curve preview">
+                <path d={curvePreview.path} className="curve-path" />
+                <circle cx={curvePreview.current.x} cy={curvePreview.current.y} r="3.5" />
+                {curvePreview.simulated && (
+                  <circle
+                    cx={curvePreview.simulated.x}
+                    cy={curvePreview.simulated.y}
+                    r="4.5"
+                    className="curve-point"
+                  />
+                )}
+              </svg>
+            ) : (
+              <p className="muted small">Add liquidity to render the AMM curve.</p>
+            )}
+          </div>
+        </div>
+        <div className="sim-stats">
+          <div>
+            <span className="muted small">Post-swap reserves</span>
+            <strong>
+              {formatNumber(simulator.nextReserveX)} X / {formatNumber(simulator.nextReserveY)} Y
+            </strong>
+          </div>
+          <div>
+            <span className="muted small">New price</span>
+            <strong>
+              {simulator.nextPrice ? `1 X ~ ${formatNumber(simulator.nextPrice)} Y` : '—'}
+            </strong>
+          </div>
+          <div>
+            <span className="muted small">Estimated fee</span>
+            <strong>
+              {formatNumber(simulator.fee)} {swapDirection === 'x-to-y' ? 'X' : 'Y'}
+            </strong>
+          </div>
         </div>
       </div>
 

@@ -326,6 +326,77 @@ h3 {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: linear-gradient(145deg, rgba(19, 26, 44, 0.92), rgba(10, 16, 30, 0.88));
+}
+
+.sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sim-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.sim-controls input[type='range'] {
+  width: 100%;
+  accent-color: var(--sky-400);
+}
+
+.sim-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.sim-curve {
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+}
+
+.sim-curve svg {
+  width: 100%;
+  height: 120px;
+}
+
+.curve-path {
+  fill: none;
+  stroke: rgba(124, 199, 255, 0.8);
+  stroke-width: 2.5;
+}
+
+.sim-curve circle {
+  fill: #f5f7fb;
+  opacity: 0.9;
+}
+
+.curve-point {
+  fill: #3fbf9f;
+}
+
+.sim-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
 .primary {
   width: 100%;
   background: linear-gradient(135deg, var(--mint-400), var(--sky-400));
@@ -465,6 +536,10 @@ label {
 
   h1 {
     font-size: 22px;
+  }
+
+  .sim-body {
+    grid-template-columns: 1fr;
   }
 }
 
