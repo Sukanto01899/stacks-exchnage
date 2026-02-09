@@ -1,16 +1,17 @@
-import { createAppKit } from '@reown/appkit'
-import { bitcoinTestnet } from '@reown/appkit/networks'
-import { BitcoinAdapter } from '@reown/appkit-adapter-bitcoin'
+import { createAppKit } from "@reown/appkit";
+import { bitcoinTestnet } from "@reown/appkit/networks";
+import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 
 const projectId =
-  import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo-walletconnect-project-id'
+  import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "walletconnect-project-id";
 
 const metadata = {
-  name: 'Stacks AMM Demo',
-  description: 'Connect Bitcoin wallets for swaps/liquidity',
-  url: typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-  icons: ['https://walletconnect.com/walletconnect-logo.png'],
-}
+  name: "Stacks AMM",
+  description: "Connect Bitcoin wallets for swaps/liquidity",
+  url:
+    typeof window !== "undefined" ? window.location.origin : "http://localhost",
+  icons: ["https://walletconnect.com/walletconnect-logo.png"],
+};
 
 export const appKit = createAppKit({
   projectId,
@@ -18,5 +19,5 @@ export const appKit = createAppKit({
   networks: [bitcoinTestnet],
   defaultNetwork: bitcoinTestnet,
   metadata,
-  themeMode: 'dark',
-})
+  themeMode: "dark",
+});

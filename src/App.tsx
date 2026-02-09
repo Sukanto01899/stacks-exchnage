@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { connect, openContractCall } from '@stacks/connect'
+import { useEffect, useMemo, useState } from "react";
+import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
   PostConditionMode,
@@ -8,471 +8,489 @@ import {
   fetchCallReadOnlyFunction,
   standardPrincipalCV,
   uintCV,
-} from '@stacks/transactions'
-import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from '@stacks/network'
-import './App.css'
-import { appKit } from './wallets/appkit'
+} from "@stacks/transactions";
+import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
+import "./App.css";
+import { appKit } from "./wallets/appkit";
 
 type PoolState = {
-  reserveX: number
-  reserveY: number
-  totalShares: number
-}
+  reserveX: number;
+  reserveY: number;
+  totalShares: number;
+};
 
 type Balances = {
-  tokenX: number
-  tokenY: number
-  lpShares: number
-}
+  tokenX: number;
+  tokenY: number;
+  lpShares: number;
+};
 
-const FEE_BPS = 30
-const BPS = 10_000
-const FAUCET_AMOUNT = 5_000
+const FEE_BPS = 30;
+const BPS = 10_000;
+const FAUCET_AMOUNT = 5_000;
 const STACKS_NETWORK_NAME =
-  (typeof import.meta !== 'undefined' &&
+  (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      'VITE_STACKS_NETWORK'
+      "VITE_STACKS_NETWORK"
     ]) ||
-  'testnet'
+  "testnet";
 const STACKS_API =
-  (typeof import.meta !== 'undefined' &&
+  (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      'VITE_STACKS_API'
+      "VITE_STACKS_API"
     ]) ||
-  (STACKS_NETWORK_NAME === 'mainnet'
-    ? 'https://api.hiro.so'
-    : 'https://api.testnet.hiro.so')
-const IS_MAINNET = STACKS_NETWORK_NAME === 'mainnet'
+  (STACKS_NETWORK_NAME === "mainnet"
+    ? "https://api.hiro.so"
+    : "https://api.testnet.hiro.so");
+const IS_MAINNET = STACKS_NETWORK_NAME === "mainnet";
 const CONTRACT_ADDRESS =
-  (typeof import.meta !== 'undefined' &&
+  (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      'VITE_CONTRACT_ADDRESS'
+      "VITE_CONTRACT_ADDRESS"
     ]) ||
-  'ST1G4ZDXED8XM2XJ4Q4GJ7F4PG4EJQ1KKXVPSAX13'
+  "ST1G4ZDXED8XM2XJ4Q4GJ7F4PG4EJQ1KKXVPSAX13";
 
 const normalizeTokenId = (value: string | undefined, assetName: string) => {
-  if (value?.includes('::')) return value
-  if (value) return `${value}::${assetName}`
-  return ''
-}
+  if (value?.includes("::")) return value;
+  if (value) return `${value}::${assetName}`;
+  return "";
+};
 
 const TOKEN_CONTRACTS = {
   x:
     normalizeTokenId(
-      (typeof import.meta !== 'undefined' &&
+      (typeof import.meta !== "undefined" &&
         (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-          'VITE_TOKEN_X'
+          "VITE_TOKEN_X"
         ]) as string | undefined,
-      'token-x'
+      "token-x",
     ) || `${CONTRACT_ADDRESS}.token-x-c4::token-x`,
   y:
     normalizeTokenId(
-      (typeof import.meta !== 'undefined' &&
+      (typeof import.meta !== "undefined" &&
         (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-          'VITE_TOKEN_Y'
+          "VITE_TOKEN_Y"
         ]) as string | undefined,
-      'token-y'
+      "token-y",
     ) || `${CONTRACT_ADDRESS}.token-y-c4::token-y`,
-}
-const TOKEN_DECIMALS = 1_000_000
-const MINIMUM_LIQUIDITY = 1_000n
+};
+const TOKEN_DECIMALS = 1_000_000;
+const MINIMUM_LIQUIDITY = 1_000n;
 const POOL_CONTRACT_ID =
-  (typeof import.meta !== 'undefined' &&
+  (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      'VITE_POOL_CONTRACT'
+      "VITE_POOL_CONTRACT"
     ]) ||
-  `${CONTRACT_ADDRESS}.pool-v5-c4`
+  `${CONTRACT_ADDRESS}.pool-v5-c4`;
 const FAUCET_API =
-  (typeof import.meta !== 'undefined' &&
+  (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      'VITE_FAUCET_URL'
+      "VITE_FAUCET_URL"
     ]) ||
-  'http://localhost:8787'
+  "http://localhost:5000/api";
 
 const shortAddress = (addr: string) =>
-  addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr
+  addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
 
 const formatNumber = (value: number) =>
   value.toLocaleString(undefined, {
     maximumFractionDigits: 6,
     minimumFractionDigits: 0,
-  })
+  });
 
 const isNetworkAddress = (addr: string | null) => {
-  if (!addr) return false
-  if (STACKS_NETWORK_NAME === 'mainnet') {
-    return /^SP[A-Z0-9]{38,}$/.test(addr)
+  if (!addr) return false;
+  if (STACKS_NETWORK_NAME === "mainnet") {
+    return /^SP[A-Z0-9]{38,}$/.test(addr);
   }
-  return /^S[NT][A-Z0-9]{38,}$/.test(addr)
-}
+  return /^S[NT][A-Z0-9]{38,}$/.test(addr);
+};
 
 const parseContractId = (id: string) => {
-  const [address, nameWithAsset] = id.split('.')
-  const contractName = (nameWithAsset || '').split('::')[0]
-  return { address, contractName }
-}
+  const [address, nameWithAsset] = id.split(".");
+  const contractName = (nameWithAsset || "").split("::")[0];
+  return { address, contractName };
+};
 
 const bigintSqrt = (value: bigint) => {
-  if (value < 0n) throw new Error('sqrt only works on non-negative inputs')
-  if (value < 2n) return value
-  let x0 = BigInt(Math.floor(Math.sqrt(Number(value))))
-  let x1 = (x0 + value / x0) >> 1n
+  if (value < 0n) throw new Error("sqrt only works on non-negative inputs");
+  if (value < 2n) return value;
+  let x0 = BigInt(Math.floor(Math.sqrt(Number(value))));
+  let x1 = (x0 + value / x0) >> 1n;
   while (x1 < x0) {
-    x0 = x1
-    x1 = (x0 + value / x0) >> 1n
+    x0 = x1;
+    x1 = (x0 + value / x0) >> 1n;
   }
-  return x0
-}
+  return x0;
+};
 
 function App() {
   const [pool, setPool] = useState<PoolState>({
     reserveX: 0,
     reserveY: 0,
     totalShares: 0,
-  })
+  });
 
   const [balances, setBalances] = useState<Balances>({
     tokenX: 0,
     tokenY: 0,
     lpShares: 0,
-  })
-  const [faucetTxids, setFaucetTxids] = useState<string[]>([])
+  });
+  const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'swap' | 'liquidity'>('swap')
-  const [swapDirection, setSwapDirection] = useState<'x-to-y' | 'y-to-x'>(
-    'x-to-y'
-  )
-  const [swapInput, setSwapInput] = useState('100')
-  const [swapOutput, setSwapOutput] = useState<number | null>(null)
-  const [swapMessage, setSwapMessage] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"swap" | "liquidity">("swap");
+  const [swapDirection, setSwapDirection] = useState<"x-to-y" | "y-to-x">(
+    "x-to-y",
+  );
+  const [swapInput, setSwapInput] = useState("100");
+  const [swapOutput, setSwapOutput] = useState<number | null>(null);
+  const [swapMessage, setSwapMessage] = useState<string | null>(null);
 
-  const [liqX, setLiqX] = useState('1200')
-  const [liqY, setLiqY] = useState('1200')
-  const [liqMessage, setLiqMessage] = useState<string | null>(null)
+  const [liqX, setLiqX] = useState("1200");
+  const [liqY, setLiqY] = useState("1200");
+  const [liqMessage, setLiqMessage] = useState<string | null>(null);
 
-  const [burnShares, setBurnShares] = useState('0')
-  const [burnMessage, setBurnMessage] = useState<string | null>(null)
+  const [burnShares, setBurnShares] = useState("0");
+  const [burnMessage, setBurnMessage] = useState<string | null>(null);
 
-  const [faucetMessage, setFaucetMessage] = useState<string | null>(null)
-  const [faucetPending, setFaucetPending] = useState(false)
+  const [faucetMessage, setFaucetMessage] = useState<string | null>(null);
+  const [faucetPending, setFaucetPending] = useState(false);
 
-  const [stacksAddress, setStacksAddress] = useState<string | null>(null)
-  const [btcStatus, setBtcStatus] = useState<string | null>(null)
-  const [balancePending, setBalancePending] = useState(false)
-  const [poolPending, setPoolPending] = useState(false)
+  const [stacksAddress, setStacksAddress] = useState<string | null>(null);
+  const [btcStatus, setBtcStatus] = useState<string | null>(null);
+  const [balancePending, setBalancePending] = useState(false);
+  const [poolPending, setPoolPending] = useState(false);
 
   const network = useMemo(
     () =>
       createNetwork({
-        ...(STACKS_NETWORK_NAME === 'mainnet' ? STACKS_MAINNET : STACKS_TESTNET),
+        ...(STACKS_NETWORK_NAME === "mainnet"
+          ? STACKS_MAINNET
+          : STACKS_TESTNET),
         client: { baseUrl: STACKS_API },
       }),
-    [STACKS_API]
-  )
-  const poolContract = useMemo(() => parseContractId(POOL_CONTRACT_ID), [])
+    [STACKS_API],
+  );
+  const poolContract = useMemo(() => parseContractId(POOL_CONTRACT_ID), []);
   const tokenContracts = useMemo(
     () => ({
       x: parseContractId(TOKEN_CONTRACTS.x),
       y: parseContractId(TOKEN_CONTRACTS.y),
     }),
-    []
-  )
+    [],
+  );
 
   const fetchTipHeight = async () => {
-    const res = await fetch(`${STACKS_API}/extended/v1/info`)
-    if (!res.ok) return 0
-    const data = await res.json().catch(() => ({}))
-    return Number(data?.stacks_tip_height || 0)
-  }
+    const res = await fetch(`${STACKS_API}/extended/v1/info`);
+    if (!res.ok) return 0;
+    const data = await res.json().catch(() => ({}));
+    return Number(data?.stacks_tip_height || 0);
+  };
 
   const fetchPoolState = async (address?: string | null) => {
-    setPoolPending(true)
+    setPoolPending(true);
     try {
-      const senderAddress = address || CONTRACT_ADDRESS
+      const senderAddress = address || CONTRACT_ADDRESS;
       const reserves = await fetchCallReadOnlyFunction({
         contractAddress: poolContract.address,
         contractName: poolContract.contractName,
-        functionName: 'get-reserves',
+        functionName: "get-reserves",
         functionArgs: [],
         senderAddress,
         network,
-      })
+      });
       const totalSupply = await fetchCallReadOnlyFunction({
         contractAddress: poolContract.address,
         contractName: poolContract.contractName,
-        functionName: 'get-total-supply',
+        functionName: "get-total-supply",
         functionArgs: [],
         senderAddress,
         network,
-      })
+      });
       const lpBalance =
         address &&
         (await fetchCallReadOnlyFunction({
           contractAddress: poolContract.address,
           contractName: poolContract.contractName,
-          functionName: 'get-lp-balance',
+          functionName: "get-lp-balance",
           functionArgs: [standardPrincipalCV(address)],
           senderAddress,
           network,
-        }))
+        }));
 
-      const reserveValue = cvToValue(reserves) as { x: string; y: string }
-      const totalSupplyValue = Number(cvToValue(totalSupply) || 0)
-      const lpBalanceValue = lpBalance ? Number(cvToValue(lpBalance) || 0) : 0
+      const reserveValue = cvToValue(reserves) as { x: string; y: string };
+      const totalSupplyValue = Number(cvToValue(totalSupply) || 0);
+      const lpBalanceValue = lpBalance ? Number(cvToValue(lpBalance) || 0) : 0;
 
       setPool({
         reserveX: Number(reserveValue?.x || 0) / TOKEN_DECIMALS,
         reserveY: Number(reserveValue?.y || 0) / TOKEN_DECIMALS,
         totalShares: totalSupplyValue,
-      })
+      });
       if (address) {
         setBalances((prev) => ({
           ...prev,
           lpShares: lpBalanceValue,
-        }))
+        }));
       }
     } catch (error) {
-      console.warn('Pool state fetch failed', error)
+      console.warn("Pool state fetch failed", error);
     } finally {
-      setPoolPending(false)
+      setPoolPending(false);
     }
-  }
+  };
 
   const fetchOnChainBalances = async (address: string) => {
     const response = await fetch(
-      `${STACKS_API}/extended/v1/address/${address}/balances`
-    )
+      `${STACKS_API}/extended/v1/address/${address}/balances`,
+    );
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
+      const errorText = await response.text().catch(() => "");
       throw new Error(
-        `Failed to fetch balances from Stacks API (${response.status}). ${errorText}`
-      )
+        `Failed to fetch balances from Stacks API (${response.status}). ${errorText}`,
+      );
     }
-    const data = await response.json()
-    const fungible = data?.fungible_tokens || {}
-    const tokenX = fungible[TOKEN_CONTRACTS.x]
-    const tokenY = fungible[TOKEN_CONTRACTS.y]
+    const data = await response.json();
+    const fungible = data?.fungible_tokens || {};
+    const tokenX = fungible[TOKEN_CONTRACTS.x];
+    const tokenY = fungible[TOKEN_CONTRACTS.y];
     const normalize = (balance?: { balance?: string }) =>
-      balance?.balance ? Number(balance.balance) / TOKEN_DECIMALS : 0
+      balance?.balance ? Number(balance.balance) / TOKEN_DECIMALS : 0;
 
-    const missing = []
-    if (!tokenX) missing.push(TOKEN_CONTRACTS.x)
-    if (!tokenY) missing.push(TOKEN_CONTRACTS.y)
+    const missing = [];
+    if (!tokenX) missing.push(TOKEN_CONTRACTS.x);
+    if (!tokenY) missing.push(TOKEN_CONTRACTS.y);
 
     return {
       tokenX: normalize(tokenX),
       tokenY: normalize(tokenY),
       missing,
       found: Object.keys(fungible || {}),
-    }
-  }
+    };
+  };
 
   const fetchPoolReserves = async (address?: string | null) => {
-    const senderAddress = address || CONTRACT_ADDRESS
+    const senderAddress = address || CONTRACT_ADDRESS;
     const reserves = await fetchCallReadOnlyFunction({
       contractAddress: poolContract.address,
       contractName: poolContract.contractName,
-      functionName: 'get-reserves',
+      functionName: "get-reserves",
       functionArgs: [],
       senderAddress,
       network,
-    })
-    return cvToValue(reserves) as { x: string; y: string }
-  }
+    });
+    return cvToValue(reserves) as { x: string; y: string };
+  };
 
   const syncBalances = async (address: string, opts?: { silent?: boolean }) => {
-    if (!address) return
+    if (!address) return;
     try {
-      setBalancePending(true)
+      setBalancePending(true);
       if (!opts?.silent) {
-        setFaucetMessage('Refreshing on-chain balances from testnet...')
+        setFaucetMessage("Refreshing on-chain balances from testnet...");
       }
-      const next = await fetchOnChainBalances(address)
-      const reserves = await fetchPoolReserves(address)
+      const next = await fetchOnChainBalances(address);
+      const reserves = await fetchPoolReserves(address);
       setBalances((prev) => ({
         ...prev,
         tokenX: next.tokenX ?? prev.tokenX,
         tokenY: next.tokenY ?? prev.tokenY,
-      }))
+      }));
       setPool((prev) => ({
         ...prev,
         reserveX: Number(reserves?.x || 0) / TOKEN_DECIMALS,
         reserveY: Number(reserves?.y || 0) / TOKEN_DECIMALS,
-      }))
-      await fetchPoolState(address)
+      }));
+      await fetchPoolState(address);
       if (!opts?.silent) {
         const missing = next.missing?.length
-          ? `Missing: ${next.missing.join(' & ')}`
-          : 'Loaded on-chain balances from testnet.'
-        setFaucetMessage(missing)
+          ? `Missing: ${next.missing.join(" & ")}`
+          : "Loaded on-chain balances from testnet.";
+        setFaucetMessage(missing);
       }
     } catch (error) {
       if (!opts?.silent) {
         setFaucetMessage(
           error instanceof Error
             ? error.message
-            : 'Could not load on-chain balances.'
-        )
+            : "Could not load on-chain balances.",
+        );
       }
     } finally {
-      setBalancePending(false)
+      setBalancePending(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchPoolState(stacksAddress)
-  }, [stacksAddress])
+    fetchPoolState(stacksAddress);
+  }, [stacksAddress]);
 
   useEffect(() => {
-    fetchPoolState(stacksAddress)
-  }, [])
+    fetchPoolState(stacksAddress);
+  }, []);
 
   useEffect(() => {
     try {
-      const cached = localStorage.getItem('stacks-address')
+      const cached = localStorage.getItem("stacks-address");
       if (cached && isNetworkAddress(cached)) {
-        setStacksAddress(cached)
-        syncBalances(cached, { silent: true })
+        setStacksAddress(cached);
+        syncBalances(cached, { silent: true });
       }
     } catch (error) {
-      console.warn('Stacks cache read failed', error)
+      console.warn("Stacks cache read failed", error);
     }
-  }, [])
+  }, []);
 
   const handleStacksConnect = async () => {
     try {
       const result = await connect({
         forceWalletSelect: true,
         network: STACKS_NETWORK_NAME,
-      })
+      });
 
       const addr = result?.addresses
         ?.map((entry: any) =>
-          typeof entry === 'string' ? entry : (entry?.address as string | undefined)
+          typeof entry === "string"
+            ? entry
+            : (entry?.address as string | undefined),
         )
-        .find((a: string | undefined) => isNetworkAddress(a || null))
+        .find((a: string | undefined) => isNetworkAddress(a || null));
 
       if (!addr) {
         throw new Error(
-          `No Stacks ${STACKS_NETWORK_NAME} address returned. Switch wallet to a Stacks ${STACKS_NETWORK_NAME} account.`
-        )
+          `No Stacks ${STACKS_NETWORK_NAME} address returned. Switch wallet to a Stacks ${STACKS_NETWORK_NAME} account.`,
+        );
       }
 
-      setStacksAddress(addr)
+      setStacksAddress(addr);
       try {
-        localStorage.setItem('stacks-address', addr)
+        localStorage.setItem("stacks-address", addr);
       } catch (error) {
-        console.warn('Stacks cache write failed', error)
+        console.warn("Stacks cache write failed", error);
       }
-      await syncBalances(addr)
+      await syncBalances(addr);
     } catch (error) {
-      console.error('Stacks connect error', error)
-      setStacksAddress(null)
+      console.error("Stacks connect error", error);
+      setStacksAddress(null);
       setFaucetMessage(
         error instanceof Error
           ? error.message
-          : `Failed to connect a Stacks ${STACKS_NETWORK_NAME} wallet.`
-      )
+          : `Failed to connect a Stacks ${STACKS_NETWORK_NAME} wallet.`,
+      );
     }
-  }
+  };
 
   const handleStacksDisconnect = () => {
-    setStacksAddress(null)
+    setStacksAddress(null);
     try {
-      localStorage.removeItem('stacks-connect-selected-provider')
-      localStorage.removeItem('stacks-connect-addresses')
-      localStorage.removeItem('stacks-address')
+      localStorage.removeItem("stacks-connect-selected-provider");
+      localStorage.removeItem("stacks-connect-addresses");
+      localStorage.removeItem("stacks-address");
     } catch (error) {
-      console.warn('Stacks disconnect cleanup failed', error)
+      console.warn("Stacks disconnect cleanup failed", error);
     }
-  }
+  };
 
   const handleBtcConnect = () => {
-    setBtcStatus('Opening modal...')
+    setBtcStatus("Opening modal...");
     appKit
-      .open({ view: 'Connect' })
+      .open({ view: "Connect" })
       .then(() =>
-        setBtcStatus('Modal open: select Leather, Xverse, or WalletConnect.')
+        setBtcStatus("Modal open: select Leather, Xverse, or WalletConnect."),
       )
       .catch((error) => {
-        console.error('Bitcoin connect error', error)
-        setBtcStatus('Could not open modal. Check WalletConnect project id and extensions.')
-      })
-  }
+        console.error("Bitcoin connect error", error);
+        setBtcStatus(
+          "Could not open modal. Check WalletConnect project id and extensions.",
+        );
+      });
+  };
 
   const handleBtcDisconnect = () => {
-    setBtcStatus(null)
-  }
+    setBtcStatus(null);
+  };
 
   const poolShare = useMemo(() => {
-    if (pool.totalShares === 0) return 0
-    return balances.lpShares / pool.totalShares
-  }, [balances.lpShares, pool.totalShares])
+    if (pool.totalShares === 0) return 0;
+    return balances.lpShares / pool.totalShares;
+  }, [balances.lpShares, pool.totalShares]);
 
   const currentPrice = useMemo(() => {
-    if (pool.reserveX === 0 || pool.reserveY === 0) return 0
-    return pool.reserveY / pool.reserveX
-  }, [pool.reserveX, pool.reserveY])
+    if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
+    return pool.reserveY / pool.reserveX;
+  }, [pool.reserveX, pool.reserveY]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
-    const reserveIn = fromX ? pool.reserveX : pool.reserveY
-    const reserveOut = fromX ? pool.reserveY : pool.reserveX
-    if (amount <= 0 || reserveIn <= 0 || reserveOut <= 0) return 0
-    const fee = (amount * FEE_BPS) / BPS
-    const amountAfterFee = amount - fee
-    return (reserveOut * amountAfterFee) / (reserveIn + amountAfterFee)
-  }
+    const reserveIn = fromX ? pool.reserveX : pool.reserveY;
+    const reserveOut = fromX ? pool.reserveY : pool.reserveX;
+    if (amount <= 0 || reserveIn <= 0 || reserveOut <= 0) return 0;
+    const fee = (amount * FEE_BPS) / BPS;
+    const amountAfterFee = amount - fee;
+    return (reserveOut * amountAfterFee) / (reserveIn + amountAfterFee);
+  };
 
   const handleSwap = async () => {
-    setSwapMessage(null)
-    const amount = Number(swapInput)
+    setSwapMessage(null);
+    const amount = Number(swapInput);
     if (!amount || amount <= 0) {
-      setSwapMessage('Enter an amount greater than 0.')
-      return
+      setSwapMessage("Enter an amount greater than 0.");
+      return;
     }
     if (!stacksAddress) {
-      setSwapMessage('Connect a Stacks wallet first.')
-      return
+      setSwapMessage("Connect a Stacks wallet first.");
+      return;
     }
     if (pool.reserveX <= 0 || pool.reserveY <= 0) {
-      setSwapMessage('Pool has no liquidity yet. Add liquidity first.')
-      return
+      setSwapMessage("Pool has no liquidity yet. Add liquidity first.");
+      return;
     }
-    const fromX = swapDirection === 'x-to-y'
-    const inputBalance = fromX ? balances.tokenX : balances.tokenY
+    const fromX = swapDirection === "x-to-y";
+    const inputBalance = fromX ? balances.tokenX : balances.tokenY;
     if (amount > inputBalance) {
-      setSwapMessage('Not enough balance for this swap.')
-      return
+      setSwapMessage("Not enough balance for this swap.");
+      return;
     }
-    const outputPreview = quoteSwap(amount, fromX)
-    setSwapOutput(outputPreview)
+    const outputPreview = quoteSwap(amount, fromX);
+    setSwapOutput(outputPreview);
     if (outputPreview <= 0) {
-      setSwapMessage('Pool has no liquidity for this direction yet.')
-      return
+      setSwapMessage("Pool has no liquidity for this direction yet.");
+      return;
     }
-    const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS))
-    const minOutMicro = BigInt(0)
-    const tip = await fetchTipHeight()
-    const deadline = tip > 0 ? BigInt(tip + 20) : BigInt(0)
+    const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
+    const minOutMicro = BigInt(0);
+    const tip = await fetchTipHeight();
+    const deadline = tip > 0 ? BigInt(tip + 20) : BigInt(0);
 
-    const functionName = fromX ? 'swap-x-for-y' : 'swap-y-for-x'
+    const functionName = fromX ? "swap-x-for-y" : "swap-y-for-x";
     const functionArgs = fromX
       ? [
-          contractPrincipalCV(tokenContracts.x.address, tokenContracts.x.contractName),
-          contractPrincipalCV(tokenContracts.y.address, tokenContracts.y.contractName),
+          contractPrincipalCV(
+            tokenContracts.x.address,
+            tokenContracts.x.contractName,
+          ),
+          contractPrincipalCV(
+            tokenContracts.y.address,
+            tokenContracts.y.contractName,
+          ),
           uintCV(amountMicro),
           uintCV(minOutMicro),
           standardPrincipalCV(stacksAddress),
           uintCV(deadline),
         ]
       : [
-          contractPrincipalCV(tokenContracts.x.address, tokenContracts.x.contractName),
-          contractPrincipalCV(tokenContracts.y.address, tokenContracts.y.contractName),
+          contractPrincipalCV(
+            tokenContracts.x.address,
+            tokenContracts.x.contractName,
+          ),
+          contractPrincipalCV(
+            tokenContracts.y.address,
+            tokenContracts.y.contractName,
+          ),
           uintCV(amountMicro),
           uintCV(minOutMicro),
           standardPrincipalCV(stacksAddress),
           uintCV(deadline),
-        ]
+        ];
 
     try {
       await openContractCall({
@@ -484,61 +502,75 @@ function App() {
         functionName,
         functionArgs,
         onFinish: async (payload) => {
-          setSwapMessage(`Swap submitted. Txid: ${payload.txId}`)
-          await syncBalances(stacksAddress, { silent: true })
-          await fetchPoolState(stacksAddress)
+          setSwapMessage(`Swap submitted. Txid: ${payload.txId}`);
+          await syncBalances(stacksAddress, { silent: true });
+          await fetchPoolState(stacksAddress);
         },
-        onCancel: () => setSwapMessage('Swap cancelled.'),
-      })
+        onCancel: () => setSwapMessage("Swap cancelled."),
+      });
     } catch (error) {
       setSwapMessage(
-        error instanceof Error ? error.message : 'Swap failed. Check wallet and try again.'
-      )
+        error instanceof Error
+          ? error.message
+          : "Swap failed. Check wallet and try again.",
+      );
     }
-  }
+  };
 
   const handleAddLiquidity = async () => {
-    setLiqMessage(null)
-    const amountX = Number(liqX)
-    const amountY = Number(liqY)
+    setLiqMessage(null);
+    const amountX = Number(liqX);
+    const amountY = Number(liqY);
     if (amountX <= 0 || amountY <= 0) {
-      setLiqMessage('Enter positive amounts for both tokens.')
-      return
+      setLiqMessage("Enter positive amounts for both tokens.");
+      return;
     }
     if (!stacksAddress) {
-      setLiqMessage('Connect a Stacks wallet first.')
-      return
+      setLiqMessage("Connect a Stacks wallet first.");
+      return;
     }
-    const initializing = pool.totalShares === 0
-    const amountXMicro = BigInt(Math.floor(amountX * TOKEN_DECIMALS))
-    const amountYMicro = BigInt(Math.floor(amountY * TOKEN_DECIMALS))
-    const minShares = BigInt(0)
+    const initializing = pool.totalShares === 0;
+    const amountXMicro = BigInt(Math.floor(amountX * TOKEN_DECIMALS));
+    const amountYMicro = BigInt(Math.floor(amountY * TOKEN_DECIMALS));
+    const minShares = BigInt(0);
 
     if (initializing) {
-      const shares = bigintSqrt(amountXMicro * amountYMicro)
+      const shares = bigintSqrt(amountXMicro * amountYMicro);
       if (shares <= MINIMUM_LIQUIDITY) {
         setLiqMessage(
-          `Deposit too small to initialize pool. Need > ${MINIMUM_LIQUIDITY.toString()} initial shares (try larger amounts).`
-        )
-        return
+          `Deposit too small to initialize pool. Need > ${MINIMUM_LIQUIDITY.toString()} initial shares (try larger amounts).`,
+        );
+        return;
       }
     }
 
-    const functionName = initializing ? 'initialize-pool' : 'add-liquidity'
+    const functionName = initializing ? "initialize-pool" : "add-liquidity";
     const functionArgs = initializing
       ? [
-          contractPrincipalCV(tokenContracts.x.address, tokenContracts.x.contractName),
-          contractPrincipalCV(tokenContracts.y.address, tokenContracts.y.contractName),
+          contractPrincipalCV(
+            tokenContracts.x.address,
+            tokenContracts.x.contractName,
+          ),
+          contractPrincipalCV(
+            tokenContracts.y.address,
+            tokenContracts.y.contractName,
+          ),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
         ]
       : [
-          contractPrincipalCV(tokenContracts.x.address, tokenContracts.x.contractName),
-          contractPrincipalCV(tokenContracts.y.address, tokenContracts.y.contractName),
+          contractPrincipalCV(
+            tokenContracts.x.address,
+            tokenContracts.x.contractName,
+          ),
+          contractPrincipalCV(
+            tokenContracts.y.address,
+            tokenContracts.y.contractName,
+          ),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
           uintCV(minShares),
-        ]
+        ];
 
     try {
       await openContractCall({
@@ -550,35 +582,35 @@ function App() {
         functionName,
         functionArgs,
         onFinish: async (payload) => {
-          setLiqMessage(`Liquidity submitted. Txid: ${payload.txId}`)
-          await syncBalances(stacksAddress, { silent: true })
-          await fetchPoolState(stacksAddress)
+          setLiqMessage(`Liquidity submitted. Txid: ${payload.txId}`);
+          await syncBalances(stacksAddress, { silent: true });
+          await fetchPoolState(stacksAddress);
         },
-        onCancel: () => setLiqMessage('Liquidity cancelled.'),
-      })
+        onCancel: () => setLiqMessage("Liquidity cancelled."),
+      });
     } catch (error) {
       setLiqMessage(
         error instanceof Error
           ? error.message
-          : 'Liquidity add failed. Check wallet and try again.'
-      )
+          : "Liquidity add failed. Check wallet and try again.",
+      );
     }
-  }
+  };
 
   const handleRemoveLiquidity = async () => {
-    setBurnMessage(null)
-    const shares = Number(burnShares)
+    setBurnMessage(null);
+    const shares = Number(burnShares);
     if (shares <= 0) {
-      setBurnMessage('Enter a share amount greater than 0.')
-      return
+      setBurnMessage("Enter a share amount greater than 0.");
+      return;
     }
     if (!stacksAddress) {
-      setBurnMessage('Connect a Stacks wallet first.')
-      return
+      setBurnMessage("Connect a Stacks wallet first.");
+      return;
     }
-    const sharesUint = BigInt(Math.floor(shares))
-    const minX = BigInt(0)
-    const minY = BigInt(0)
+    const sharesUint = BigInt(Math.floor(shares));
+    const minX = BigInt(0);
+    const minY = BigInt(0);
 
     try {
       await openContractCall({
@@ -587,134 +619,141 @@ function App() {
         postConditionMode: PostConditionMode.Allow,
         contractAddress: poolContract.address,
         contractName: poolContract.contractName,
-        functionName: 'remove-liquidity',
+        functionName: "remove-liquidity",
         functionArgs: [
-          contractPrincipalCV(tokenContracts.x.address, tokenContracts.x.contractName),
-          contractPrincipalCV(tokenContracts.y.address, tokenContracts.y.contractName),
+          contractPrincipalCV(
+            tokenContracts.x.address,
+            tokenContracts.x.contractName,
+          ),
+          contractPrincipalCV(
+            tokenContracts.y.address,
+            tokenContracts.y.contractName,
+          ),
           uintCV(sharesUint),
           uintCV(minX),
           uintCV(minY),
         ],
         onFinish: async (payload) => {
-          setBurnMessage(`Remove liquidity submitted. Txid: ${payload.txId}`)
-          await syncBalances(stacksAddress, { silent: true })
-          await fetchPoolState(stacksAddress)
+          setBurnMessage(`Remove liquidity submitted. Txid: ${payload.txId}`);
+          await syncBalances(stacksAddress, { silent: true });
+          await fetchPoolState(stacksAddress);
         },
-        onCancel: () => setBurnMessage('Remove liquidity cancelled.'),
-      })
+        onCancel: () => setBurnMessage("Remove liquidity cancelled."),
+      });
     } catch (error) {
       setBurnMessage(
         error instanceof Error
           ? error.message
-          : 'Remove liquidity failed. Check wallet and try again.'
-      )
+          : "Remove liquidity failed. Check wallet and try again.",
+      );
     }
-  }
+  };
 
-  const requestFaucet = async (token: 'x' | 'y') => {
+  const requestFaucet = async (token: "x" | "y") => {
     if (IS_MAINNET) {
-      throw new Error('Faucet is only available on testnet.')
+      throw new Error("Faucet is only available on testnet.");
     }
     if (!stacksAddress) {
-      throw new Error('Connect a Stacks wallet to receive testnet tokens.')
+      throw new Error("Connect a Stacks wallet to receive testnet tokens.");
     }
     if (!isNetworkAddress(stacksAddress)) {
       throw new Error(
-        `Connected address is not ${STACKS_NETWORK_NAME} (must match network prefix). Switch wallet network.`
-      )
+        `Connected address is not ${STACKS_NETWORK_NAME} (must match network prefix). Switch wallet network.`,
+      );
     }
     const response = await fetch(`${FAUCET_API}/faucet`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address: stacksAddress, token }),
-    })
-    const data = await response.json().catch(() => ({}))
+    });
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.error || 'Faucet request failed.')
+      throw new Error(data.error || "Faucet request failed.");
     }
-    return data
-  }
+    return data;
+  };
 
-  const handleFaucet = async (token?: 'x' | 'y') => {
+  const handleFaucet = async (token?: "x" | "y") => {
     try {
       if (IS_MAINNET) {
-        setFaucetMessage('Faucet is disabled on mainnet.')
-        return
+        setFaucetMessage("Faucet is disabled on mainnet.");
+        return;
       }
-      setFaucetPending(true)
-      setFaucetMessage('Requesting testnet faucet mint...')
-      const targets = token ? [token] : ['x', 'y']
-      const results = []
+      setFaucetPending(true);
+      setFaucetMessage("Requesting testnet faucet mint...");
+      const targets = token ? [token] : ["x", "y"];
+      const results = [];
       for (const t of targets) {
-        const res = await requestFaucet(t as 'x' | 'y')
-        results.push(`${t.toUpperCase()}: ${res.txid}`)
+        const res = await requestFaucet(t as "x" | "y");
+        results.push(`${t.toUpperCase()}: ${res.txid}`);
       }
-      setFaucetTxids(results.map((entry) => entry.split(': ')[1] || entry))
+      setFaucetTxids(results.map((entry) => entry.split(": ")[1] || entry));
       setBalances((prev) => ({
-        tokenX: prev.tokenX + (targets.includes('x') ? FAUCET_AMOUNT : 0),
-        tokenY: prev.tokenY + (targets.includes('y') ? FAUCET_AMOUNT : 0),
+        tokenX: prev.tokenX + (targets.includes("x") ? FAUCET_AMOUNT : 0),
+        tokenY: prev.tokenY + (targets.includes("y") ? FAUCET_AMOUNT : 0),
         lpShares: prev.lpShares,
-      }))
+      }));
       setFaucetMessage(
-        `Faucet sent ${targets.map((t) => t.toUpperCase()).join(' & ')} on testnet. Txid(s): ${results.join(
-          ' | '
-        )}`
-      )
+        `Faucet sent ${targets.map((t) => t.toUpperCase()).join(" & ")} on testnet. Txid(s): ${results.join(
+          " | ",
+        )}`,
+      );
       if (stacksAddress) {
         setFaucetMessage(
           `Faucet sent ${targets
             .map((t) => t.toUpperCase())
-            .join(' & ')} on testnet. Txid(s): ${results.join(
-            ' | '
-          )} (click Refresh after confirmation to show on-chain balance).`
-        )
+            .join(" & ")} on testnet. Txid(s): ${results.join(
+            " | ",
+          )} (click Refresh after confirmation to show on-chain balance).`,
+        );
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Faucet failed. Try again.'
-      setFaucetMessage(message)
+      const message =
+        error instanceof Error ? error.message : "Faucet failed. Try again.";
+      setFaucetMessage(message);
     } finally {
-      setFaucetPending(false)
+      setFaucetPending(false);
     }
-  }
+  };
 
   const handleSyncToPoolRatio = () => {
-    if (pool.reserveX === 0 || pool.reserveY === 0) return
-    const ratio = pool.reserveY / pool.reserveX
-    const x = Number(liqX) || 0
-    const y = x * ratio
-    setLiqY(y.toFixed(4))
-  }
+    if (pool.reserveX === 0 || pool.reserveY === 0) return;
+    const ratio = pool.reserveY / pool.reserveX;
+    const x = Number(liqX) || 0;
+    const y = x * ratio;
+    setLiqY(y.toFixed(4));
+  };
 
   const setMaxSwap = () => {
-    if (swapDirection === 'x-to-y') {
-      setSwapInput(String(balances.tokenX || ''))
-      return
+    if (swapDirection === "x-to-y") {
+      setSwapInput(String(balances.tokenX || ""));
+      return;
     }
-    setSwapInput(String(balances.tokenY || ''))
-  }
+    setSwapInput(String(balances.tokenY || ""));
+  };
 
   const setMaxBurn = () => {
-    setBurnShares(String(balances.lpShares || '0'))
-  }
+    setBurnShares(String(balances.lpShares || "0"));
+  };
 
   const priceImpact = useMemo(() => {
-    const amount = Number(swapInput || 0)
-    const reserve = swapDirection === 'x-to-y' ? pool.reserveX : pool.reserveY
-    if (!amount || reserve <= 0) return 0
-    return (amount / reserve) * 100
-  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY])
+    const amount = Number(swapInput || 0);
+    const reserve = swapDirection === "x-to-y" ? pool.reserveX : pool.reserveY;
+    if (!amount || reserve <= 0) return 0;
+    return (amount / reserve) * 100;
+  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
 
   const simulator = useMemo(() => {
-    const amount = Number(swapInput || 0)
-    const fromX = swapDirection === 'x-to-y'
-    const reserveX = pool.reserveX
-    const reserveY = pool.reserveY
-    const fee = (amount * FEE_BPS) / BPS
-    const output = quoteSwap(amount, fromX)
-    const nextReserveX = fromX ? reserveX + amount : reserveX - output
-    const nextReserveY = fromX ? reserveY - output : reserveY + amount
+    const amount = Number(swapInput || 0);
+    const fromX = swapDirection === "x-to-y";
+    const reserveX = pool.reserveX;
+    const reserveY = pool.reserveY;
+    const fee = (amount * FEE_BPS) / BPS;
+    const output = quoteSwap(amount, fromX);
+    const nextReserveX = fromX ? reserveX + amount : reserveX - output;
+    const nextReserveY = fromX ? reserveY - output : reserveY + amount;
     const nextPrice =
-      nextReserveX > 0 && nextReserveY > 0 ? nextReserveY / nextReserveX : 0
+      nextReserveX > 0 && nextReserveY > 0 ? nextReserveY / nextReserveX : 0;
     return {
       amount,
       fee,
@@ -722,46 +761,52 @@ function App() {
       nextReserveX,
       nextReserveY,
       nextPrice,
-    }
-  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY])
+    };
+  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
 
   const curvePreview = useMemo(() => {
-    if (pool.reserveX <= 0 || pool.reserveY <= 0) return null
-    const k = pool.reserveX * pool.reserveY
-    const xMin = pool.reserveX * 0.3
-    const xMax = pool.reserveX * 1.7
-    const points: { x: number; y: number }[] = []
-    const total = 26
+    if (pool.reserveX <= 0 || pool.reserveY <= 0) return null;
+    const k = pool.reserveX * pool.reserveY;
+    const xMin = pool.reserveX * 0.3;
+    const xMax = pool.reserveX * 1.7;
+    const points: { x: number; y: number }[] = [];
+    const total = 26;
     for (let i = 0; i <= total; i += 1) {
-      const x = xMin + ((xMax - xMin) * i) / total
-      const y = k / x
-      points.push({ x, y })
+      const x = xMin + ((xMax - xMin) * i) / total;
+      const y = k / x;
+      points.push({ x, y });
     }
-    const yMax = k / xMin
-    const yMin = k / xMax
+    const yMax = k / xMin;
+    const yMin = k / xMax;
     const mapPoint = (x: number, y: number) => ({
       x: ((x - xMin) / (xMax - xMin)) * 100,
       y: 100 - ((y - yMin) / (yMax - yMin)) * 100,
-    })
+    });
     const path = points
       .map((pt, index) => {
-        const mapped = mapPoint(pt.x, pt.y)
-        return `${index === 0 ? 'M' : 'L'}${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`
+        const mapped = mapPoint(pt.x, pt.y);
+        return `${index === 0 ? "M" : "L"}${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`;
       })
-      .join(' ')
-    const current = mapPoint(pool.reserveX, pool.reserveY)
+      .join(" ");
+    const current = mapPoint(pool.reserveX, pool.reserveY);
     const simulated =
       simulator.nextReserveX > 0 && simulator.nextReserveY > 0
         ? mapPoint(simulator.nextReserveX, simulator.nextReserveY)
-        : null
-    return { path, current, simulated }
-  }, [pool.reserveX, pool.reserveY, simulator.nextReserveX, simulator.nextReserveY])
+        : null;
+    return { path, current, simulated };
+  }, [
+    pool.reserveX,
+    pool.reserveY,
+    simulator.nextReserveX,
+    simulator.nextReserveY,
+  ]);
 
   const maxSwap = useMemo(() => {
-    const balance = swapDirection === 'x-to-y' ? balances.tokenX : balances.tokenY
-    if (!balance || balance <= 0) return 0
-    return Math.max(0, Number(balance.toFixed(4)))
-  }, [balances.tokenX, balances.tokenY, swapDirection])
+    const balance =
+      swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
+    if (!balance || balance <= 0) return 0;
+    return Math.max(0, Number(balance.toFixed(4)));
+  }, [balances.tokenX, balances.tokenY, swapDirection]);
 
   const SwapCard = () => (
     <div className="swap-card">
@@ -769,10 +814,16 @@ function App() {
         <div className="token-card-head">
           <span className="muted">From</span>
           <div className="mini-actions">
-            <button className="tiny ghost" onClick={() => setSwapDirection('x-to-y')}>
+            <button
+              className="tiny ghost"
+              onClick={() => setSwapDirection("x-to-y")}
+            >
               X -&gt; Y
             </button>
-            <button className="tiny ghost" onClick={() => setSwapDirection('y-to-x')}>
+            <button
+              className="tiny ghost"
+              onClick={() => setSwapDirection("y-to-x")}
+            >
               Y -&gt; X
             </button>
             <button className="tiny" onClick={setMaxSwap}>
@@ -790,9 +841,9 @@ function App() {
           />
           <select
             className="token-select"
-            value={swapDirection === 'x-to-y' ? 'x' : 'y'}
+            value={swapDirection === "x-to-y" ? "x" : "y"}
             onChange={(e) =>
-              setSwapDirection(e.target.value === 'x' ? 'x-to-y' : 'y-to-x')
+              setSwapDirection(e.target.value === "x" ? "x-to-y" : "y-to-x")
             }
           >
             <option value="x">Token X</option>
@@ -800,8 +851,8 @@ function App() {
           </select>
         </div>
         <p className="muted small">
-          Balance:{' '}
-          {swapDirection === 'x-to-y'
+          Balance:{" "}
+          {swapDirection === "x-to-y"
             ? formatNumber(balances.tokenX)
             : formatNumber(balances.tokenY)}
         </p>
@@ -810,7 +861,7 @@ function App() {
       <button
         className="switcher"
         onClick={() =>
-          setSwapDirection((prev) => (prev === 'x-to-y' ? 'y-to-x' : 'x-to-y'))
+          setSwapDirection((prev) => (prev === "x-to-y" ? "y-to-x" : "x-to-y"))
         }
       >
         Switch
@@ -819,13 +870,17 @@ function App() {
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">To</span>
-          <select className="token-select" value={swapDirection === 'x-to-y' ? 'y' : 'x'} disabled>
+          <select
+            className="token-select"
+            value={swapDirection === "x-to-y" ? "y" : "x"}
+            disabled
+          >
             <option value="x">Token X</option>
             <option value="y">Token Y</option>
           </select>
         </div>
         <div className="token-output">
-          <h3>{swapOutput !== null ? formatNumber(swapOutput) : '0.0'}</h3>
+          <h3>{swapOutput !== null ? formatNumber(swapOutput) : "0.0"}</h3>
           <p className="muted small">Expected output</p>
         </div>
       </div>
@@ -833,7 +888,9 @@ function App() {
       <div className="inline-stats">
         <div>
           <p className="muted small">Price (X-&gt;Y)</p>
-          <strong>{currentPrice ? `1 X ~ ${formatNumber(currentPrice)} Y` : 'N/A'}</strong>
+          <strong>
+            {currentPrice ? `1 X ~ ${formatNumber(currentPrice)} Y` : "N/A"}
+          </strong>
         </div>
         <div>
           <p className="muted small">Fee</p>
@@ -849,13 +906,13 @@ function App() {
       <div className="breakdown">
         <div>
           <span className="muted small">Price impact</span>
-          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : '—'}</strong>
+          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "—"}</strong>
         </div>
         <div>
           <span className="muted small">Minimum received</span>
           <strong>
-            {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : '—'}
-            {swapDirection === 'x-to-y' ? 'Y' : 'X'}
+            {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : "—"}
+            {swapDirection === "x-to-y" ? "Y" : "X"}
           </strong>
         </div>
       </div>
@@ -882,16 +939,25 @@ function App() {
             />
             <div className="sim-meta">
               <span className="muted small">
-                {formatNumber(simulator.amount)} {swapDirection === 'x-to-y' ? 'X' : 'Y'}
+                {formatNumber(simulator.amount)}{" "}
+                {swapDirection === "x-to-y" ? "X" : "Y"}
               </span>
               <span className="muted small">Max {formatNumber(maxSwap)}</span>
             </div>
           </div>
           <div className="sim-curve">
             {curvePreview ? (
-              <svg viewBox="0 0 100 100" role="img" aria-label="Swap curve preview">
+              <svg
+                viewBox="0 0 100 100"
+                role="img"
+                aria-label="Swap curve preview"
+              >
                 <path d={curvePreview.path} className="curve-path" />
-                <circle cx={curvePreview.current.x} cy={curvePreview.current.y} r="3.5" />
+                <circle
+                  cx={curvePreview.current.x}
+                  cy={curvePreview.current.y}
+                  r="3.5"
+                />
                 {curvePreview.simulated && (
                   <circle
                     cx={curvePreview.simulated.x}
@@ -902,7 +968,9 @@ function App() {
                 )}
               </svg>
             ) : (
-              <p className="muted small">Add liquidity to render the AMM curve.</p>
+              <p className="muted small">
+                Add liquidity to render the AMM curve.
+              </p>
             )}
           </div>
         </div>
@@ -910,30 +978,34 @@ function App() {
           <div>
             <span className="muted small">Post-swap reserves</span>
             <strong>
-              {formatNumber(simulator.nextReserveX)} X / {formatNumber(simulator.nextReserveY)} Y
+              {formatNumber(simulator.nextReserveX)} X /{" "}
+              {formatNumber(simulator.nextReserveY)} Y
             </strong>
           </div>
           <div>
             <span className="muted small">New price</span>
             <strong>
-              {simulator.nextPrice ? `1 X ~ ${formatNumber(simulator.nextPrice)} Y` : '—'}
+              {simulator.nextPrice
+                ? `1 X ~ ${formatNumber(simulator.nextPrice)} Y`
+                : "—"}
             </strong>
           </div>
           <div>
             <span className="muted small">Estimated fee</span>
             <strong>
-              {formatNumber(simulator.fee)} {swapDirection === 'x-to-y' ? 'X' : 'Y'}
+              {formatNumber(simulator.fee)}{" "}
+              {swapDirection === "x-to-y" ? "X" : "Y"}
             </strong>
           </div>
         </div>
       </div>
 
       <button className="primary" onClick={handleSwap}>
-        Swap {swapDirection === 'x-to-y' ? 'X for Y' : 'Y for X'}
+        Swap {swapDirection === "x-to-y" ? "X for Y" : "Y for X"}
       </button>
       {swapMessage && <p className="note">{swapMessage}</p>}
     </div>
-  )
+  );
 
   const LiquidityCard = () => (
     <div className="lp-stack">
@@ -944,7 +1016,11 @@ function App() {
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
               Match pool ratio
             </button>
-            <button className="tiny ghost" onClick={() => handleFaucet()} disabled={faucetPending}>
+            <button
+              className="tiny ghost"
+              onClick={() => handleFaucet()}
+              disabled={faucetPending}
+            >
               Faucet both
             </button>
           </div>
@@ -959,7 +1035,9 @@ function App() {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">Balance: {formatNumber(balances.tokenX)}</p>
+            <p className="muted small">
+              Balance: {formatNumber(balances.tokenX)}
+            </p>
           </div>
           <div>
             <label>Token Y</label>
@@ -970,7 +1048,9 @@ function App() {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">Balance: {formatNumber(balances.tokenY)}</p>
+            <p className="muted small">
+              Balance: {formatNumber(balances.tokenY)}
+            </p>
           </div>
         </div>
         <button className="primary" onClick={handleAddLiquidity}>
@@ -997,7 +1077,8 @@ function App() {
           <span className="token-pill">LP shares</span>
         </div>
         <p className="muted small">
-          Your LP: {formatNumber(balances.lpShares)} / Pool share: {(poolShare * 100).toFixed(2)}%
+          Your LP: {formatNumber(balances.lpShares)} / Pool share:{" "}
+          {(poolShare * 100).toFixed(2)}%
         </p>
         <button className="primary" onClick={handleRemoveLiquidity}>
           Remove from pool
@@ -1005,7 +1086,7 @@ function App() {
         {burnMessage && <p className="note">{burnMessage}</p>}
       </div>
     </div>
-  )
+  );
 
   return (
     <div className="page single">
@@ -1019,7 +1100,11 @@ function App() {
         </div>
         <div className="nav-actions">
           {!IS_MAINNET && (
-            <button className="chip" onClick={() => handleFaucet()} disabled={faucetPending}>
+            <button
+              className="chip"
+              onClick={() => handleFaucet()}
+              disabled={faucetPending}
+            >
               Faucet 5k X + 5k Y
             </button>
           )}
@@ -1029,11 +1114,13 @@ function App() {
             onClick={() => stacksAddress && syncBalances(stacksAddress)}
             disabled={!stacksAddress || balancePending}
           >
-            {balancePending ? 'Refreshing...' : 'Refresh balances'}
+            {balancePending ? "Refreshing..." : "Refresh balances"}
           </button>
           {stacksAddress ? (
             <>
-              <span className="chip success">Stacks: {shortAddress(stacksAddress)}</span>
+              <span className="chip success">
+                Stacks: {shortAddress(stacksAddress)}
+              </span>
               <button className="chip ghost" onClick={handleStacksDisconnect}>
                 Disconnect
               </button>
@@ -1063,26 +1150,26 @@ function App() {
           <div className="panel-head">
             <div className="tabs">
               <button
-                className={activeTab === 'swap' ? 'active' : ''}
-                onClick={() => setActiveTab('swap')}
+                className={activeTab === "swap" ? "active" : ""}
+                onClick={() => setActiveTab("swap")}
               >
                 Swap
               </button>
               <button
-                className={activeTab === 'liquidity' ? 'active' : ''}
-                onClick={() => setActiveTab('liquidity')}
+                className={activeTab === "liquidity" ? "active" : ""}
+                onClick={() => setActiveTab("liquidity")}
               >
                 Pool
               </button>
             </div>
             <div className="panel-subtitle">
-              {activeTab === 'swap'
-                ? 'Trade tokens with a simple quote and confirm.'
-                : 'Add or remove liquidity from the pool.'}
+              {activeTab === "swap"
+                ? "Trade tokens with a simple quote and confirm."
+                : "Add or remove liquidity from the pool."}
             </div>
           </div>
 
-          {activeTab === 'swap' ? <SwapCard /> : <LiquidityCard />}
+          {activeTab === "swap" ? <SwapCard /> : <LiquidityCard />}
 
           {faucetMessage && <p className="note subtle">{faucetMessage}</p>}
           {faucetTxids.length > 0 && (
@@ -1107,7 +1194,7 @@ function App() {
       </main>
       {poolPending && <span className="sr-only">Loading pool data</span>}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
