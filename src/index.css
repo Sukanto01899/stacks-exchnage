@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at 20% 20%, #c7ffe0 0, transparent 25%),
-    radial-gradient(circle at 80% 10%, #d6e4ff 0, transparent 23%),
-    radial-gradient(circle at 10% 80%, #ffe5b4 0, transparent 20%),
-    #0c0d11;
+  background: radial-gradient(circle at 12% 14%, rgba(255, 79, 163, 0.17) 0, transparent 36%),
+    radial-gradient(circle at 88% 6%, rgba(70, 116, 255, 0.16) 0, transparent 35%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.04) 0, transparent 34%),
+    #090b12;
   color: #f7f9fb;
   min-height: 100vh;
   margin: 0;

@@ -64,7 +64,7 @@ const TOKEN_CONTRACTS = {
           "VITE_TOKEN_X"
         ]) as string | undefined,
       "token-x",
-    ) || `${CONTRACT_ADDRESS}.token-x-c4::token-x`,
+    ) || `${CONTRACT_ADDRESS}.token-x-c6::token-x`,
   y:
     normalizeTokenId(
       (typeof import.meta !== "undefined" &&
@@ -72,7 +72,7 @@ const TOKEN_CONTRACTS = {
           "VITE_TOKEN_Y"
         ]) as string | undefined,
       "token-y",
-    ) || `${CONTRACT_ADDRESS}.token-y-c4::token-y`,
+    ) || `${CONTRACT_ADDRESS}.token-y-c6::token-y`,
 };
 const TOKEN_DECIMALS = 1_000_000;
 const MINIMUM_LIQUIDITY = 1_000n;
@@ -81,7 +81,7 @@ const POOL_CONTRACT_ID =
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
       "VITE_POOL_CONTRACT"
     ]) ||
-  `${CONTRACT_ADDRESS}.pool-v5-c4`;
+  `${CONTRACT_ADDRESS}.pool-v5-c6`;
 const FAUCET_API =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -349,7 +349,7 @@ function App() {
       });
 
       const addr = result?.addresses
-        ?.map((entry: any) =>
+        ?.map((entry: string | { address?: string }) =>
           typeof entry === "string"
             ? entry
             : (entry?.address as string | undefined),
@@ -906,12 +906,12 @@ function App() {
       <div className="breakdown">
         <div>
           <span className="muted small">Price impact</span>
-          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "—"}</strong>
+          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}</strong>
         </div>
         <div>
           <span className="muted small">Minimum received</span>
           <strong>
-            {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : "—"}
+            {swapOutput ? `${formatNumber(swapOutput * 0.995)} ` : "N/A"}
             {swapDirection === "x-to-y" ? "Y" : "X"}
           </strong>
         </div>
@@ -987,7 +987,7 @@ function App() {
             <strong>
               {simulator.nextPrice
                 ? `1 X ~ ${formatNumber(simulator.nextPrice)} Y`
-                : "—"}
+                : "N/A"}
             </strong>
           </div>
           <div>
