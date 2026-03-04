@@ -64,7 +64,7 @@ const TOKEN_CONTRACTS = {
           "VITE_TOKEN_X"
         ]) as string | undefined,
       "token-x",
-    ) || `${CONTRACT_ADDRESS}.token-x-c6::token-x`,
+    ) || `${CONTRACT_ADDRESS}.dex-token-x::token-x`,
   y:
     normalizeTokenId(
       (typeof import.meta !== "undefined" &&
@@ -72,7 +72,7 @@ const TOKEN_CONTRACTS = {
           "VITE_TOKEN_Y"
         ]) as string | undefined,
       "token-y",
-    ) || `${CONTRACT_ADDRESS}.token-y-c6::token-y`,
+    ) || `${CONTRACT_ADDRESS}.dex-token-y::token-y`,
 };
 const TOKEN_DECIMALS = 1_000_000;
 const MINIMUM_LIQUIDITY = 1_000n;
@@ -81,7 +81,7 @@ const POOL_CONTRACT_ID =
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
       "VITE_POOL_CONTRACT"
     ]) ||
-  `${CONTRACT_ADDRESS}.pool-v5-c6`;
+  `${CONTRACT_ADDRESS}.dex-pool-v5`;
 const FAUCET_API =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -1091,57 +1091,59 @@ function App() {
   return (
     <div className="page single">
       <header className="nav">
-        <div className="brand">
-          <img className="brand-mark" src="/favicon.png" alt="Stacks Exchange logo" />
-          <div>
-            <p className="eyebrow">Stacks Exchange</p>
-            <h1>Swap</h1>
+        <div className="nav-inner">
+          <div className="brand">
+            <img className="brand-mark" src="/favicon.png" alt="Stacks Exchange logo" />
+            <div>
+              <p className="eyebrow">Stacks Exchange</p>
+              <h1>Swap</h1>
+            </div>
           </div>
-        </div>
-        <div className="nav-actions">
-          {!IS_MAINNET && (
+          <div className="nav-actions">
+            {!IS_MAINNET && (
+              <button
+                className="chip"
+                onClick={() => handleFaucet()}
+                disabled={faucetPending}
+              >
+                Faucet 5k X + 5k Y
+              </button>
+            )}
+            {IS_MAINNET && <span className="chip success">Mainnet live</span>}
             <button
-              className="chip"
-              onClick={() => handleFaucet()}
-              disabled={faucetPending}
+              className="chip ghost"
+              onClick={() => stacksAddress && syncBalances(stacksAddress)}
+              disabled={!stacksAddress || balancePending}
             >
-              Faucet 5k X + 5k Y
+              {balancePending ? "Refreshing..." : "Refresh balances"}
             </button>
-          )}
-          {IS_MAINNET && <span className="chip success">Mainnet live</span>}
-          <button
-            className="chip ghost"
-            onClick={() => stacksAddress && syncBalances(stacksAddress)}
-            disabled={!stacksAddress || balancePending}
-          >
-            {balancePending ? "Refreshing..." : "Refresh balances"}
-          </button>
-          {stacksAddress ? (
-            <>
-              <span className="chip success">
-                Stacks: {shortAddress(stacksAddress)}
-              </span>
-              <button className="chip ghost" onClick={handleStacksDisconnect}>
-                Disconnect
+            {stacksAddress ? (
+              <>
+                <span className="chip success">
+                  Stacks: {shortAddress(stacksAddress)}
+                </span>
+                <button className="chip ghost" onClick={handleStacksDisconnect}>
+                  Disconnect
+                </button>
+              </>
+            ) : (
+              <button className="chip ghost" onClick={handleStacksConnect}>
+                Connect Stacks
               </button>
-            </>
-          ) : (
-            <button className="chip ghost" onClick={handleStacksConnect}>
-              Connect Stacks
-            </button>
-          )}
-          {btcStatus ? (
-            <>
-              <span className="chip ghost">BTC: {btcStatus}</span>
-              <button className="chip ghost" onClick={handleBtcDisconnect}>
-                Clear
+            )}
+            {btcStatus ? (
+              <>
+                <span className="chip ghost">BTC: {btcStatus}</span>
+                <button className="chip ghost" onClick={handleBtcDisconnect}>
+                  Clear
+                </button>
+              </>
+            ) : (
+              <button className="chip ghost" onClick={handleBtcConnect}>
+                Connect Bitcoin
               </button>
-            </>
-          ) : (
-            <button className="chip ghost" onClick={handleBtcConnect}>
-              Connect Bitcoin
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
@@ -1198,4 +1200,5 @@ function App() {
 }
 
 export default App;
+
 
