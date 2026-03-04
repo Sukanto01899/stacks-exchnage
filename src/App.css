@@ -73,9 +73,9 @@
 .brand-mark {
   width: 42px;
   height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(140deg, var(--mint-400), var(--sky-500));
-  box-shadow: 0 10px 24px rgba(82, 169, 255, 0.35);
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
 }
 
 h1 {
@@ -560,3 +560,4 @@ label {
     transform: translateY(0);
   }
 }
+

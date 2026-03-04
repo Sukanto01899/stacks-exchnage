@@ -1092,7 +1092,7 @@ function App() {
     <div className="page single">
       <header className="nav">
         <div className="brand">
-          <span className="brand-mark" />
+          <img className="brand-mark" src="/favicon.png" alt="Stacks Exchange logo" />
           <div>
             <p className="eyebrow">Stacks Exchange</p>
             <h1>Swap</h1>
@@ -1198,3 +1198,4 @@ function App() {
 }
 
 export default App;
+
