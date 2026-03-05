@@ -178,6 +178,9 @@ function App() {
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
   const [targetCondition, setTargetCondition] = useState<">=" | "<=">(">=");
+  const [targetPairDirection, setTargetPairDirection] = useState<
+    "x-to-y" | "y-to-x"
+  >("x-to-y");
 
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
@@ -913,8 +916,8 @@ function App() {
 
   const directionalPrice = useMemo(() => {
     if (!currentPrice) return 0;
-    return swapDirection === "x-to-y" ? currentPrice : 1 / currentPrice;
-  }, [currentPrice, swapDirection]);
+    return targetPairDirection === "x-to-y" ? currentPrice : 1 / currentPrice;
+  }, [currentPrice, targetPairDirection]);
 
   const targetPrice = useMemo(() => {
     const parsed = Number(targetPriceInput);
@@ -1055,6 +1058,22 @@ function App() {
             Enable
           </label>
         </div>
+        <div className="target-meta">
+          <span className="muted small">
+            When 1 {targetPairDirection === "x-to-y" ? "X" : "Y"}
+          </span>
+          <button
+            className="tiny ghost"
+            onClick={() =>
+              setTargetPairDirection((prev) =>
+                prev === "x-to-y" ? "y-to-x" : "x-to-y",
+              )
+            }
+            disabled={!targetPriceEnabled}
+          >
+            Reverse
+          </button>
+        </div>
         <div className="target-grid">
           <select
             className="token-select"
@@ -1064,15 +1083,15 @@ function App() {
             }
             disabled={!targetPriceEnabled}
           >
-            <option value=">=">Above</option>
-            <option value="<=">Below</option>
+            <option value=">=">{">="}</option>
+            <option value="<=">{"<="}</option>
           </select>
           <input
             className="target-input"
             type="number"
             min="0"
             step="0.000001"
-            placeholder={`Target (${swapDirection === "x-to-y" ? "Y per X" : "X per Y"})`}
+            placeholder={`Target ${targetPairDirection === "x-to-y" ? "Y" : "X"}`}
             value={targetPriceInput}
             onChange={(e) => setTargetPriceInput(e.target.value)}
             disabled={!targetPriceEnabled}
@@ -1082,7 +1101,7 @@ function App() {
           <span className="muted small">
             Live:{" "}
             {directionalPrice
-              ? `${formatNumber(directionalPrice)} ${swapDirection === "x-to-y" ? "Y/X" : "X/Y"}`
+              ? `${formatNumber(directionalPrice)} ${targetPairDirection === "x-to-y" ? "Y/X" : "X/Y"}`
               : "N/A"}
           </span>
           <button
@@ -1099,8 +1118,8 @@ function App() {
         {targetPriceEnabled && targetPrice && (
           <p className={`note ${targetTriggered ? "subtle" : ""}`}>
             {targetTriggered
-              ? "Target condition is met now."
-              : "Target condition not met yet."}
+              ? `Condition met: 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`
+              : `Waiting: 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`}
           </p>
         )}
       </div>
