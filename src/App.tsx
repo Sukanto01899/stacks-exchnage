@@ -175,6 +175,8 @@ function App() {
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
+  const [slippageInput, setSlippageInput] = useState("0.5");
+  const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
   const [targetCondition, setTargetCondition] = useState<">=" | "<=">(">=");
@@ -527,11 +529,30 @@ function App() {
       setSwapMessage("Pool has no liquidity for this direction yet.");
       return;
     }
+    const slippagePercent = Number(slippageInput);
+    if (
+      !Number.isFinite(slippagePercent) ||
+      slippagePercent < 0 ||
+      slippagePercent > 50
+    ) {
+      setSwapMessage("Set slippage between 0 and 50%.");
+      return;
+    }
+    const deadlineMinutes = Number(deadlineMinutesInput);
+    if (
+      !Number.isFinite(deadlineMinutes) ||
+      deadlineMinutes <= 0 ||
+      deadlineMinutes > 1440
+    ) {
+      setSwapMessage("Set deadline minutes between 1 and 1440.");
+      return;
+    }
     const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
-    const minOutMicro = BigInt(0);
+    const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
+    const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
     const tip = await fetchTipHeight();
-    // Give enough headroom for wallet confirm + mempool delay on mainnet.
-    const deadline = tip > 0 ? BigInt(tip + 500) : 9_999_999_999n;
+    const blocksAhead = Math.max(1, Math.ceil(deadlineMinutes / 10));
+    const deadline = tip > 0 ? BigInt(tip + blocksAhead) : 9_999_999_999n;
 
     const functionName = fromX ? "swap-x-for-y" : "swap-y-for-x";
     const functionArgs = fromX
@@ -931,6 +952,12 @@ function App() {
     return directionalPrice <= targetPrice;
   }, [targetPriceEnabled, targetPrice, directionalPrice, targetCondition]);
 
+  const slippageRatio = useMemo(() => {
+    const parsed = Number(slippageInput);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
+    return parsed / 100;
+  }, [slippageInput]);
+
   const SwapCard = () => (
     <div className="swap-card">
       <div className="token-card">
@@ -1040,9 +1067,47 @@ function App() {
         <div>
           <span className="muted small">Minimum received</span>
           <strong>
-            {liveSwapOutput ? `${formatNumber(liveSwapOutput * 0.995)} ` : "N/A"}
+            {liveSwapOutput
+              ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))} `
+              : "N/A"}
             {swapDirection === "x-to-y" ? "Y" : "X"}
           </strong>
+        </div>
+      </div>
+
+      <div className="swap-settings">
+        <div>
+          <label>Slippage tolerance (%)</label>
+          <input
+            type="number"
+            min="0"
+            max="50"
+            step="0.1"
+            value={slippageInput}
+            onChange={(e) => setSlippageInput(e.target.value)}
+          />
+          <div className="mini-actions">
+            <button className="tiny ghost" onClick={() => setSlippageInput("0.1")}>
+              0.1%
+            </button>
+            <button className="tiny ghost" onClick={() => setSlippageInput("0.5")}>
+              0.5%
+            </button>
+            <button className="tiny ghost" onClick={() => setSlippageInput("1")}>
+              1%
+            </button>
+          </div>
+        </div>
+        <div>
+          <label>Deadline (minutes)</label>
+          <input
+            type="number"
+            min="1"
+            max="1440"
+            step="1"
+            value={deadlineMinutesInput}
+            onChange={(e) => setDeadlineMinutesInput(e.target.value)}
+          />
         </div>
       </div>
 

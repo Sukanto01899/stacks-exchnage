@@ -321,6 +321,32 @@ h3 {
   padding: 10px;
 }
 
+.swap-settings {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.swap-settings input {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: 0;
+}
+
+.swap-settings input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 .target-panel {
   border-radius: var(--radius-md);
   border: 1px solid var(--stroke);
@@ -704,6 +730,10 @@ label {
   }
 
   .target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .swap-settings {
     grid-template-columns: 1fr;
   }
 
