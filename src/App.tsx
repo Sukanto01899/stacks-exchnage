@@ -175,6 +175,9 @@ function App() {
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
+  const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
+  const [targetPriceInput, setTargetPriceInput] = useState("");
+  const [targetCondition, setTargetCondition] = useState<">=" | "<=">(">=");
 
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
@@ -908,6 +911,23 @@ function App() {
     return Math.max(0, Number(balance.toFixed(4)));
   }, [balances.tokenX, balances.tokenY, swapDirection]);
 
+  const directionalPrice = useMemo(() => {
+    if (!currentPrice) return 0;
+    return swapDirection === "x-to-y" ? currentPrice : 1 / currentPrice;
+  }, [currentPrice, swapDirection]);
+
+  const targetPrice = useMemo(() => {
+    const parsed = Number(targetPriceInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+  }, [targetPriceInput]);
+
+  const targetTriggered = useMemo(() => {
+    if (!targetPriceEnabled || !targetPrice || !directionalPrice) return false;
+    if (targetCondition === ">=") return directionalPrice >= targetPrice;
+    return directionalPrice <= targetPrice;
+  }, [targetPriceEnabled, targetPrice, directionalPrice, targetCondition]);
+
   const SwapCard = () => (
     <div className="swap-card">
       <div className="token-card">
@@ -1021,6 +1041,68 @@ function App() {
             {swapDirection === "x-to-y" ? "Y" : "X"}
           </strong>
         </div>
+      </div>
+
+      <div className="target-panel">
+        <div className="target-head">
+          <span className="muted">Target Price</span>
+          <label className="target-toggle">
+            <input
+              type="checkbox"
+              checked={targetPriceEnabled}
+              onChange={(e) => setTargetPriceEnabled(e.target.checked)}
+            />
+            Enable
+          </label>
+        </div>
+        <div className="target-grid">
+          <select
+            className="token-select"
+            value={targetCondition}
+            onChange={(e) =>
+              setTargetCondition((e.target.value as ">=" | "<=") || ">=")
+            }
+            disabled={!targetPriceEnabled}
+          >
+            <option value=">=">Above</option>
+            <option value="<=">Below</option>
+          </select>
+          <input
+            className="target-input"
+            type="number"
+            min="0"
+            step="0.000001"
+            placeholder={`Target (${swapDirection === "x-to-y" ? "Y per X" : "X per Y"})`}
+            value={targetPriceInput}
+            onChange={(e) => setTargetPriceInput(e.target.value)}
+            disabled={!targetPriceEnabled}
+          />
+        </div>
+        <div className="target-meta">
+          <span className="muted small">
+            Live:{" "}
+            {directionalPrice
+              ? `${formatNumber(directionalPrice)} ${swapDirection === "x-to-y" ? "Y/X" : "X/Y"}`
+              : "N/A"}
+          </span>
+          <button
+            className="tiny ghost"
+            onClick={() =>
+              directionalPrice > 0 &&
+              setTargetPriceInput(directionalPrice.toFixed(6))
+            }
+            disabled={!targetPriceEnabled || directionalPrice <= 0}
+          >
+            Use current
+          </button>
+        </div>
+        {targetPriceEnabled && targetPrice && (
+          <p className={`note ${targetTriggered ? "subtle" : ""}`}>
+            {targetTriggered
+              ? "Target condition is met now."
+              : "Target condition not met yet."}
+          </p>
+        )}
       </div>
 
       <div className="simulator">

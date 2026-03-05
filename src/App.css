@@ -321,6 +321,60 @@ h3 {
   padding: 10px;
 }
 
+.target-panel {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.target-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.target-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.target-input {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: 0;
+}
+
+.target-input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.target-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .simulator {
   border-radius: var(--radius-lg);
   border: 1px solid rgba(255, 79, 163, 0.32);
@@ -646,6 +700,10 @@ label {
   .sim-body,
   .inline-stats,
   .sim-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .target-grid {
     grid-template-columns: 1fr;
   }
 
