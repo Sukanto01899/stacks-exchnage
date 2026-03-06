@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
+  ClarityValue,
   PostConditionMode,
   contractPrincipalCV,
   cvToValue,
@@ -23,6 +24,19 @@ type Balances = {
   tokenX: number;
   tokenY: number;
   lpShares: number;
+};
+
+type SwapDraft = {
+  amount: number;
+  outputPreview: number;
+  minReceived: number;
+  slippagePercent: number;
+  deadlineMinutes: number;
+  priceImpact: number;
+  fromSymbol: "X" | "Y";
+  toSymbol: "X" | "Y";
+  functionName: "swap-x-for-y" | "swap-y-for-x";
+  functionArgs: ClarityValue[];
 };
 
 const FEE_BPS = 30;
@@ -196,6 +210,7 @@ function App() {
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
+  const [swapDraft, setSwapDraft] = useState<SwapDraft | null>(null);
   const [impactConfirmed, setImpactConfirmed] = useState(false);
   const [preflightPending, setPreflightPending] = useState(false);
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
@@ -676,6 +691,23 @@ function App() {
           uintCV(deadline),
         ];
 
+    setSwapDraft({
+      amount,
+      outputPreview,
+      minReceived: minOut,
+      slippagePercent,
+      deadlineMinutes,
+      priceImpact: impactPct,
+      fromSymbol: fromX ? "X" : "Y",
+      toSymbol: fromX ? "Y" : "X",
+      functionName,
+      functionArgs,
+    });
+    setSwapMessage("Review swap details and confirm.");
+  };
+
+  const executeSwap = async () => {
+    if (!swapDraft || !stacksAddress) return;
     try {
       setSwapPending(true);
       await openContractCall({
@@ -684,8 +716,8 @@ function App() {
         postConditionMode: PostConditionMode.Allow,
         contractAddress: poolContract.address,
         contractName: poolContract.contractName,
-        functionName,
-        functionArgs,
+        functionName: swapDraft.functionName,
+        functionArgs: swapDraft.functionArgs,
         onFinish: async (payload) => {
           setSwapMessage(`Swap submitted. Txid: ${payload.txId}`);
           const waitForSwapOutcome = async () => {
@@ -722,10 +754,12 @@ function App() {
           await syncBalances(stacksAddress, { silent: true });
           await fetchPoolState(stacksAddress);
           setSwapPending(false);
+          setSwapDraft(null);
         },
         onCancel: () => {
           setSwapMessage("Swap cancelled.");
           setSwapPending(false);
+          setSwapDraft(null);
         },
       });
     } catch (error) {
@@ -735,6 +769,7 @@ function App() {
           : "Swap failed. Check wallet and try again.",
       );
       setSwapPending(false);
+      setSwapDraft(null);
     }
   };
 
@@ -1483,13 +1518,15 @@ function App() {
       <button
         className="primary"
         onClick={handleSwap}
-        disabled={quoteLoading || swapPending || preflightPending}
+        disabled={quoteLoading || swapPending || preflightPending || Boolean(swapDraft)}
       >
         {quoteLoading
           ? "Loading quote..."
           : swapPending
             ? "Swapping..."
-            : `Swap ${swapDirection === "x-to-y" ? "X for Y" : "Y for X"}`}
+            : swapDraft
+              ? "Review open"
+              : "Review swap"}
       </button>
       <button
         className="secondary"
@@ -1681,6 +1718,63 @@ function App() {
           )}
         </section>
       </main>
+      {swapDraft && (
+        <div
+          className="swap-drawer-backdrop"
+          onClick={() => !swapPending && setSwapDraft(null)}
+        >
+          <div className="swap-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="swap-drawer-head">
+              <h3>Confirm Swap</h3>
+              <button
+                className="tiny ghost"
+                onClick={() => setSwapDraft(null)}
+                disabled={swapPending}
+              >
+                Close
+              </button>
+            </div>
+            <div className="swap-drawer-grid">
+              <div>
+                <span className="muted small">You pay</span>
+                <strong>{formatNumber(swapDraft.amount)} {swapDraft.fromSymbol}</strong>
+              </div>
+              <div>
+                <span className="muted small">You receive (est.)</span>
+                <strong>{formatNumber(swapDraft.outputPreview)} {swapDraft.toSymbol}</strong>
+              </div>
+              <div>
+                <span className="muted small">Minimum received</span>
+                <strong>{formatNumber(swapDraft.minReceived)} {swapDraft.toSymbol}</strong>
+              </div>
+              <div>
+                <span className="muted small">Slippage / Deadline</span>
+                <strong>{swapDraft.slippagePercent}% / {swapDraft.deadlineMinutes}m</strong>
+              </div>
+              <div>
+                <span className="muted small">Route</span>
+                <strong>{poolContract.contractName}</strong>
+              </div>
+              <div>
+                <span className="muted small">Price impact</span>
+                <strong>{swapDraft.priceImpact.toFixed(3)}%</strong>
+              </div>
+            </div>
+            <div className="swap-drawer-actions">
+              <button
+                className="secondary"
+                onClick={() => setSwapDraft(null)}
+                disabled={swapPending}
+              >
+                Cancel
+              </button>
+              <button className="primary" onClick={executeSwap} disabled={swapPending}>
+                {swapPending ? "Submitting..." : "Confirm Swap"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="floating-faucet" aria-label="Quick faucet controls">
         <button
           className="chip"

@@ -372,6 +372,59 @@ h3 {
   color: var(--text-muted);
 }
 
+.swap-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: end center;
+  z-index: 1200;
+}
+
+.swap-drawer {
+  width: min(560px, calc(100vw - 16px));
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--stroke-strong);
+  background: var(--bg-panel);
+  padding: 14px;
+  box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.swap-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.swap-drawer-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.swap-drawer-grid > div {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.swap-drawer-grid strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.swap-drawer-actions {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .target-panel {
   border-radius: var(--radius-md);
   border: 1px solid var(--stroke);
@@ -779,6 +832,11 @@ label {
   }
 
   .swap-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .swap-drawer-grid,
+  .swap-drawer-actions {
     grid-template-columns: 1fr;
   }
 
