@@ -347,6 +347,31 @@ h3 {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.impact-guardrail {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.impact-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .target-panel {
   border-radius: var(--radius-md);
   border: 1px solid var(--stroke);
@@ -514,12 +539,31 @@ h3 {
   transition: filter 160ms ease, transform 120ms ease;
 }
 
+.secondary {
+  border: 1px solid var(--stroke-strong);
+  border-radius: 12px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.secondary:hover {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.05);
 }
 
 .primary:disabled,
+.secondary:disabled,
 .chip:disabled,
 .tiny:disabled {
   opacity: 0.55;
@@ -637,6 +681,7 @@ label {
 .tabs button:focus-visible,
 .chip:focus-visible,
 .primary:focus-visible,
+.secondary:focus-visible,
 .tiny:focus-visible,
 .switcher:focus-visible,
 .token-select:focus-visible {

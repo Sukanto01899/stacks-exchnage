@@ -28,6 +28,10 @@ type Balances = {
 const FEE_BPS = 30;
 const BPS = 10_000;
 const FAUCET_AMOUNT = 5_000;
+const PRICE_IMPACT_WARN_PCT = 1;
+const PRICE_IMPACT_CONFIRM_PCT = 3;
+const PRICE_IMPACT_BLOCK_PCT = 15;
+const PRICE_IMPACT_TARGET_PCT = 1;
 const CONTRACT_ADDRESS =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -154,6 +158,23 @@ const explainPoolError = (repr?: string) => {
   return map[code] ? `Error u${code}: ${map[code]}` : `Error u${code}`;
 };
 
+const unwrapReadOnlyOk = (raw: unknown) => {
+  const parsed = cvToValue(raw as never) as unknown;
+  if (parsed && typeof parsed === "object") {
+    const maybe = parsed as Record<string, unknown>;
+    if ("success" in maybe) {
+      if (!maybe.success) {
+        throw new Error(`Read-only call failed: ${String(maybe.value ?? "")}`);
+      }
+      return maybe.value;
+    }
+    if ("type" in maybe && maybe.type === "ok") {
+      return maybe.value;
+    }
+  }
+  return parsed;
+};
+
 function App() {
   const [pool, setPool] = useState<PoolState>({
     reserveX: 0,
@@ -175,6 +196,9 @@ function App() {
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
+  const [impactConfirmed, setImpactConfirmed] = useState(false);
+  const [preflightPending, setPreflightPending] = useState(false);
+  const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
@@ -503,6 +527,10 @@ function App() {
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
   const quoteLoading = poolPending;
 
+  useEffect(() => {
+    setImpactConfirmed(false);
+  }, [swapInput, swapDirection]);
+
   const handleSwap = async () => {
     setSwapMessage(null);
     const amount = Number(swapInput);
@@ -529,6 +557,20 @@ function App() {
       setSwapMessage("Pool has no liquidity for this direction yet.");
       return;
     }
+    const reserve = fromX ? pool.reserveX : pool.reserveY;
+    const impactPct = reserve > 0 ? (amount / reserve) * 100 : 0;
+    if (impactPct >= PRICE_IMPACT_BLOCK_PCT) {
+      setSwapMessage(
+        `Swap blocked: price impact ${impactPct.toFixed(2)}% is too high (max ${PRICE_IMPACT_BLOCK_PCT}%). Split into smaller trades.`,
+      );
+      return;
+    }
+    if (impactPct >= PRICE_IMPACT_CONFIRM_PCT && !impactConfirmed) {
+      setSwapMessage(
+        `High price impact (${impactPct.toFixed(2)}%). Confirm the high-impact checkbox before swapping.`,
+      );
+      return;
+    }
     const slippagePercent = Number(slippageInput);
     if (
       !Number.isFinite(slippagePercent) ||
@@ -553,6 +595,55 @@ function App() {
     const tip = await fetchTipHeight();
     const blocksAhead = Math.max(1, Math.ceil(deadlineMinutes / 10));
     const deadline = tip > 0 ? BigInt(tip + blocksAhead) : 9_999_999_999n;
+
+    const runPreflight = async () => {
+      const senderAddress = stacksAddress || CONTRACT_ADDRESS;
+      const quoteFn = fromX ? "quote-x-for-y" : "quote-y-for-x";
+      const quoteResult = await fetchCallReadOnlyFunction({
+        contractAddress: poolContract.address,
+        contractName: poolContract.contractName,
+        functionName: quoteFn,
+        functionArgs: [uintCV(amountMicro)],
+        senderAddress,
+        network,
+      });
+      const quoteValue = unwrapReadOnlyOk(quoteResult) as {
+        dy?: string;
+        dx?: string;
+        fee?: string;
+      };
+      const outMicro = BigInt(String(fromX ? quoteValue?.dy ?? 0 : quoteValue?.dx ?? 0));
+      const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
+      if (outMicro <= 0n) {
+        throw new Error("Pre-flight failed: expected output is zero.");
+      }
+      if (outMicro < minOutMicro) {
+        throw new Error(
+          "Pre-flight failed: slippage settings are too strict for current pool state.",
+        );
+      }
+      return {
+        out: Number(outMicro) / TOKEN_DECIMALS,
+        fee: Number(feeMicro) / TOKEN_DECIMALS,
+      };
+    };
+
+    try {
+      setPreflightPending(true);
+      const simulated = await runPreflight();
+      setPreflightMessage(
+        `Preview ok: output ~${formatNumber(simulated.out)} ${fromX ? "Y" : "X"}, fee ~${formatNumber(simulated.fee)} ${fromX ? "X" : "Y"}.`,
+      );
+    } catch (error) {
+      setPreflightMessage(
+        error instanceof Error ? error.message : "Pre-flight simulation failed.",
+      );
+      setSwapMessage("Swap blocked: preview failed.");
+      setPreflightPending(false);
+      return;
+    } finally {
+      setPreflightPending(false);
+    }
 
     const functionName = fromX ? "swap-x-for-y" : "swap-y-for-x";
     const functionArgs = fromX
@@ -644,6 +735,82 @@ function App() {
           : "Swap failed. Check wallet and try again.",
       );
       setSwapPending(false);
+    }
+  };
+
+  const handleSwapPreview = async () => {
+    setPreflightMessage(null);
+    const amount = Number(swapInput);
+    if (!amount || amount <= 0) {
+      setPreflightMessage("Enter an amount greater than 0.");
+      return;
+    }
+    if (!stacksAddress) {
+      setPreflightMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (pool.reserveX <= 0 || pool.reserveY <= 0) {
+      setPreflightMessage("Pool has no liquidity yet.");
+      return;
+    }
+    const fromX = swapDirection === "x-to-y";
+    const inputBalance = fromX ? balances.tokenX : balances.tokenY;
+    if (amount > inputBalance) {
+      setPreflightMessage("Not enough token balance for this preview.");
+      return;
+    }
+    const slippagePercent = Number(slippageInput);
+    if (
+      !Number.isFinite(slippagePercent) ||
+      slippagePercent < 0 ||
+      slippagePercent > 50
+    ) {
+      setPreflightMessage("Set slippage between 0 and 50%.");
+      return;
+    }
+    const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
+    const outputPreview = quoteSwap(amount, fromX);
+    const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
+    const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
+
+    try {
+      setPreflightPending(true);
+      const senderAddress = stacksAddress || CONTRACT_ADDRESS;
+      const quoteFn = fromX ? "quote-x-for-y" : "quote-y-for-x";
+      const quoteResult = await fetchCallReadOnlyFunction({
+        contractAddress: poolContract.address,
+        contractName: poolContract.contractName,
+        functionName: quoteFn,
+        functionArgs: [uintCV(amountMicro)],
+        senderAddress,
+        network,
+      });
+      const quoteValue = unwrapReadOnlyOk(quoteResult) as {
+        dy?: string;
+        dx?: string;
+        fee?: string;
+      };
+      const outMicro = BigInt(String(fromX ? quoteValue?.dy ?? 0 : quoteValue?.dx ?? 0));
+      const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
+      if (outMicro <= 0n) {
+        setPreflightMessage("Preview failed: output is zero.");
+        return;
+      }
+      if (outMicro < minOutMicro) {
+        setPreflightMessage(
+          "Preview failed: slippage settings too strict for current reserves.",
+        );
+        return;
+      }
+      setPreflightMessage(
+        `Preview ok: output ~${formatNumber(Number(outMicro) / TOKEN_DECIMALS)} ${fromX ? "Y" : "X"}, fee ~${formatNumber(Number(feeMicro) / TOKEN_DECIMALS)} ${fromX ? "X" : "Y"}.`,
+      );
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "Preview failed.";
+      const reason = explainPoolError(raw);
+      setPreflightMessage(reason ? `Preview failed. ${reason}.` : raw);
+    } finally {
+      setPreflightPending(false);
     }
   };
 
@@ -869,6 +1036,19 @@ function App() {
     if (!amount || reserve <= 0) return 0;
     return (amount / reserve) * 100;
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
+  const splitSuggestionCount = useMemo(() => {
+    if (!priceImpact || priceImpact <= PRICE_IMPACT_TARGET_PCT) return 1;
+    return Math.max(2, Math.ceil(priceImpact / PRICE_IMPACT_TARGET_PCT));
+  }, [priceImpact]);
+  const applySplitSuggestion = () => {
+    const amount = Number(swapInput || 0);
+    if (!amount || splitSuggestionCount <= 1) return;
+    const chunk = amount / splitSuggestionCount;
+    setSwapInput(chunk.toFixed(6));
+    setSwapMessage(
+      `Split suggestion applied: ${splitSuggestionCount} chunks of ~${formatNumber(chunk)} each.`,
+    );
+  };
 
   const simulator = useMemo(() => {
     const amount = Number(swapInput || 0);
@@ -1075,6 +1255,34 @@ function App() {
         </div>
       </div>
 
+      <div className="impact-guardrail">
+        <div className="impact-row">
+          <span className="muted small">
+            Guardrail: warn at {PRICE_IMPACT_WARN_PCT}%, confirm at {PRICE_IMPACT_CONFIRM_PCT}%, block at {PRICE_IMPACT_BLOCK_PCT}%.
+          </span>
+          {splitSuggestionCount > 1 && (
+            <button className="tiny ghost" onClick={applySplitSuggestion}>
+              Auto split ({splitSuggestionCount}x)
+            </button>
+          )}
+        </div>
+        {priceImpact >= PRICE_IMPACT_CONFIRM_PCT && priceImpact < PRICE_IMPACT_BLOCK_PCT && (
+          <label className="impact-confirm">
+            <input
+              type="checkbox"
+              checked={impactConfirmed}
+              onChange={(e) => setImpactConfirmed(e.target.checked)}
+            />
+            I understand this swap has high price impact.
+          </label>
+        )}
+        {priceImpact >= PRICE_IMPACT_WARN_PCT && priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
+          <p className="muted small">
+            Warning: current price impact is {priceImpact.toFixed(2)}%. Consider smaller size.
+          </p>
+        )}
+      </div>
+
       <div className="swap-settings">
         <div>
           <label>Slippage tolerance (%)</label>
@@ -1275,7 +1483,7 @@ function App() {
       <button
         className="primary"
         onClick={handleSwap}
-        disabled={quoteLoading || swapPending}
+        disabled={quoteLoading || swapPending || preflightPending}
       >
         {quoteLoading
           ? "Loading quote..."
@@ -1283,6 +1491,14 @@ function App() {
             ? "Swapping..."
             : `Swap ${swapDirection === "x-to-y" ? "X for Y" : "Y for X"}`}
       </button>
+      <button
+        className="secondary"
+        onClick={handleSwapPreview}
+        disabled={quoteLoading || swapPending || preflightPending}
+      >
+        {preflightPending ? "Previewing..." : "Preview transaction"}
+      </button>
+      {preflightMessage && <p className="note subtle">{preflightMessage}</p>}
       {swapMessage && <p className="note">{swapMessage}</p>}
     </div>
   );
