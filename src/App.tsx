@@ -14,6 +14,7 @@ import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
 import { appKit } from "./wallets/appkit";
 
+// TODO: Replace with your contract and token information
 type PoolState = {
   reserveX: number;
   reserveY: number;
@@ -213,9 +214,7 @@ const unwrapReadOnlyOk = (raw: unknown) => {
   return parsed;
 };
 
-const isNamedFunctionLike = (
-  value: unknown,
-): value is { name: string } => {
+const isNamedFunctionLike = (value: unknown): value is { name: string } => {
   if (!value || typeof value !== "object") return false;
   const maybe = value as { name?: unknown };
   return typeof maybe.name === "string";
@@ -254,14 +253,18 @@ function App() {
   const [targetPairDirection, setTargetPairDirection] = useState<
     "x-to-y" | "y-to-x"
   >("x-to-y");
-  const [approvalSupport, setApprovalSupport] = useState<Record<TokenKey, boolean>>({
+  const [approvalSupport, setApprovalSupport] = useState<
+    Record<TokenKey, boolean>
+  >({
     x: false,
     y: false,
   });
-  const [allowances, setAllowances] = useState<Record<TokenKey, number | null>>({
-    x: null,
-    y: null,
-  });
+  const [allowances, setAllowances] = useState<Record<TokenKey, number | null>>(
+    {
+      x: null,
+      y: null,
+    },
+  );
   const [approvePending, setApprovePending] = useState<TokenKey | null>(null);
   const [approveUnlimited, setApproveUnlimited] = useState(true);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
@@ -331,40 +334,52 @@ function App() {
     return Number(data?.stacks_tip_height || 0);
   };
 
-  const detectApprovalSupport = useCallback(async (token: TokenKey) => {
-    const t = tokenContracts[token];
-    const url = `${STACKS_API}/v2/contracts/interface/${t.address}/${t.contractName}`;
-    const response = await fetch(url).catch(() => null);
-    if (!response?.ok) return false;
-    const data = await response.json().catch(() => ({}));
-    const functions = Array.isArray(data?.functions) ? data.functions : [];
-    const hasApprove = functions.some(
-      (fn) => isNamedFunctionLike(fn) && fn.name === "approve",
-    );
-    const hasAllowance = functions.some(
-      (fn) => isNamedFunctionLike(fn) && fn.name === "get-allowance",
-    );
-    return hasApprove && hasAllowance;
-  }, [tokenContracts]);
+  const detectApprovalSupport = useCallback(
+    async (token: TokenKey) => {
+      const t = tokenContracts[token];
+      const url = `${STACKS_API}/v2/contracts/interface/${t.address}/${t.contractName}`;
+      const response = await fetch(url).catch(() => null);
+      if (!response?.ok) return false;
+      const data = await response.json().catch(() => ({}));
+      const functions = Array.isArray(data?.functions) ? data.functions : [];
+      const hasApprove = functions.some(
+        (fn) => isNamedFunctionLike(fn) && fn.name === "approve",
+      );
+      const hasAllowance = functions.some(
+        (fn) => isNamedFunctionLike(fn) && fn.name === "get-allowance",
+      );
+      return hasApprove && hasAllowance;
+    },
+    [tokenContracts],
+  );
 
-  const fetchAllowance = useCallback(async (token: TokenKey, owner: string) => {
-    if (!approvalSupport[token]) return null;
-    const t = tokenContracts[token];
-    const result = await fetchCallReadOnlyFunction({
-      contractAddress: t.address,
-      contractName: t.contractName,
-      functionName: "get-allowance",
-      functionArgs: [
-        standardPrincipalCV(owner),
-        contractPrincipalCV(poolContract.address, poolContract.contractName),
-      ],
-      senderAddress: owner,
+  const fetchAllowance = useCallback(
+    async (token: TokenKey, owner: string) => {
+      if (!approvalSupport[token]) return null;
+      const t = tokenContracts[token];
+      const result = await fetchCallReadOnlyFunction({
+        contractAddress: t.address,
+        contractName: t.contractName,
+        functionName: "get-allowance",
+        functionArgs: [
+          standardPrincipalCV(owner),
+          contractPrincipalCV(poolContract.address, poolContract.contractName),
+        ],
+        senderAddress: owner,
+        network,
+      });
+      const raw = unwrapReadOnlyOk(result);
+      const value = Number(raw || 0) / TOKEN_DECIMALS;
+      return Number.isFinite(value) ? value : 0;
+    },
+    [
+      approvalSupport,
       network,
-    });
-    const raw = unwrapReadOnlyOk(result);
-    const value = Number(raw || 0) / TOKEN_DECIMALS;
-    return Number.isFinite(value) ? value : 0;
-  }, [approvalSupport, network, poolContract.address, poolContract.contractName, tokenContracts]);
+      poolContract.address,
+      poolContract.contractName,
+      tokenContracts,
+    ],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -764,7 +779,13 @@ function App() {
     const valueInX = currentPrice > 0 ? totalX + totalY / currentPrice : totalX;
     const valueInY = currentPrice > 0 ? totalY + totalX * currentPrice : totalY;
     return { totalX, totalY, valueInX, valueInY };
-  }, [balances.tokenX, balances.tokenY, lpPosition.x, lpPosition.y, currentPrice]);
+  }, [
+    balances.tokenX,
+    balances.tokenY,
+    lpPosition.x,
+    lpPosition.y,
+    currentPrice,
+  ]);
 
   useEffect(() => {
     if (!stacksAddress || currentPrice <= 0) return;
@@ -833,7 +854,12 @@ function App() {
       ilPercent,
       has24h: Boolean(baseline),
     };
-  }, [portfolioHistory, portfolioTotals.totalX, portfolioTotals.totalY, currentPrice]);
+  }, [
+    portfolioHistory,
+    portfolioTotals.totalX,
+    portfolioTotals.totalY,
+    currentPrice,
+  ]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
@@ -947,7 +973,9 @@ function App() {
         dx?: string;
         fee?: string;
       };
-      const outMicro = BigInt(String(fromX ? quoteValue?.dy ?? 0 : quoteValue?.dx ?? 0));
+      const outMicro = BigInt(
+        String(fromX ? (quoteValue?.dy ?? 0) : (quoteValue?.dx ?? 0)),
+      );
       const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
       if (outMicro <= 0n) {
         throw new Error("Pre-flight failed: expected output is zero.");
@@ -971,7 +999,9 @@ function App() {
       );
     } catch (error) {
       setPreflightMessage(
-        error instanceof Error ? error.message : "Pre-flight simulation failed.",
+        error instanceof Error
+          ? error.message
+          : "Pre-flight simulation failed.",
       );
       setSwapMessage("Swap blocked: preview failed.");
       setPreflightPending(false);
@@ -1175,7 +1205,9 @@ function App() {
         dx?: string;
         fee?: string;
       };
-      const outMicro = BigInt(String(fromX ? quoteValue?.dy ?? 0 : quoteValue?.dx ?? 0));
+      const outMicro = BigInt(
+        String(fromX ? (quoteValue?.dy ?? 0) : (quoteValue?.dx ?? 0)),
+      );
       const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
       if (outMicro <= 0n) {
         setPreflightMessage("Preview failed: output is zero.");
@@ -1516,7 +1548,9 @@ function App() {
         setFaucetMessage(
           `Faucet sent ${targets
             .map((t) => t.toUpperCase())
-            .join(" & ")} on ${RESOLVED_STACKS_NETWORK}. Txid(s): ${results.join(
+            .join(
+              " & ",
+            )} on ${RESOLVED_STACKS_NETWORK}. Txid(s): ${results.join(
             " | ",
           )} (click Refresh after confirmation to show on-chain balance).`,
         );
@@ -1675,9 +1709,17 @@ function App() {
 
   const renderApprovalManager = (mode: "swap" | "liquidity") => {
     const requiredX =
-      mode === "swap" ? (swapDirection === "x-to-y" ? swapAmount : 0) : liqAmountX;
+      mode === "swap"
+        ? swapDirection === "x-to-y"
+          ? swapAmount
+          : 0
+        : liqAmountX;
     const requiredY =
-      mode === "swap" ? (swapDirection === "y-to-x" ? swapAmount : 0) : liqAmountY;
+      mode === "swap"
+        ? swapDirection === "y-to-x"
+          ? swapAmount
+          : 0
+        : liqAmountY;
     const hasAnySupport = approvalSupport.x || approvalSupport.y;
 
     return (
@@ -1695,19 +1737,26 @@ function App() {
         </div>
         {!hasAnySupport ? (
           <p className="muted small">
-            Approval not required for current token contracts (direct transfer model).
+            Approval not required for current token contracts (direct transfer
+            model).
           </p>
         ) : (
           <div className="approval-grid">
             <div>
               <p className="muted small">Token X allowance</p>
               <strong>
-                {allowances.x === null ? "N/A" : `${formatNumber(allowances.x)} X`}
+                {allowances.x === null
+                  ? "N/A"
+                  : `${formatNumber(allowances.x)} X`}
               </strong>
               <button
                 className="tiny ghost"
                 onClick={() => handleApprove("x", requiredX)}
-                disabled={!approvalSupport.x || !stacksAddress || approvePending !== null}
+                disabled={
+                  !approvalSupport.x ||
+                  !stacksAddress ||
+                  approvePending !== null
+                }
               >
                 {approvePending === "x" ? "Approving X..." : "Approve X"}
               </button>
@@ -1715,12 +1764,18 @@ function App() {
             <div>
               <p className="muted small">Token Y allowance</p>
               <strong>
-                {allowances.y === null ? "N/A" : `${formatNumber(allowances.y)} Y`}
+                {allowances.y === null
+                  ? "N/A"
+                  : `${formatNumber(allowances.y)} Y`}
               </strong>
               <button
                 className="tiny ghost"
                 onClick={() => handleApprove("y", requiredY)}
-                disabled={!approvalSupport.y || !stacksAddress || approvePending !== null}
+                disabled={
+                  !approvalSupport.y ||
+                  !stacksAddress ||
+                  approvePending !== null
+                }
               >
                 {approvePending === "y" ? "Approving Y..." : "Approve Y"}
               </button>
@@ -1853,7 +1908,8 @@ function App() {
       <div className="impact-guardrail">
         <div className="impact-row">
           <span className="muted small">
-            Guardrail: warn at {PRICE_IMPACT_WARN_PCT}%, confirm at {PRICE_IMPACT_CONFIRM_PCT}%, block at {PRICE_IMPACT_BLOCK_PCT}%.
+            Guardrail: warn at {PRICE_IMPACT_WARN_PCT}%, confirm at{" "}
+            {PRICE_IMPACT_CONFIRM_PCT}%, block at {PRICE_IMPACT_BLOCK_PCT}%.
           </span>
           {splitSuggestionCount > 1 && (
             <button className="tiny ghost" onClick={applySplitSuggestion}>
@@ -1861,21 +1917,24 @@ function App() {
             </button>
           )}
         </div>
-        {priceImpact >= PRICE_IMPACT_CONFIRM_PCT && priceImpact < PRICE_IMPACT_BLOCK_PCT && (
-          <label className="impact-confirm">
-            <input
-              type="checkbox"
-              checked={impactConfirmed}
-              onChange={(e) => setImpactConfirmed(e.target.checked)}
-            />
-            I understand this swap has high price impact.
-          </label>
-        )}
-        {priceImpact >= PRICE_IMPACT_WARN_PCT && priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
-          <p className="muted small">
-            Warning: current price impact is {priceImpact.toFixed(2)}%. Consider smaller size.
-          </p>
-        )}
+        {priceImpact >= PRICE_IMPACT_CONFIRM_PCT &&
+          priceImpact < PRICE_IMPACT_BLOCK_PCT && (
+            <label className="impact-confirm">
+              <input
+                type="checkbox"
+                checked={impactConfirmed}
+                onChange={(e) => setImpactConfirmed(e.target.checked)}
+              />
+              I understand this swap has high price impact.
+            </label>
+          )}
+        {priceImpact >= PRICE_IMPACT_WARN_PCT &&
+          priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
+            <p className="muted small">
+              Warning: current price impact is {priceImpact.toFixed(2)}%.
+              Consider smaller size.
+            </p>
+          )}
       </div>
 
       <div className="swap-settings">
@@ -1890,13 +1949,22 @@ function App() {
             onChange={(e) => setSlippageInput(e.target.value)}
           />
           <div className="mini-actions">
-            <button className="tiny ghost" onClick={() => setSlippageInput("0.1")}>
+            <button
+              className="tiny ghost"
+              onClick={() => setSlippageInput("0.1")}
+            >
               0.1%
             </button>
-            <button className="tiny ghost" onClick={() => setSlippageInput("0.5")}>
+            <button
+              className="tiny ghost"
+              onClick={() => setSlippageInput("0.5")}
+            >
               0.5%
             </button>
-            <button className="tiny ghost" onClick={() => setSlippageInput("1")}>
+            <button
+              className="tiny ghost"
+              onClick={() => setSlippageInput("1")}
+            >
               1%
             </button>
           </div>
@@ -2080,7 +2148,9 @@ function App() {
       <button
         className="primary"
         onClick={handleSwap}
-        disabled={quoteLoading || swapPending || preflightPending || Boolean(swapDraft)}
+        disabled={
+          quoteLoading || swapPending || preflightPending || Boolean(swapDraft)
+        }
       >
         {quoteLoading
           ? "Loading quote..."
@@ -2191,30 +2261,43 @@ function App() {
           <p className="eyebrow">Portfolio</p>
           <h3>PnL & Position</h3>
         </div>
-        <span className="chip ghost">{portfolioMetrics.has24h ? "24h window" : "Building 24h data"}</span>
+        <span className="chip ghost">
+          {portfolioMetrics.has24h ? "24h window" : "Building 24h data"}
+        </span>
       </div>
       <div className="portfolio-grid">
         <div>
           <p className="muted small">Holdings</p>
-          <strong>{formatNumber(portfolioTotals.totalX)} X / {formatNumber(portfolioTotals.totalY)} Y</strong>
+          <strong>
+            {formatNumber(portfolioTotals.totalX)} X /{" "}
+            {formatNumber(portfolioTotals.totalY)} Y
+          </strong>
         </div>
         <div>
           <p className="muted small">Total value</p>
           <strong>{formatNumber(portfolioTotals.valueInX)} X</strong>
-          <p className="muted small">{formatNumber(portfolioTotals.valueInY)} Y</p>
+          <p className="muted small">
+            {formatNumber(portfolioTotals.valueInY)} Y
+          </p>
         </div>
         <div>
           <p className="muted small">24h PnL</p>
           <strong>{formatSignedPercent(portfolioMetrics.pnl24X)} in X</strong>
-          <p className="muted small">{formatSignedPercent(portfolioMetrics.pnl24Y)} in Y</p>
+          <p className="muted small">
+            {formatSignedPercent(portfolioMetrics.pnl24Y)} in Y
+          </p>
         </div>
         <div>
           <p className="muted small">LP position</p>
           <strong>{(poolShare * 100).toFixed(2)}% share</strong>
-          <p className="muted small">{formatNumber(lpPosition.x)} X / {formatNumber(lpPosition.y)} Y</p>
+          <p className="muted small">
+            {formatNumber(lpPosition.x)} X / {formatNumber(lpPosition.y)} Y
+          </p>
         </div>
       </div>
-      <p className={`note ${portfolioMetrics.ilPercent !== null ? "subtle" : ""}`}>
+      <p
+        className={`note ${portfolioMetrics.ilPercent !== null ? "subtle" : ""}`}
+      >
         Estimated IL vs hold: {formatSignedPercent(portfolioMetrics.ilPercent)}.
       </p>
     </section>
@@ -2249,7 +2332,9 @@ function App() {
           {activityItems.slice(0, 8).map((item) => (
             <div className="activity-item" key={item.id}>
               <div className="activity-main">
-                <span className={`chip ghost status-${item.status}`}>{item.status}</span>
+                <span className={`chip ghost status-${item.status}`}>
+                  {item.status}
+                </span>
                 <strong>{item.message}</strong>
               </div>
               <div className="activity-meta">
@@ -2279,7 +2364,11 @@ function App() {
       <header className="nav">
         <div className="nav-inner">
           <div className="brand">
-            <img className="brand-mark" src="/favicon.png" alt="Stacks Exchange logo" />
+            <img
+              className="brand-mark"
+              src="/favicon.png"
+              alt="Stacks Exchange logo"
+            />
             <div>
               <p className="eyebrow">Stacks Exchange</p>
               <h1>Swap</h1>
@@ -2392,19 +2481,27 @@ function App() {
             <div className="swap-drawer-grid">
               <div>
                 <span className="muted small">You pay</span>
-                <strong>{formatNumber(swapDraft.amount)} {swapDraft.fromSymbol}</strong>
+                <strong>
+                  {formatNumber(swapDraft.amount)} {swapDraft.fromSymbol}
+                </strong>
               </div>
               <div>
                 <span className="muted small">You receive (est.)</span>
-                <strong>{formatNumber(swapDraft.outputPreview)} {swapDraft.toSymbol}</strong>
+                <strong>
+                  {formatNumber(swapDraft.outputPreview)} {swapDraft.toSymbol}
+                </strong>
               </div>
               <div>
                 <span className="muted small">Minimum received</span>
-                <strong>{formatNumber(swapDraft.minReceived)} {swapDraft.toSymbol}</strong>
+                <strong>
+                  {formatNumber(swapDraft.minReceived)} {swapDraft.toSymbol}
+                </strong>
               </div>
               <div>
                 <span className="muted small">Slippage / Deadline</span>
-                <strong>{swapDraft.slippagePercent}% / {swapDraft.deadlineMinutes}m</strong>
+                <strong>
+                  {swapDraft.slippagePercent}% / {swapDraft.deadlineMinutes}m
+                </strong>
               </div>
               <div>
                 <span className="muted small">Route</span>
@@ -2423,7 +2520,11 @@ function App() {
               >
                 Cancel
               </button>
-              <button className="primary" onClick={executeSwap} disabled={swapPending}>
+              <button
+                className="primary"
+                onClick={executeSwap}
+                disabled={swapPending}
+              >
                 {swapPending ? "Submitting..." : "Confirm Swap"}
               </button>
             </div>
@@ -2452,5 +2553,3 @@ function App() {
 }
 
 export default App;
-
-
