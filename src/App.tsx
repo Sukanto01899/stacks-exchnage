@@ -142,6 +142,7 @@ const formatSignedPercent = (value: number | null) => {
   return `${sign}${value.toFixed(2)}%`;
 };
 
+// TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {
   if (!addr) return false;
   if (IS_MAINNET) {
