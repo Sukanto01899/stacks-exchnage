@@ -92,6 +92,7 @@ const normalizeTokenId = (value: string | undefined, assetName: string) => {
   return "";
 };
 
+// TODO: Update token contract addresses and asset names, or add logic to fetch them dynamically if needed
 const TOKEN_CONTRACTS = {
   x:
     normalizeTokenId(
