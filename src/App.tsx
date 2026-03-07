@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
@@ -38,6 +38,8 @@ type SwapDraft = {
   functionName: "swap-x-for-y" | "swap-y-for-x";
   functionArgs: ClarityValue[];
 };
+
+type TokenKey = "x" | "y";
 
 const FEE_BPS = 30;
 const BPS = 10_000;
@@ -189,6 +191,14 @@ const unwrapReadOnlyOk = (raw: unknown) => {
   return parsed;
 };
 
+const isNamedFunctionLike = (
+  value: unknown,
+): value is { name: string } => {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as { name?: unknown };
+  return typeof maybe.name === "string";
+};
+
 function App() {
   const [pool, setPool] = useState<PoolState>({
     reserveX: 0,
@@ -222,6 +232,17 @@ function App() {
   const [targetPairDirection, setTargetPairDirection] = useState<
     "x-to-y" | "y-to-x"
   >("x-to-y");
+  const [approvalSupport, setApprovalSupport] = useState<Record<TokenKey, boolean>>({
+    x: false,
+    y: false,
+  });
+  const [allowances, setAllowances] = useState<Record<TokenKey, number | null>>({
+    x: null,
+    y: null,
+  });
+  const [approvePending, setApprovePending] = useState<TokenKey | null>(null);
+  const [approveUnlimited, setApproveUnlimited] = useState(true);
+  const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
 
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
@@ -263,6 +284,10 @@ function App() {
     }),
     [],
   );
+  const spenderContractId = useMemo(
+    () => `${poolContract.address}.${poolContract.contractName}`,
+    [poolContract.address, poolContract.contractName],
+  );
 
   const fetchTipHeight = async () => {
     const res = await fetch(`${STACKS_API}/extended/v1/info`);
@@ -270,6 +295,100 @@ function App() {
     const data = await res.json().catch(() => ({}));
     return Number(data?.stacks_tip_height || 0);
   };
+
+  const detectApprovalSupport = useCallback(async (token: TokenKey) => {
+    const t = tokenContracts[token];
+    const url = `${STACKS_API}/v2/contracts/interface/${t.address}/${t.contractName}`;
+    const response = await fetch(url).catch(() => null);
+    if (!response?.ok) return false;
+    const data = await response.json().catch(() => ({}));
+    const functions = Array.isArray(data?.functions) ? data.functions : [];
+    const hasApprove = functions.some(
+      (fn) => isNamedFunctionLike(fn) && fn.name === "approve",
+    );
+    const hasAllowance = functions.some(
+      (fn) => isNamedFunctionLike(fn) && fn.name === "get-allowance",
+    );
+    return hasApprove && hasAllowance;
+  }, [tokenContracts]);
+
+  const fetchAllowance = useCallback(async (token: TokenKey, owner: string) => {
+    if (!approvalSupport[token]) return null;
+    const t = tokenContracts[token];
+    const result = await fetchCallReadOnlyFunction({
+      contractAddress: t.address,
+      contractName: t.contractName,
+      functionName: "get-allowance",
+      functionArgs: [
+        standardPrincipalCV(owner),
+        contractPrincipalCV(poolContract.address, poolContract.contractName),
+      ],
+      senderAddress: owner,
+      network,
+    });
+    const raw = unwrapReadOnlyOk(result);
+    const value = Number(raw || 0) / TOKEN_DECIMALS;
+    return Number.isFinite(value) ? value : 0;
+  }, [approvalSupport, network, poolContract.address, poolContract.contractName, tokenContracts]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const [x, y] = await Promise.all([
+        detectApprovalSupport("x"),
+        detectApprovalSupport("y"),
+      ]);
+      if (cancelled) return;
+      setApprovalSupport({ x, y });
+      if (!x || !y) {
+        setAllowances((prev) => ({
+          x: x ? prev.x : null,
+          y: y ? prev.y : null,
+        }));
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    detectApprovalSupport,
+    tokenContracts.x.address,
+    tokenContracts.x.contractName,
+    tokenContracts.y.address,
+    tokenContracts.y.contractName,
+  ]);
+
+  useEffect(() => {
+    if (!stacksAddress) {
+      setAllowances({ x: null, y: null });
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      const [x, y] = await Promise.all([
+        fetchAllowance("x", stacksAddress),
+        fetchAllowance("y", stacksAddress),
+      ]);
+      if (cancelled) return;
+      setAllowances({ x, y });
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    stacksAddress,
+    fetchAllowance,
+    approvalSupport.x,
+    approvalSupport.y,
+    poolContract.address,
+    poolContract.contractName,
+    tokenContracts.x.address,
+    tokenContracts.x.contractName,
+    tokenContracts.y.address,
+    tokenContracts.y.contractName,
+  ]);
 
   const fetchPoolState = async (address?: string | null) => {
     setPoolPending(true);
@@ -567,6 +686,16 @@ function App() {
       setSwapMessage("Not enough balance for this swap.");
       return;
     }
+    const inputToken: TokenKey = fromX ? "x" : "y";
+    if (approvalSupport[inputToken]) {
+      const allowance = allowances[inputToken] || 0;
+      if (allowance + Number.EPSILON < amount) {
+        setSwapMessage(
+          `Approve ${fromX ? "Token X" : "Token Y"} first. Required: ${formatNumber(amount)}, current allowance: ${formatNumber(allowance)}.`,
+        );
+        return;
+      }
+    }
     const outputPreview = quoteSwap(amount, fromX);
     if (outputPreview <= 0) {
       setSwapMessage("Pool has no liquidity for this direction yet.");
@@ -849,6 +978,65 @@ function App() {
     }
   };
 
+  const handleApprove = async (token: TokenKey, requiredAmount?: number) => {
+    setApprovalMessage(null);
+    if (!stacksAddress) {
+      setApprovalMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (!approvalSupport[token]) {
+      setApprovalMessage(
+        `${token === "x" ? "Token X" : "Token Y"} does not require approvals with the current contract.`,
+      );
+      return;
+    }
+
+    const requiredMicro = BigInt(
+      Math.max(1, Math.floor((requiredAmount || 0) * TOKEN_DECIMALS)),
+    );
+    const unlimitedMicro = 9_999_999_999_999_999n;
+    const amountMicro = approveUnlimited ? unlimitedMicro : requiredMicro;
+    const tokenLabel = token === "x" ? "Token X" : "Token Y";
+    const tokenContract = tokenContracts[token];
+
+    try {
+      setApprovePending(token);
+      await openContractCall({
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        contractAddress: tokenContract.address,
+        contractName: tokenContract.contractName,
+        functionName: "approve",
+        functionArgs: [
+          uintCV(amountMicro),
+          contractPrincipalCV(poolContract.address, poolContract.contractName),
+        ],
+        onFinish: async (payload) => {
+          setApprovalMessage(
+            `${tokenLabel} approval submitted. Txid: ${payload.txId}`,
+          );
+          const next = await fetchAllowance(token, stacksAddress).catch(
+            () => null,
+          );
+          setAllowances((prev) => ({ ...prev, [token]: next }));
+          setApprovePending(null);
+        },
+        onCancel: () => {
+          setApprovalMessage(`${tokenLabel} approval cancelled.`);
+          setApprovePending(null);
+        },
+      });
+    } catch (error) {
+      setApprovalMessage(
+        error instanceof Error
+          ? error.message
+          : `${tokenLabel} approval failed.`,
+      );
+      setApprovePending(null);
+    }
+  };
+
   const handleAddLiquidity = async () => {
     setLiqMessage(null);
     const amountX = Number(liqX);
@@ -860,6 +1048,24 @@ function App() {
     if (!stacksAddress) {
       setLiqMessage("Connect a Stacks wallet first.");
       return;
+    }
+    if (approvalSupport.x) {
+      const allowanceX = allowances.x || 0;
+      if (allowanceX + Number.EPSILON < amountX) {
+        setLiqMessage(
+          `Approve Token X first. Required: ${formatNumber(amountX)}, current allowance: ${formatNumber(allowanceX)}.`,
+        );
+        return;
+      }
+    }
+    if (approvalSupport.y) {
+      const allowanceY = allowances.y || 0;
+      if (allowanceY + Number.EPSILON < amountY) {
+        setLiqMessage(
+          `Approve Token Y first. Required: ${formatNumber(amountY)}, current allowance: ${formatNumber(allowanceY)}.`,
+        );
+        return;
+      }
     }
     const initializing = pool.totalShares === 0;
     const amountXMicro = BigInt(Math.floor(amountX * TOKEN_DECIMALS));
@@ -1172,6 +1378,81 @@ function App() {
     if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
     return parsed / 100;
   }, [slippageInput]);
+
+  const swapAmount = useMemo(() => {
+    const parsed = Number(swapInput);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }, [swapInput]);
+
+  const liqAmountX = useMemo(() => {
+    const parsed = Number(liqX);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }, [liqX]);
+
+  const liqAmountY = useMemo(() => {
+    const parsed = Number(liqY);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }, [liqY]);
+
+  const renderApprovalManager = (mode: "swap" | "liquidity") => {
+    const requiredX =
+      mode === "swap" ? (swapDirection === "x-to-y" ? swapAmount : 0) : liqAmountX;
+    const requiredY =
+      mode === "swap" ? (swapDirection === "y-to-x" ? swapAmount : 0) : liqAmountY;
+    const hasAnySupport = approvalSupport.x || approvalSupport.y;
+
+    return (
+      <div className="approval-panel">
+        <div className="approval-head">
+          <span className="muted">Approval Manager</span>
+          <label className="target-toggle">
+            <input
+              type="checkbox"
+              checked={approveUnlimited}
+              onChange={(e) => setApproveUnlimited(e.target.checked)}
+            />
+            Unlimited
+          </label>
+        </div>
+        {!hasAnySupport ? (
+          <p className="muted small">
+            Approval not required for current token contracts (direct transfer model).
+          </p>
+        ) : (
+          <div className="approval-grid">
+            <div>
+              <p className="muted small">Token X allowance</p>
+              <strong>
+                {allowances.x === null ? "N/A" : `${formatNumber(allowances.x)} X`}
+              </strong>
+              <button
+                className="tiny ghost"
+                onClick={() => handleApprove("x", requiredX)}
+                disabled={!approvalSupport.x || !stacksAddress || approvePending !== null}
+              >
+                {approvePending === "x" ? "Approving X..." : "Approve X"}
+              </button>
+            </div>
+            <div>
+              <p className="muted small">Token Y allowance</p>
+              <strong>
+                {allowances.y === null ? "N/A" : `${formatNumber(allowances.y)} Y`}
+              </strong>
+              <button
+                className="tiny ghost"
+                onClick={() => handleApprove("y", requiredY)}
+                disabled={!approvalSupport.y || !stacksAddress || approvePending !== null}
+              >
+                {approvePending === "y" ? "Approving Y..." : "Approve Y"}
+              </button>
+            </div>
+          </div>
+        )}
+        <p className="muted small">Spender: {spenderContractId}</p>
+        {approvalMessage && <p className="note subtle">{approvalMessage}</p>}
+      </div>
+    );
+  };
 
   const SwapCard = () => (
     <div className="swap-card">
@@ -1515,6 +1796,8 @@ function App() {
         </div>
       </div>
 
+      {renderApprovalManager("swap")}
+
       <button
         className="primary"
         onClick={handleSwap}
@@ -1586,6 +1869,7 @@ function App() {
             </p>
           </div>
         </div>
+        {renderApprovalManager("liquidity")}
         <button className="primary" onClick={handleAddLiquidity}>
           Add liquidity
         </button>

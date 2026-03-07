@@ -435,6 +435,39 @@ h3 {
   gap: 10px;
 }
 
+.approval-panel {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.approval-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.approval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.approval-grid > div {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .target-head {
   display: flex;
   align-items: center;
@@ -828,6 +861,10 @@ label {
   }
 
   .target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-grid {
     grid-template-columns: 1fr;
   }
 
