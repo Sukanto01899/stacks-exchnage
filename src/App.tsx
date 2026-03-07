@@ -85,6 +85,7 @@ const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 
+// TODO: Update token normalization logic if your contract uses a different asset ID format or if you want to support multiple tokens per contract
 const normalizeTokenId = (value: string | undefined, assetName: string) => {
   if (value?.includes("::")) return value;
   if (value) return `${value}::${assetName}`;
