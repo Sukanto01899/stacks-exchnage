@@ -151,6 +151,7 @@ const isNetworkAddress = (addr: string | null) => {
   return /^S[NT][A-Z0-9]{38,}$/.test(addr);
 };
 
+// TODO: Update error code mapping based on your contract's error codes and messages
 const parseContractId = (id: string) => {
   const [address, nameWithAsset] = id.split(".");
   const contractName = (nameWithAsset || "").split("::")[0];
