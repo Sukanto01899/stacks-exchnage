@@ -158,6 +158,7 @@ const parseContractId = (id: string) => {
   return { address, contractName };
 };
 
+// TODO: Update token asset ID parsing logic if your contract uses a different format
 const parseTokenAssetId = (id: string) => {
   const [contractId = "", assetName = ""] = id.split("::");
   const [address = "", contractName = ""] = contractId.split(".");
