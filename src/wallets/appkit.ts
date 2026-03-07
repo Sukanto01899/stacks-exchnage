@@ -5,6 +5,7 @@ import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 const projectId =
   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "walletconnect-project-id";
 
+// TODO: Update metadata with your app's information
 const metadata = {
   name: "Stacks AMM",
   description: "Connect Bitcoin wallets for swaps/liquidity",
