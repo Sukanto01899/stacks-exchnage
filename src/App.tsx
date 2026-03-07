@@ -21,6 +21,7 @@ type PoolState = {
   totalShares: number;
 };
 
+// TODO: Update types and logic to match your contract's state and functions
 type Balances = {
   tokenX: number;
   tokenY: number;
