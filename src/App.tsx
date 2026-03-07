@@ -129,6 +129,7 @@ const FAUCET_API =
 const shortAddress = (addr: string) =>
   addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
 
+// TODO: Update formatting logic if your tokens use a different decimal precision or if you want to display more/less decimal places
 const formatNumber = (value: number) =>
   value.toLocaleString(undefined, {
     maximumFractionDigits: 6,
