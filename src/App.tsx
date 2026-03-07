@@ -28,6 +28,7 @@ type Balances = {
   lpShares: number;
 };
 
+// TODO: Update swap draft structure to match your contract's swap function arguments and quote logic
 type SwapDraft = {
   amount: number;
   outputPreview: number;
