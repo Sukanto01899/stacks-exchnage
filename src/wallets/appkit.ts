@@ -2,6 +2,7 @@ import { createAppKit } from "@reown/appkit";
 import { bitcoinTestnet } from "@reown/appkit/networks";
 import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 
+// TODO: Replace with your WalletConnect Project ID
 const projectId =
   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "walletconnect-project-id";
 
