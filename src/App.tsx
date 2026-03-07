@@ -46,6 +46,14 @@ type PortfolioSnapshot = {
   totalY: number;
   priceYX: number;
 };
+type ActivityItem = {
+  id: string;
+  ts: number;
+  kind: "swap" | "add-liquidity" | "remove-liquidity" | "approve" | "faucet";
+  status: "submitted" | "confirmed" | "failed" | "cancelled";
+  txid?: string;
+  message: string;
+};
 
 const FEE_BPS = 30;
 const BPS = 10_000;
@@ -275,6 +283,7 @@ function App() {
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioSnapshot[]>(
     [],
   );
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
 
   const network = useMemo(
     () =>
@@ -308,6 +317,10 @@ function App() {
   const portfolioHistoryKey = useMemo(
     () =>
       `portfolio-history-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
+  const activityKey = useMemo(
+    () => `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
 
@@ -612,6 +625,53 @@ function App() {
       setPortfolioHistory([]);
     }
   }, [portfolioHistoryKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(activityKey);
+      if (!raw) {
+        setActivityItems([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      const items = Array.isArray(parsed)
+        ? parsed.filter(
+            (item): item is ActivityItem =>
+              !!item &&
+              typeof item === "object" &&
+              typeof (item as ActivityItem).id === "string" &&
+              typeof (item as ActivityItem).ts === "number" &&
+              typeof (item as ActivityItem).kind === "string" &&
+              typeof (item as ActivityItem).status === "string" &&
+              typeof (item as ActivityItem).message === "string",
+          )
+        : [];
+      setActivityItems(items);
+    } catch (error) {
+      console.warn("Activity history load failed", error);
+      setActivityItems([]);
+    }
+  }, [activityKey]);
+
+  const pushActivity = useCallback(
+    (item: Omit<ActivityItem, "id" | "ts">) => {
+      const nextItem: ActivityItem = {
+        ...item,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        ts: Date.now(),
+      };
+      setActivityItems((prev) => {
+        const next = [nextItem, ...prev].slice(0, 30);
+        try {
+          localStorage.setItem(activityKey, JSON.stringify(next));
+        } catch (error) {
+          console.warn("Activity history save failed", error);
+        }
+        return next;
+      });
+    },
+    [activityKey],
+  );
 
   const handleStacksConnect = async () => {
     try {
@@ -980,6 +1040,12 @@ function App() {
         functionArgs: swapDraft.functionArgs,
         onFinish: async (payload) => {
           setSwapMessage(`Swap submitted. Txid: ${payload.txId}`);
+          pushActivity({
+            kind: "swap",
+            status: "submitted",
+            txid: payload.txId,
+            message: "Swap submitted",
+          });
           const waitForSwapOutcome = async () => {
             for (let i = 0; i < 18; i += 1) {
               await sleep(4000);
@@ -992,6 +1058,12 @@ function App() {
               if (!status) continue;
               if (status === "success") {
                 setSwapMessage(`Swap confirmed. Txid: ${payload.txId}`);
+                pushActivity({
+                  kind: "swap",
+                  status: "confirmed",
+                  txid: payload.txId,
+                  message: "Swap confirmed",
+                });
                 return;
               }
               if (
@@ -1006,6 +1078,14 @@ function App() {
                     ? `Swap failed on-chain. ${reason}.`
                     : `Swap failed on-chain. ${repr || "No error code returned."}`,
                 );
+                pushActivity({
+                  kind: "swap",
+                  status: "failed",
+                  txid: payload.txId,
+                  message: reason
+                    ? `Swap failed: ${reason}`
+                    : "Swap failed on-chain",
+                });
                 return;
               }
             }
@@ -1018,11 +1098,21 @@ function App() {
         },
         onCancel: () => {
           setSwapMessage("Swap cancelled.");
+          pushActivity({
+            kind: "swap",
+            status: "cancelled",
+            message: "Swap cancelled",
+          });
           setSwapPending(false);
           setSwapDraft(null);
         },
       });
     } catch (error) {
+      pushActivity({
+        kind: "swap",
+        status: "failed",
+        message: "Swap submission failed",
+      });
       setSwapMessage(
         error instanceof Error
           ? error.message
@@ -1147,6 +1237,12 @@ function App() {
           setApprovalMessage(
             `${tokenLabel} approval submitted. Txid: ${payload.txId}`,
           );
+          pushActivity({
+            kind: "approve",
+            status: "submitted",
+            txid: payload.txId,
+            message: `${tokenLabel} approval submitted`,
+          });
           const next = await fetchAllowance(token, stacksAddress).catch(
             () => null,
           );
@@ -1155,10 +1251,20 @@ function App() {
         },
         onCancel: () => {
           setApprovalMessage(`${tokenLabel} approval cancelled.`);
+          pushActivity({
+            kind: "approve",
+            status: "cancelled",
+            message: `${tokenLabel} approval cancelled`,
+          });
           setApprovePending(null);
         },
       });
     } catch (error) {
+      pushActivity({
+        kind: "approve",
+        status: "failed",
+        message: `${tokenLabel} approval failed`,
+      });
       setApprovalMessage(
         error instanceof Error
           ? error.message
@@ -1252,12 +1358,30 @@ function App() {
         functionArgs,
         onFinish: async (payload) => {
           setLiqMessage(`Liquidity submitted. Txid: ${payload.txId}`);
+          pushActivity({
+            kind: "add-liquidity",
+            status: "submitted",
+            txid: payload.txId,
+            message: "Add liquidity submitted",
+          });
           await syncBalances(stacksAddress, { silent: true });
           await fetchPoolState(stacksAddress);
         },
-        onCancel: () => setLiqMessage("Liquidity cancelled."),
+        onCancel: () => {
+          setLiqMessage("Liquidity cancelled.");
+          pushActivity({
+            kind: "add-liquidity",
+            status: "cancelled",
+            message: "Add liquidity cancelled",
+          });
+        },
       });
     } catch (error) {
+      pushActivity({
+        kind: "add-liquidity",
+        status: "failed",
+        message: "Add liquidity failed",
+      });
       setLiqMessage(
         error instanceof Error
           ? error.message
@@ -1304,12 +1428,30 @@ function App() {
         ],
         onFinish: async (payload) => {
           setBurnMessage(`Remove liquidity submitted. Txid: ${payload.txId}`);
+          pushActivity({
+            kind: "remove-liquidity",
+            status: "submitted",
+            txid: payload.txId,
+            message: "Remove liquidity submitted",
+          });
           await syncBalances(stacksAddress, { silent: true });
           await fetchPoolState(stacksAddress);
         },
-        onCancel: () => setBurnMessage("Remove liquidity cancelled."),
+        onCancel: () => {
+          setBurnMessage("Remove liquidity cancelled.");
+          pushActivity({
+            kind: "remove-liquidity",
+            status: "cancelled",
+            message: "Remove liquidity cancelled",
+          });
+        },
       });
     } catch (error) {
+      pushActivity({
+        kind: "remove-liquidity",
+        status: "failed",
+        message: "Remove liquidity failed",
+      });
       setBurnMessage(
         error instanceof Error
           ? error.message
@@ -1352,6 +1494,12 @@ function App() {
       for (const t of targets) {
         const res = await requestFaucet(t as "x" | "y");
         results.push(`${t.toUpperCase()}: ${res.txid}`);
+        pushActivity({
+          kind: "faucet",
+          status: "submitted",
+          txid: String(res.txid || ""),
+          message: `${t.toUpperCase()} faucet submitted`,
+        });
       }
       setFaucetTxids(results.map((entry) => entry.split(": ")[1] || entry));
       setBalances((prev) => ({
@@ -2072,6 +2220,60 @@ function App() {
     </section>
   );
 
+  const ActivityPanel = () => (
+    <section className="activity-panel">
+      <div className="activity-head">
+        <div>
+          <p className="eyebrow">Recent Activity</p>
+          <h3>Transactions</h3>
+        </div>
+        <button
+          className="tiny ghost"
+          onClick={() => {
+            setActivityItems([]);
+            try {
+              localStorage.removeItem(activityKey);
+            } catch (error) {
+              console.warn("Activity history clear failed", error);
+            }
+          }}
+          disabled={activityItems.length === 0}
+        >
+          Clear
+        </button>
+      </div>
+      {activityItems.length === 0 ? (
+        <p className="muted small">No activity yet.</p>
+      ) : (
+        <div className="activity-list">
+          {activityItems.slice(0, 8).map((item) => (
+            <div className="activity-item" key={item.id}>
+              <div className="activity-main">
+                <span className={`chip ghost status-${item.status}`}>{item.status}</span>
+                <strong>{item.message}</strong>
+              </div>
+              <div className="activity-meta">
+                <span className="muted small">
+                  {new Date(item.ts).toLocaleString()}
+                </span>
+                {item.txid ? (
+                  <a
+                    className="chip ghost"
+                    href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <div className="page single">
       <header className="nav">
@@ -2125,6 +2327,7 @@ function App() {
       <main className="content single">
         <section className="panel swap-panel">
           <PortfolioPanel />
+          <ActivityPanel />
           <div className="panel-head">
             <div className="tabs">
               <button
