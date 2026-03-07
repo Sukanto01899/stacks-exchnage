@@ -162,6 +162,43 @@ h3 {
   margin: 0 auto;
 }
 
+.portfolio-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.portfolio-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.portfolio-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.portfolio-grid > div {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.portfolio-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -856,7 +893,8 @@ label {
 
   .sim-body,
   .inline-stats,
-  .sim-stats {
+  .sim-stats,
+  .portfolio-grid {
     grid-template-columns: 1fr;
   }
 

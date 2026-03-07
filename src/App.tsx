@@ -40,6 +40,12 @@ type SwapDraft = {
 };
 
 type TokenKey = "x" | "y";
+type PortfolioSnapshot = {
+  ts: number;
+  totalX: number;
+  totalY: number;
+  priceYX: number;
+};
 
 const FEE_BPS = 30;
 const BPS = 10_000;
@@ -65,6 +71,8 @@ const STACKS_API =
     ? "https://api.hiro.so"
     : "https://api.testnet.hiro.so");
 const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 
 const normalizeTokenId = (value: string | undefined, assetName: string) => {
   if (value?.includes("::")) return value;
@@ -113,6 +121,12 @@ const formatNumber = (value: number) =>
     maximumFractionDigits: 6,
     minimumFractionDigits: 0,
   });
+
+const formatSignedPercent = (value: number | null) => {
+  if (value === null || !Number.isFinite(value)) return "N/A";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+};
 
 const isNetworkAddress = (addr: string | null) => {
   if (!addr) return false;
@@ -258,6 +272,9 @@ function App() {
   const [btcStatus, setBtcStatus] = useState<string | null>(null);
   const [balancePending, setBalancePending] = useState(false);
   const [poolPending, setPoolPending] = useState(false);
+  const [portfolioHistory, setPortfolioHistory] = useState<PortfolioSnapshot[]>(
+    [],
+  );
 
   const network = useMemo(
     () =>
@@ -287,6 +304,11 @@ function App() {
   const spenderContractId = useMemo(
     () => `${poolContract.address}.${poolContract.contractName}`,
     [poolContract.address, poolContract.contractName],
+  );
+  const portfolioHistoryKey = useMemo(
+    () =>
+      `portfolio-history-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
   );
 
   const fetchTipHeight = async () => {
@@ -565,6 +587,32 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(portfolioHistoryKey);
+      if (!raw) {
+        setPortfolioHistory([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      const snapshots = Array.isArray(parsed)
+        ? parsed.filter(
+            (item): item is PortfolioSnapshot =>
+              !!item &&
+              typeof item === "object" &&
+              typeof (item as PortfolioSnapshot).ts === "number" &&
+              typeof (item as PortfolioSnapshot).totalX === "number" &&
+              typeof (item as PortfolioSnapshot).totalY === "number" &&
+              typeof (item as PortfolioSnapshot).priceYX === "number",
+          )
+        : [];
+      setPortfolioHistory(snapshots);
+    } catch (error) {
+      console.warn("Portfolio history load failed", error);
+      setPortfolioHistory([]);
+    }
+  }, [portfolioHistoryKey]);
+
   const handleStacksConnect = async () => {
     try {
       const result = await connect({
@@ -643,6 +691,89 @@ function App() {
     if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
     return pool.reserveY / pool.reserveX;
   }, [pool.reserveX, pool.reserveY]);
+  const lpPosition = useMemo(() => {
+    const share = Math.max(0, Math.min(1, poolShare));
+    return {
+      x: pool.reserveX * share,
+      y: pool.reserveY * share,
+    };
+  }, [pool.reserveX, pool.reserveY, poolShare]);
+  const portfolioTotals = useMemo(() => {
+    const totalX = balances.tokenX + lpPosition.x;
+    const totalY = balances.tokenY + lpPosition.y;
+    const valueInX = currentPrice > 0 ? totalX + totalY / currentPrice : totalX;
+    const valueInY = currentPrice > 0 ? totalY + totalX * currentPrice : totalY;
+    return { totalX, totalY, valueInX, valueInY };
+  }, [balances.tokenX, balances.tokenY, lpPosition.x, lpPosition.y, currentPrice]);
+
+  useEffect(() => {
+    if (!stacksAddress || currentPrice <= 0) return;
+    const now = Date.now();
+    setPortfolioHistory((prev) => {
+      const sorted = [...prev].sort((a, b) => a.ts - b.ts);
+      const last = sorted[sorted.length - 1];
+      if (
+        last &&
+        now - last.ts < SNAPSHOT_INTERVAL_MS &&
+        Math.abs(last.totalX - portfolioTotals.totalX) < 1e-6 &&
+        Math.abs(last.totalY - portfolioTotals.totalY) < 1e-6
+      ) {
+        return prev;
+      }
+      const next = [
+        ...sorted.filter((item) => now - item.ts <= DAY_MS * 3),
+        {
+          ts: now,
+          totalX: portfolioTotals.totalX,
+          totalY: portfolioTotals.totalY,
+          priceYX: currentPrice,
+        },
+      ];
+      try {
+        localStorage.setItem(portfolioHistoryKey, JSON.stringify(next));
+      } catch (error) {
+        console.warn("Portfolio history save failed", error);
+      }
+      return next;
+    });
+  }, [
+    stacksAddress,
+    currentPrice,
+    portfolioTotals.totalX,
+    portfolioTotals.totalY,
+    portfolioHistoryKey,
+  ]);
+
+  const portfolioMetrics = useMemo(() => {
+    const cutoff = Date.now() - DAY_MS;
+    const baseline = [...portfolioHistory]
+      .sort((a, b) => a.ts - b.ts)
+      .reverse()
+      .find((item) => item.ts <= cutoff);
+
+    const pnl24X =
+      baseline && baseline.totalX > 0
+        ? ((portfolioTotals.totalX - baseline.totalX) / baseline.totalX) * 100
+        : null;
+    const pnl24Y =
+      baseline && baseline.totalY > 0
+        ? ((portfolioTotals.totalY - baseline.totalY) / baseline.totalY) * 100
+        : null;
+    const ilPercent =
+      baseline && baseline.priceYX > 0 && currentPrice > 0
+        ? ((2 * Math.sqrt(currentPrice / baseline.priceYX)) /
+            (1 + currentPrice / baseline.priceYX) -
+            1) *
+          100
+        : null;
+
+    return {
+      pnl24X,
+      pnl24Y,
+      ilPercent,
+      has24h: Boolean(baseline),
+    };
+  }, [portfolioHistory, portfolioTotals.totalX, portfolioTotals.totalY, currentPrice]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
@@ -1905,6 +2036,42 @@ function App() {
     </div>
   );
 
+  const PortfolioPanel = () => (
+    <section className="portfolio-panel">
+      <div className="portfolio-head">
+        <div>
+          <p className="eyebrow">Portfolio</p>
+          <h3>PnL & Position</h3>
+        </div>
+        <span className="chip ghost">{portfolioMetrics.has24h ? "24h window" : "Building 24h data"}</span>
+      </div>
+      <div className="portfolio-grid">
+        <div>
+          <p className="muted small">Holdings</p>
+          <strong>{formatNumber(portfolioTotals.totalX)} X / {formatNumber(portfolioTotals.totalY)} Y</strong>
+        </div>
+        <div>
+          <p className="muted small">Total value</p>
+          <strong>{formatNumber(portfolioTotals.valueInX)} X</strong>
+          <p className="muted small">{formatNumber(portfolioTotals.valueInY)} Y</p>
+        </div>
+        <div>
+          <p className="muted small">24h PnL</p>
+          <strong>{formatSignedPercent(portfolioMetrics.pnl24X)} in X</strong>
+          <p className="muted small">{formatSignedPercent(portfolioMetrics.pnl24Y)} in Y</p>
+        </div>
+        <div>
+          <p className="muted small">LP position</p>
+          <strong>{(poolShare * 100).toFixed(2)}% share</strong>
+          <p className="muted small">{formatNumber(lpPosition.x)} X / {formatNumber(lpPosition.y)} Y</p>
+        </div>
+      </div>
+      <p className={`note ${portfolioMetrics.ilPercent !== null ? "subtle" : ""}`}>
+        Estimated IL vs hold: {formatSignedPercent(portfolioMetrics.ilPercent)}.
+      </p>
+    </section>
+  );
+
   return (
     <div className="page single">
       <header className="nav">
@@ -1957,6 +2124,7 @@ function App() {
 
       <main className="content single">
         <section className="panel swap-panel">
+          <PortfolioPanel />
           <div className="panel-head">
             <div className="tabs">
               <button
