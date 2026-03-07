@@ -15,6 +15,7 @@ const metadata = {
   icons: ["https://walletconnect.com/walletconnect-logo.png"],
 };
 
+// Create the AppKit instance with the specified configuration
 export const appKit = createAppKit({
   projectId,
   adapters: [new BitcoinAdapter()],
