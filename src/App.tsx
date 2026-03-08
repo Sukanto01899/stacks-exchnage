@@ -58,6 +58,7 @@ type ActivityItem = {
   status: "submitted" | "confirmed" | "failed" | "cancelled";
   txid?: string;
   message: string;
+  detail?: string;
 };
 
 const FEE_BPS = 30;
@@ -494,7 +495,7 @@ function App() {
     tokenContracts.y.contractName,
   ]);
 
-  const fetchPoolState = async (address?: string | null) => {
+  const fetchPoolState = useCallback(async (address?: string | null) => {
     setPoolPending(true);
     try {
       const senderAddress = address || CONTRACT_ADDRESS;
@@ -545,7 +546,7 @@ function App() {
     } finally {
       setPoolPending(false);
     }
-  };
+  }, [network, poolContract.address, poolContract.contractName]);
 
   const fetchOnChainBalances = async (address: string) => {
     const response = await fetch(
@@ -590,7 +591,7 @@ function App() {
     };
   };
 
-  const fetchPoolReserves = async (address?: string | null) => {
+  const fetchPoolReserves = useCallback(async (address?: string | null) => {
     const senderAddress = address || CONTRACT_ADDRESS;
     const reserves = await fetchCallReadOnlyFunction({
       contractAddress: poolContract.address,
@@ -601,53 +602,56 @@ function App() {
       network,
     });
     return cvToValue(reserves) as { x: string; y: string };
-  };
+  }, [network, poolContract.address, poolContract.contractName]);
 
-  const syncBalances = async (address: string, opts?: { silent?: boolean }) => {
-    if (!address) return;
-    try {
-      setBalancePending(true);
-      if (!opts?.silent) {
-        setFaucetMessage("Refreshing on-chain balances...");
-      }
-      const next = await fetchOnChainBalances(address);
-      const reserves = await fetchPoolReserves(address);
-      setBalances((prev) => ({
-        ...prev,
-        tokenX: next.tokenX ?? prev.tokenX,
-        tokenY: next.tokenY ?? prev.tokenY,
-      }));
-      setPool((prev) => ({
-        ...prev,
-        reserveX: Number(reserves?.x || 0) / TOKEN_DECIMALS,
-        reserveY: Number(reserves?.y || 0) / TOKEN_DECIMALS,
-      }));
-      await fetchPoolState(address);
-      if (!opts?.silent) {
-        if (next.missing?.length) {
-          const noTrackedTokenBalances =
-            (next.tokenX ?? 0) <= 0 && (next.tokenY ?? 0) <= 0;
-          setFaucetMessage(
-            noTrackedTokenBalances
-              ? "No tracked token balances found yet (likely zero balance)."
-              : `Some token entries are missing: ${next.missing.join(" & ")}`,
-          );
-        } else {
-          setFaucetMessage("Loaded on-chain balances.");
+  const syncBalances = useCallback(
+    async (address: string, opts?: { silent?: boolean }) => {
+      if (!address) return;
+      try {
+        setBalancePending(true);
+        if (!opts?.silent) {
+          setFaucetMessage("Refreshing on-chain balances...");
         }
+        const next = await fetchOnChainBalances(address);
+        const reserves = await fetchPoolReserves(address);
+        setBalances((prev) => ({
+          ...prev,
+          tokenX: next.tokenX ?? prev.tokenX,
+          tokenY: next.tokenY ?? prev.tokenY,
+        }));
+        setPool((prev) => ({
+          ...prev,
+          reserveX: Number(reserves?.x || 0) / TOKEN_DECIMALS,
+          reserveY: Number(reserves?.y || 0) / TOKEN_DECIMALS,
+        }));
+        await fetchPoolState(address);
+        if (!opts?.silent) {
+          if (next.missing?.length) {
+            const noTrackedTokenBalances =
+              (next.tokenX ?? 0) <= 0 && (next.tokenY ?? 0) <= 0;
+            setFaucetMessage(
+              noTrackedTokenBalances
+                ? "No tracked token balances found yet (likely zero balance)."
+                : `Some token entries are missing: ${next.missing.join(" & ")}`,
+            );
+          } else {
+            setFaucetMessage("Loaded on-chain balances.");
+          }
+        }
+      } catch (error) {
+        if (!opts?.silent) {
+          setFaucetMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not load on-chain balances.",
+          );
+        }
+      } finally {
+        setBalancePending(false);
       }
-    } catch (error) {
-      if (!opts?.silent) {
-        setFaucetMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not load on-chain balances.",
-        );
-      }
-    } finally {
-      setBalancePending(false);
-    }
-  };
+    },
+    [fetchPoolReserves, fetchPoolState, tokenIds.x, tokenIds.y],
+  );
 
   useEffect(() => {
     fetchPoolState(stacksAddress);
@@ -731,6 +735,31 @@ function App() {
       };
       setActivityItems((prev) => {
         const next = [nextItem, ...prev].slice(0, 30);
+        try {
+          localStorage.setItem(activityKey, JSON.stringify(next));
+        } catch (error) {
+          console.warn("Activity history save failed", error);
+        }
+        return next;
+      });
+    },
+    [activityKey],
+  );
+
+  const patchActivityByTxid = useCallback(
+    (
+      txid: string,
+      patch: Partial<Pick<ActivityItem, "status" | "message" | "detail">>,
+    ) => {
+      if (!txid) return;
+      setActivityItems((prev) => {
+        let changed = false;
+        const next = prev.map((item) => {
+          if (item.txid !== txid) return item;
+          changed = true;
+          return { ...item, ...patch };
+        });
+        if (!changed) return prev;
         try {
           localStorage.setItem(activityKey, JSON.stringify(next));
         } catch (error) {
@@ -881,6 +910,76 @@ function App() {
     pool.reserveX,
     pool.reserveY,
     portfolioHistoryKey,
+  ]);
+
+  useEffect(() => {
+    const pendingItems = activityItems.filter(
+      (item) => item.status === "submitted" && item.txid,
+    );
+    if (pendingItems.length === 0) return;
+
+    const seen = new Set<string>();
+    const uniquePending = pendingItems.filter((item) => {
+      if (!item.txid || seen.has(item.txid)) return false;
+      seen.add(item.txid);
+      return true;
+    });
+
+    let cancelled = false;
+    const interval = window.setInterval(() => {
+      void Promise.all(
+        uniquePending.map(async (item) => {
+          if (!item.txid || cancelled) return;
+          try {
+            const res = await fetch(`${STACKS_API}/extended/v1/tx/${item.txid}`);
+            if (!res.ok) return;
+            const data = await res.json().catch(() => ({}));
+            const status = String(data?.tx_status || "");
+            if (!status) return;
+
+            if (status === "success") {
+              patchActivityByTxid(item.txid, {
+                status: "confirmed",
+                message: `${item.kind.replace(/-/g, " ")} confirmed`,
+                detail: "Confirmed on-chain",
+              });
+              if (stacksAddress) {
+                await syncBalances(stacksAddress, { silent: true }).catch(() => {});
+                await fetchPoolState(stacksAddress).catch(() => {});
+              }
+              return;
+            }
+
+            if (
+              status.includes("abort") ||
+              status.includes("dropped") ||
+              status.includes("failed")
+            ) {
+              const repr = data?.tx_result?.repr as string | undefined;
+              const reason = explainPoolError(repr) || repr || "Execution failed";
+              patchActivityByTxid(item.txid, {
+                status: "failed",
+                message: `${item.kind.replace(/-/g, " ")} failed`,
+                detail: reason,
+              });
+            }
+          } catch (error) {
+            console.warn("Tx status polling failed", error);
+          }
+        }),
+      );
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [
+    activityItems,
+    patchActivityByTxid,
+    stacksAddress,
+    syncBalances,
+    fetchPoolState,
   ]);
 
   const portfolioMetrics = useMemo(() => {
@@ -1224,54 +1323,8 @@ function App() {
             status: "submitted",
             txid: payload.txId,
             message: "Swap submitted",
+            detail: "Waiting for on-chain confirmation",
           });
-          const waitForSwapOutcome = async () => {
-            for (let i = 0; i < 18; i += 1) {
-              await sleep(4000);
-              const res = await fetch(
-                `${STACKS_API}/extended/v1/tx/${payload.txId}`,
-              ).catch(() => null);
-              if (!res?.ok) continue;
-              const data = await res.json().catch(() => ({}));
-              const status = String(data?.tx_status || "");
-              if (!status) continue;
-              if (status === "success") {
-                setSwapMessage(`Swap confirmed. Txid: ${payload.txId}`);
-                pushActivity({
-                  kind: "swap",
-                  status: "confirmed",
-                  txid: payload.txId,
-                  message: "Swap confirmed",
-                });
-                return;
-              }
-              if (
-                status.includes("abort") ||
-                status.includes("dropped") ||
-                status.includes("failed")
-              ) {
-                const repr = data?.tx_result?.repr as string | undefined;
-                const reason = explainPoolError(repr);
-                setSwapMessage(
-                  reason
-                    ? `Swap failed on-chain. ${reason}.`
-                    : `Swap failed on-chain. ${repr || "No error code returned."}`,
-                );
-                pushActivity({
-                  kind: "swap",
-                  status: "failed",
-                  txid: payload.txId,
-                  message: reason
-                    ? `Swap failed: ${reason}`
-                    : "Swap failed on-chain",
-                });
-                return;
-              }
-            }
-          };
-          await waitForSwapOutcome();
-          await syncBalances(stacksAddress, { silent: true });
-          await fetchPoolState(stacksAddress);
           setSwapPending(false);
           setSwapDraft(null);
         },
@@ -1423,6 +1476,7 @@ function App() {
             status: "submitted",
             txid: payload.txId,
             message: `${tokenLabel} approval submitted`,
+            detail: "Waiting for on-chain confirmation",
           });
           const next = await fetchAllowance(token, stacksAddress).catch(
             () => null,
@@ -1544,9 +1598,8 @@ function App() {
             status: "submitted",
             txid: payload.txId,
             message: "Add liquidity submitted",
+            detail: "Waiting for on-chain confirmation",
           });
-          await syncBalances(stacksAddress, { silent: true });
-          await fetchPoolState(stacksAddress);
         },
         onCancel: () => {
           setLiqMessage("Liquidity cancelled.");
@@ -1614,9 +1667,8 @@ function App() {
             status: "submitted",
             txid: payload.txId,
             message: "Remove liquidity submitted",
+            detail: "Waiting for on-chain confirmation",
           });
-          await syncBalances(stacksAddress, { silent: true });
-          await fetchPoolState(stacksAddress);
         },
         onCancel: () => {
           setBurnMessage("Remove liquidity cancelled.");
@@ -1680,6 +1732,7 @@ function App() {
           status: "submitted",
           txid: String(res.txid || ""),
           message: `${t.toUpperCase()} faucet submitted`,
+          detail: "Waiting for on-chain confirmation",
         });
       }
       setFaucetTxids(results.map((entry) => entry.split(": ")[1] || entry));
@@ -2501,6 +2554,7 @@ function App() {
                   </a>
                 ) : null}
               </div>
+              {item.detail ? <p className="muted small">{item.detail}</p> : null}
             </div>
           ))}
         </div>
