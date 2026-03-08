@@ -165,6 +165,7 @@ const parseTokenAssetId = (id: string) => {
   return { fullId: id, contractId, address, contractName, assetName };
 };
 
+// TODO: Update this function if your contract uses a different liquidity math or if you want to implement more precise calculations (e.g. using a library for fixed-point arithmetic)
 const bigintSqrt = (value: bigint) => {
   if (value < 0n) throw new Error("sqrt only works on non-negative inputs");
   if (value < 2n) return value;
