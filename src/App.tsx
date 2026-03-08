@@ -267,6 +267,7 @@ const isNamedFunctionLike = (value: unknown): value is { name: string } => {
   return typeof maybe.name === "string";
 };
 
+// TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [pool, setPool] = useState<PoolState>({
     reserveX: 0,
