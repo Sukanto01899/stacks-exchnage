@@ -260,6 +260,7 @@ const unwrapReadOnlyOk = (raw: unknown) => {
   return parsed;
 };
 
+// TODO: Update this type guard if your contract's ABI includes more complex function argument or return value structures
 const isNamedFunctionLike = (value: unknown): value is { name: string } => {
   if (!value || typeof value !== "object") return false;
   const maybe = value as { name?: unknown };
