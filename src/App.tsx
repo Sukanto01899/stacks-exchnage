@@ -275,6 +275,7 @@ function App() {
     totalShares: 0,
   });
 
+  // TODO: Update balance state structure if you want to track additional tokens, LP positions, or other relevant user data
   const [balances, setBalances] = useState<Balances>({
     tokenX: 0,
     tokenY: 0,
