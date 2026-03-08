@@ -48,6 +48,8 @@ type PortfolioSnapshot = {
   totalX: number;
   totalY: number;
   priceYX: number;
+  reserveX?: number;
+  reserveY?: number;
 };
 type ActivityItem = {
   id: string;
@@ -140,6 +142,38 @@ const formatSignedPercent = (value: number | null) => {
   if (value === null || !Number.isFinite(value)) return "N/A";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
+};
+
+const formatCompactNumber = (value: number) =>
+  value.toLocaleString(undefined, {
+    notation: "compact",
+    maximumFractionDigits: value >= 100 ? 1 : 2,
+  });
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const buildLinePath = (
+  values: number[],
+  width: number,
+  height: number,
+  padding = 10,
+) => {
+  if (values.length === 0) return "";
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  return values
+    .map((value, index) => {
+      const x =
+        values.length === 1
+          ? width / 2
+          : padding + (index / (values.length - 1)) * (width - padding * 2);
+      const y =
+        height - padding - ((value - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
 };
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
@@ -244,7 +278,9 @@ function App() {
   });
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
 
-  const [activeTab, setActiveTab] = useState<"swap" | "liquidity">("swap");
+  const [activeTab, setActiveTab] = useState<
+    "swap" | "liquidity" | "analytics"
+  >("swap");
   const [swapDirection, setSwapDirection] = useState<"x-to-y" | "y-to-x">(
     "x-to-y",
   );
@@ -812,12 +848,14 @@ function App() {
         return prev;
       }
       const next = [
-        ...sorted.filter((item) => now - item.ts <= DAY_MS * 3),
+        ...sorted.filter((item) => now - item.ts <= DAY_MS * 7),
         {
           ts: now,
           totalX: portfolioTotals.totalX,
           totalY: portfolioTotals.totalY,
           priceYX: currentPrice,
+          reserveX: pool.reserveX,
+          reserveY: pool.reserveY,
         },
       ];
       try {
@@ -832,6 +870,8 @@ function App() {
     currentPrice,
     portfolioTotals.totalX,
     portfolioTotals.totalY,
+    pool.reserveX,
+    pool.reserveY,
     portfolioHistoryKey,
   ]);
 
@@ -870,6 +910,85 @@ function App() {
     portfolioTotals.totalY,
     currentPrice,
   ]);
+
+  const analytics = useMemo(() => {
+    const now = Date.now();
+    const sorted = [...portfolioHistory].sort((a, b) => a.ts - b.ts);
+    const chartPoints = sorted.slice(-28);
+    const values = chartPoints.map((item) => item.priceYX).filter((v) => v > 0);
+    const chartWidth = 320;
+    const chartHeight = 140;
+    const pricePath = buildLinePath(values, chartWidth, chartHeight, 12);
+    const minPrice = values.length ? Math.min(...values) : 0;
+    const maxPrice = values.length ? Math.max(...values) : 0;
+    const latest = sorted[sorted.length - 1] || null;
+    const baseline24 =
+      [...sorted].reverse().find((item) => item.ts <= now - DAY_MS) || null;
+    const priceChange24 =
+      baseline24 && baseline24.priceYX > 0 && currentPrice > 0
+        ? ((currentPrice - baseline24.priceYX) / baseline24.priceYX) * 100
+        : null;
+    const reserveXChange24 =
+      baseline24 &&
+      typeof baseline24.reserveX === "number" &&
+      baseline24.reserveX > 0
+        ? ((pool.reserveX - baseline24.reserveX) / baseline24.reserveX) * 100
+        : null;
+    const reserveYChange24 =
+      baseline24 &&
+      typeof baseline24.reserveY === "number" &&
+      baseline24.reserveY > 0
+        ? ((pool.reserveY - baseline24.reserveY) / baseline24.reserveY) * 100
+        : null;
+    const tvlX = currentPrice > 0 ? pool.reserveX + pool.reserveY / currentPrice : 0;
+    const tvlY = currentPrice > 0 ? pool.reserveY + pool.reserveX * currentPrice : 0;
+    const swaps24h = activityItems.filter(
+      (item) =>
+        item.kind === "swap" &&
+        item.status === "confirmed" &&
+        now - item.ts <= DAY_MS,
+    );
+    const liquidity24h = activityItems.filter(
+      (item) =>
+        (item.kind === "add-liquidity" || item.kind === "remove-liquidity") &&
+        now - item.ts <= DAY_MS,
+    );
+    const chartStart = chartPoints[0]?.ts ?? now;
+    const chartEnd = chartPoints[chartPoints.length - 1]?.ts ?? now;
+    const span = Math.max(chartEnd - chartStart, 1);
+    const swapMarkers = activityItems
+      .filter(
+        (item) =>
+          item.kind === "swap" &&
+          item.status === "confirmed" &&
+          item.ts >= chartStart &&
+          item.ts <= chartEnd,
+      )
+      .slice(-8)
+      .map((item) => ({
+        ...item,
+        x: clamp(12 + ((item.ts - chartStart) / span) * (chartWidth - 24), 12, 308),
+      }));
+
+    return {
+      baseline24,
+      chartPoints,
+      chartWidth,
+      chartHeight,
+      liquidity24h: liquidity24h.length,
+      latest,
+      maxPrice,
+      minPrice,
+      priceChange24,
+      pricePath,
+      swapMarkers,
+      swaps24h: swaps24h.length,
+      tvlX,
+      tvlY,
+      reserveXChange24,
+      reserveYChange24,
+    };
+  }, [activityItems, currentPrice, pool.reserveX, pool.reserveY, portfolioHistory]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
@@ -2369,6 +2488,119 @@ function App() {
     </section>
   );
 
+  const AnalyticsPanel = () => (
+    <section className="analytics-panel">
+      <div className="analytics-head">
+        <div>
+          <p className="eyebrow">Pool Analytics</p>
+          <h3>Price, reserves, activity</h3>
+        </div>
+        <span className="chip ghost">
+          {analytics.chartPoints.length > 1 ? "Local 7d history" : "Collecting data"}
+        </span>
+      </div>
+
+      <div className="analytics-grid">
+        <div className="analytics-stat">
+          <p className="muted small">Pool TVL</p>
+          <strong>{formatCompactNumber(analytics.tvlY)} Y</strong>
+          <p className="muted small">{formatCompactNumber(analytics.tvlX)} X</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">Price 24h</p>
+          <strong>{formatSignedPercent(analytics.priceChange24)}</strong>
+          <p className="muted small">1 X = {formatNumber(currentPrice || 0)} Y</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">Reserve drift</p>
+          <strong>{formatSignedPercent(analytics.reserveXChange24)} X</strong>
+          <p className="muted small">
+            {formatSignedPercent(analytics.reserveYChange24)} Y
+          </p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">24h activity</p>
+          <strong>{analytics.swaps24h} swaps</strong>
+          <p className="muted small">{analytics.liquidity24h} LP actions</p>
+        </div>
+      </div>
+
+      <div className="analytics-chart-card">
+        <div className="analytics-chart-head">
+          <div>
+            <p className="muted small">X/Y price trend</p>
+            <strong>
+              {analytics.latest
+                ? `Updated ${new Date(analytics.latest.ts).toLocaleString()}`
+                : "No chart data yet"}
+            </strong>
+          </div>
+          <div className="analytics-legend">
+            <span className="legend-line">Price</span>
+            <span className="legend-dot">Swap</span>
+          </div>
+        </div>
+        {analytics.pricePath ? (
+          <svg
+            className="analytics-chart"
+            viewBox={`0 0 ${analytics.chartWidth} ${analytics.chartHeight}`}
+            role="img"
+            aria-label="Pool price analytics chart"
+          >
+            <path className="analytics-line" d={analytics.pricePath} />
+            {analytics.swapMarkers.map((marker) => (
+              <circle
+                key={marker.id}
+                className="analytics-marker"
+                cx={marker.x}
+                cy={analytics.chartHeight - 18}
+                r="4"
+              >
+                <title>{new Date(marker.ts).toLocaleString()}</title>
+              </circle>
+            ))}
+          </svg>
+        ) : (
+          <p className="muted small">
+            Connect a wallet and keep the app open while balances refresh to build the
+            local chart.
+          </p>
+        )}
+        <div className="analytics-scale">
+          <span className="muted small">Low {formatNumber(analytics.minPrice)}</span>
+          <span className="muted small">High {formatNumber(analytics.maxPrice)}</span>
+        </div>
+      </div>
+
+      <div className="analytics-grid">
+        <div className="analytics-stat">
+          <p className="muted small">Current reserves</p>
+          <strong>{formatNumber(pool.reserveX)} X</strong>
+          <p className="muted small">{formatNumber(pool.reserveY)} Y</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">Pool share supply</p>
+          <strong>{formatCompactNumber(pool.totalShares)}</strong>
+          <p className="muted small">LP shares minted</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">Latest baseline</p>
+          <strong>
+            {analytics.baseline24
+              ? new Date(analytics.baseline24.ts).toLocaleString()
+              : "No 24h point"}
+          </strong>
+          <p className="muted small">Used for change calculations</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">Confirmed swap markers</p>
+          <strong>{analytics.swapMarkers.length}</strong>
+          <p className="muted small">Shown on the visible chart window</p>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <div className="page single">
       <header className="nav">
@@ -2441,15 +2673,29 @@ function App() {
               >
                 Pool
               </button>
+              <button
+                className={activeTab === "analytics" ? "active" : ""}
+                onClick={() => setActiveTab("analytics")}
+              >
+                Analytics
+              </button>
             </div>
             <div className="panel-subtitle">
               {activeTab === "swap"
                 ? "Trade tokens with a simple quote and confirm."
-                : "Add or remove liquidity from the pool."}
+                : activeTab === "liquidity"
+                  ? "Add or remove liquidity from the pool."
+                  : "Inspect price movement, reserves, and local activity trends."}
             </div>
           </div>
 
-          {activeTab === "swap" ? <SwapCard /> : <LiquidityCard />}
+          {activeTab === "swap" ? (
+            <SwapCard />
+          ) : activeTab === "liquidity" ? (
+            <LiquidityCard />
+          ) : (
+            <AnalyticsPanel />
+          )}
 
           {faucetMessage && <p className="note subtle">{faucetMessage}</p>}
           {faucetTxids.length > 0 && (
