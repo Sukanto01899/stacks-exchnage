@@ -350,6 +350,8 @@ function App() {
       }),
     [STACKS_API],
   );
+
+  // TODO: Update these memoized values if your contract has different function names, argument structures, or if you want to support multiple pools or token pairs in the same UI
   const poolContract = useMemo(() => parseContractId(POOL_CONTRACT_ID), []);
   const tokenContracts = useMemo(
     () => ({
