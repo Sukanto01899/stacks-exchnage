@@ -242,6 +242,7 @@ const explainPoolError = (repr?: string) => {
   return map[code] ? `Error u${code}: ${map[code]}` : `Error u${code}`;
 };
 
+// TODO: Update this function if your contract's read-only functions return errors in a different format or if you want to implement more robust error handling based on your contract's specific response structure
 const unwrapReadOnlyOk = (raw: unknown) => {
   const parsed = cvToValue(raw as never) as unknown;
   if (parsed && typeof parsed === "object") {
