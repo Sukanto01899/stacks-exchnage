@@ -339,6 +339,7 @@ function App() {
   );
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
 
+  // TODO: Update this if your contract uses a different network configuration
   const network = useMemo(
     () =>
       createNetwork({
