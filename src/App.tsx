@@ -218,6 +218,7 @@ const sleep = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+// Simulate a quote calculation with a delay to mimic an API call or complex on-chain logic
 const explainPoolError = (repr?: string) => {
   if (!repr) return null;
   const match = repr.match(/\(err u(\d+)\)/);
@@ -940,8 +941,10 @@ function App() {
       baseline24.reserveY > 0
         ? ((pool.reserveY - baseline24.reserveY) / baseline24.reserveY) * 100
         : null;
-    const tvlX = currentPrice > 0 ? pool.reserveX + pool.reserveY / currentPrice : 0;
-    const tvlY = currentPrice > 0 ? pool.reserveY + pool.reserveX * currentPrice : 0;
+    const tvlX =
+      currentPrice > 0 ? pool.reserveX + pool.reserveY / currentPrice : 0;
+    const tvlY =
+      currentPrice > 0 ? pool.reserveY + pool.reserveX * currentPrice : 0;
     const swaps24h = activityItems.filter(
       (item) =>
         item.kind === "swap" &&
@@ -967,7 +970,11 @@ function App() {
       .slice(-8)
       .map((item) => ({
         ...item,
-        x: clamp(12 + ((item.ts - chartStart) / span) * (chartWidth - 24), 12, 308),
+        x: clamp(
+          12 + ((item.ts - chartStart) / span) * (chartWidth - 24),
+          12,
+          308,
+        ),
       }));
 
     return {
@@ -988,7 +995,13 @@ function App() {
       reserveXChange24,
       reserveYChange24,
     };
-  }, [activityItems, currentPrice, pool.reserveX, pool.reserveY, portfolioHistory]);
+  }, [
+    activityItems,
+    currentPrice,
+    pool.reserveX,
+    pool.reserveY,
+    portfolioHistory,
+  ]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
@@ -2496,7 +2509,9 @@ function App() {
           <h3>Price, reserves, activity</h3>
         </div>
         <span className="chip ghost">
-          {analytics.chartPoints.length > 1 ? "Local 7d history" : "Collecting data"}
+          {analytics.chartPoints.length > 1
+            ? "Local 7d history"
+            : "Collecting data"}
         </span>
       </div>
 
@@ -2509,7 +2524,9 @@ function App() {
         <div className="analytics-stat">
           <p className="muted small">Price 24h</p>
           <strong>{formatSignedPercent(analytics.priceChange24)}</strong>
-          <p className="muted small">1 X = {formatNumber(currentPrice || 0)} Y</p>
+          <p className="muted small">
+            1 X = {formatNumber(currentPrice || 0)} Y
+          </p>
         </div>
         <div className="analytics-stat">
           <p className="muted small">Reserve drift</p>
@@ -2562,13 +2579,17 @@ function App() {
           </svg>
         ) : (
           <p className="muted small">
-            Connect a wallet and keep the app open while balances refresh to build the
-            local chart.
+            Connect a wallet and keep the app open while balances refresh to
+            build the local chart.
           </p>
         )}
         <div className="analytics-scale">
-          <span className="muted small">Low {formatNumber(analytics.minPrice)}</span>
-          <span className="muted small">High {formatNumber(analytics.maxPrice)}</span>
+          <span className="muted small">
+            Low {formatNumber(analytics.minPrice)}
+          </span>
+          <span className="muted small">
+            High {formatNumber(analytics.maxPrice)}
+          </span>
         </div>
       </div>
 
