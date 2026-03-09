@@ -42,6 +42,7 @@ type SwapDraft = {
   functionArgs: ClarityValue[];
 };
 
+//  TODO: Update token key type if your contract supports more than 2 tokens or uses different identifiers for the tokens
 type TokenKey = "x" | "y";
 type PortfolioSnapshot = {
   ts: number;
