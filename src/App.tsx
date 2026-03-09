@@ -516,6 +516,7 @@ function App() {
     tokenContracts.y.contractName,
   ]);
 
+  // TODO: Update this function if your contract uses a different pool state retrieval mechanism, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const fetchPoolState = useCallback(
     async (address?: string | null) => {
       setPoolPending(true);
