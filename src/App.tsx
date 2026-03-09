@@ -63,6 +63,8 @@ type ActivityItem = {
   message: string;
   detail?: string;
 };
+
+// TODO: Update price alert structure if you want to track additional alert types, include more detailed information, or implement a different status system based on your contract's specific functions and events
 type PriceAlert = {
   id: string;
   createdAt: number;
