@@ -390,6 +390,7 @@ function App() {
     return Number(data?.stacks_tip_height || 0);
   };
 
+  // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const detectApprovalSupport = useCallback(
     async (token: TokenKey) => {
       const t = tokenContracts[token];
