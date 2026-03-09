@@ -427,6 +427,7 @@ function App() {
     [tokenContracts],
   );
 
+  // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const fetchAllowance = useCallback(
     async (token: TokenKey, owner: string) => {
       if (!approvalSupport[token]) return null;
@@ -866,12 +867,7 @@ function App() {
     setAlertMessage(
       `Alert saved for 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`,
     );
-  }, [
-    persistPriceAlerts,
-    targetCondition,
-    targetPairDirection,
-    targetPrice,
-  ]);
+  }, [persistPriceAlerts, targetCondition, targetPairDirection, targetPrice]);
 
   const removePriceAlert = useCallback(
     (id: string) => {
@@ -2550,7 +2546,8 @@ function App() {
                     </div>
                     {alert.status === "triggered" && alert.triggeredPrice ? (
                       <p className="muted small">
-                        Live hit at {formatNumber(alert.triggeredPrice)} {unitTo}
+                        Live hit at {formatNumber(alert.triggeredPrice)}{" "}
+                        {unitTo}
                       </p>
                     ) : null}
                   </div>
