@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
-  ClarityValue,
   PostConditionMode,
   contractPrincipalCV,
   cvToValue,
@@ -10,6 +9,7 @@ import {
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
+import type { ClarityValue } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
 import { appKit } from "./wallets/appkit";
