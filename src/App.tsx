@@ -60,6 +60,16 @@ type ActivityItem = {
   message: string;
   detail?: string;
 };
+type PriceAlert = {
+  id: string;
+  createdAt: number;
+  pairDirection: "x-to-y" | "y-to-x";
+  condition: ">=" | "<=";
+  targetPrice: number;
+  status: "active" | "triggered";
+  triggeredAt?: number;
+  triggeredPrice?: number;
+};
 
 const FEE_BPS = 30;
 const BPS = 10_000;
@@ -305,6 +315,9 @@ function App() {
   const [targetPairDirection, setTargetPairDirection] = useState<
     "x-to-y" | "y-to-x"
   >("x-to-y");
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [browserAlertsEnabled, setBrowserAlertsEnabled] = useState(false);
   const [approvalSupport, setApprovalSupport] = useState<
     Record<TokenKey, boolean>
   >({
@@ -379,6 +392,10 @@ function App() {
   );
   const activityKey = useMemo(
     () => `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
+  const priceAlertsKey = useMemo(
+    () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
 
@@ -736,6 +753,42 @@ function App() {
     }
   }, [activityKey]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(priceAlertsKey);
+      if (!raw) {
+        setPriceAlerts([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      const items = Array.isArray(parsed)
+        ? parsed.filter(
+            (item): item is PriceAlert =>
+              !!item &&
+              typeof item === "object" &&
+              typeof (item as PriceAlert).id === "string" &&
+              typeof (item as PriceAlert).createdAt === "number" &&
+              ((item as PriceAlert).pairDirection === "x-to-y" ||
+                (item as PriceAlert).pairDirection === "y-to-x") &&
+              (((item as PriceAlert).condition as string) === ">=" ||
+                ((item as PriceAlert).condition as string) === "<=") &&
+              typeof (item as PriceAlert).targetPrice === "number" &&
+              (((item as PriceAlert).status as string) === "active" ||
+                ((item as PriceAlert).status as string) === "triggered"),
+          )
+        : [];
+      setPriceAlerts(items);
+    } catch (error) {
+      console.warn("Price alerts load failed", error);
+      setPriceAlerts([]);
+    }
+  }, [priceAlertsKey]);
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    setBrowserAlertsEnabled(Notification.permission === "granted");
+  }, []);
+
   const pushActivity = useCallback(
     (item: Omit<ActivityItem, "id" | "ts">) => {
       const nextItem: ActivityItem = {
@@ -780,6 +833,78 @@ function App() {
     },
     [activityKey],
   );
+
+  const persistPriceAlerts = useCallback(
+    (next: PriceAlert[]) => {
+      try {
+        localStorage.setItem(priceAlertsKey, JSON.stringify(next));
+      } catch (error) {
+        console.warn("Price alerts save failed", error);
+      }
+    },
+    [priceAlertsKey],
+  );
+
+  const createPriceAlert = useCallback(() => {
+    if (!targetPrice) {
+      setAlertMessage("Enter a valid target price first.");
+      return;
+    }
+    const nextAlert: PriceAlert = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: Date.now(),
+      pairDirection: targetPairDirection,
+      condition: targetCondition,
+      targetPrice,
+      status: "active",
+    };
+    setPriceAlerts((prev) => {
+      const next = [nextAlert, ...prev].slice(0, 12);
+      persistPriceAlerts(next);
+      return next;
+    });
+    setAlertMessage(
+      `Alert saved for 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`,
+    );
+  }, [
+    persistPriceAlerts,
+    targetCondition,
+    targetPairDirection,
+    targetPrice,
+  ]);
+
+  const removePriceAlert = useCallback(
+    (id: string) => {
+      setPriceAlerts((prev) => {
+        const next = prev.filter((item) => item.id !== id);
+        persistPriceAlerts(next);
+        return next;
+      });
+    },
+    [persistPriceAlerts],
+  );
+
+  const clearTriggeredAlerts = useCallback(() => {
+    setPriceAlerts((prev) => {
+      const next = prev.filter((item) => item.status !== "triggered");
+      persistPriceAlerts(next);
+      return next;
+    });
+  }, [persistPriceAlerts]);
+
+  const requestBrowserAlerts = useCallback(async () => {
+    if (typeof Notification === "undefined") {
+      setAlertMessage("Browser notifications are not supported here.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setBrowserAlertsEnabled(permission === "granted");
+    setAlertMessage(
+      permission === "granted"
+        ? "Browser notifications enabled."
+        : "Browser notifications were not granted.",
+    );
+  }, []);
 
   const handleStacksConnect = async () => {
     try {
@@ -995,6 +1120,73 @@ function App() {
     stacksAddress,
     syncBalances,
     fetchPoolState,
+  ]);
+
+  useEffect(() => {
+    if (directionalPrice <= 0) return;
+    const now = Date.now();
+    const triggeredIds: string[] = [];
+
+    setPriceAlerts((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        if (item.status !== "active") return item;
+        const price =
+          item.pairDirection === "x-to-y"
+            ? currentPrice
+            : currentPrice > 0
+              ? 1 / currentPrice
+              : 0;
+        if (!price) return item;
+        const hit =
+          item.condition === ">="
+            ? price >= item.targetPrice
+            : price <= item.targetPrice;
+        if (!hit) return item;
+        changed = true;
+        triggeredIds.push(item.id);
+        return {
+          ...item,
+          status: "triggered",
+          triggeredAt: now,
+          triggeredPrice: price,
+        };
+      });
+      if (!changed) return prev;
+      persistPriceAlerts(next);
+      return next;
+    });
+
+    if (triggeredIds.length === 0) return;
+
+    const triggeredAlerts = priceAlerts.filter((item) =>
+      triggeredIds.includes(item.id),
+    );
+    const first = triggeredAlerts[0];
+    if (first) {
+      const unitFrom = first.pairDirection === "x-to-y" ? "X" : "Y";
+      const unitTo = first.pairDirection === "x-to-y" ? "Y" : "X";
+      setAlertMessage(
+        `Price alert triggered: 1 ${unitFrom} ${first.condition} ${formatNumber(first.targetPrice)} ${unitTo}.`,
+      );
+      if (browserAlertsEnabled && typeof Notification !== "undefined") {
+        const livePrice =
+          first.pairDirection === "x-to-y"
+            ? currentPrice
+            : currentPrice > 0
+              ? 1 / currentPrice
+              : 0;
+        new Notification("Stacks Exchange price alert", {
+          body: `1 ${unitFrom} is now ${formatNumber(livePrice)} ${unitTo}.`,
+        });
+      }
+    }
+  }, [
+    browserAlertsEnabled,
+    currentPrice,
+    directionalPrice,
+    persistPriceAlerts,
+    priceAlerts,
   ]);
 
   const portfolioMetrics = useMemo(() => {
@@ -1903,6 +2095,12 @@ function App() {
     return directionalPrice <= targetPrice;
   }, [targetPriceEnabled, targetPrice, directionalPrice, targetCondition]);
 
+  const alertSummary = useMemo(() => {
+    const active = priceAlerts.filter((item) => item.status === "active");
+    const triggered = priceAlerts.filter((item) => item.status === "triggered");
+    return { active, triggered };
+  }, [priceAlerts]);
+
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
     if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
@@ -2275,6 +2473,92 @@ function App() {
               : `Waiting: 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`}
           </p>
         )}
+        <div className="alerts-panel">
+          <div className="alerts-head">
+            <div>
+              <span className="muted">Price Alerts</span>
+              <p className="muted small">
+                Save the current target as a reusable alert.
+              </p>
+            </div>
+            <button className="tiny ghost" onClick={requestBrowserAlerts}>
+              {browserAlertsEnabled ? "Browser alerts on" : "Enable alerts"}
+            </button>
+          </div>
+          <div className="alerts-actions">
+            <button
+              className="tiny"
+              onClick={createPriceAlert}
+              disabled={!targetPriceEnabled || !targetPrice}
+            >
+              Save alert
+            </button>
+            <button
+              className="tiny ghost"
+              onClick={clearTriggeredAlerts}
+              disabled={alertSummary.triggered.length === 0}
+            >
+              Clear triggered
+            </button>
+          </div>
+          {alertMessage ? <p className="note subtle">{alertMessage}</p> : null}
+          {priceAlerts.length === 0 ? (
+            <p className="muted small">No saved alerts yet.</p>
+          ) : (
+            <div className="alerts-list">
+              {priceAlerts.slice(0, 6).map((alert) => {
+                const unitFrom = alert.pairDirection === "x-to-y" ? "X" : "Y";
+                const unitTo = alert.pairDirection === "x-to-y" ? "Y" : "X";
+                return (
+                  <div className="alerts-item" key={alert.id}>
+                    <div className="alerts-main">
+                      <span
+                        className={`chip ghost status-${alert.status === "triggered" ? "confirmed" : "submitted"}`}
+                      >
+                        {alert.status}
+                      </span>
+                      <strong>
+                        1 {unitFrom} {alert.condition}{" "}
+                        {formatNumber(alert.targetPrice)} {unitTo}
+                      </strong>
+                    </div>
+                    <div className="alerts-meta">
+                      <span className="muted small">
+                        {alert.status === "triggered" && alert.triggeredAt
+                          ? `Triggered ${new Date(alert.triggeredAt).toLocaleString()}`
+                          : `Created ${new Date(alert.createdAt).toLocaleString()}`}
+                      </span>
+                      <div className="mini-actions">
+                        <button
+                          className="tiny ghost"
+                          onClick={() => {
+                            setTargetPriceEnabled(true);
+                            setTargetPairDirection(alert.pairDirection);
+                            setTargetCondition(alert.condition);
+                            setTargetPriceInput(String(alert.targetPrice));
+                          }}
+                        >
+                          Use
+                        </button>
+                        <button
+                          className="tiny ghost"
+                          onClick={() => removePriceAlert(alert.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    {alert.status === "triggered" && alert.triggeredPrice ? (
+                      <p className="muted small">
+                        Live hit at {formatNumber(alert.triggeredPrice)} {unitTo}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="simulator">
