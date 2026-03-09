@@ -382,6 +382,7 @@ function App() {
     [stacksAddress],
   );
 
+  // TODO: Update this function if you want to implement more robust logic for fetching the current block height, such as using a WebSocket connection to listen for new blocks or implementing retry logic in case of network errors
   const fetchTipHeight = async () => {
     const res = await fetch(`${STACKS_API}/extended/v1/info`);
     if (!res.ok) return 0;
@@ -495,58 +496,63 @@ function App() {
     tokenContracts.y.contractName,
   ]);
 
-  const fetchPoolState = useCallback(async (address?: string | null) => {
-    setPoolPending(true);
-    try {
-      const senderAddress = address || CONTRACT_ADDRESS;
-      const reserves = await fetchCallReadOnlyFunction({
-        contractAddress: poolContract.address,
-        contractName: poolContract.contractName,
-        functionName: "get-reserves",
-        functionArgs: [],
-        senderAddress,
-        network,
-      });
-      const totalSupply = await fetchCallReadOnlyFunction({
-        contractAddress: poolContract.address,
-        contractName: poolContract.contractName,
-        functionName: "get-total-supply",
-        functionArgs: [],
-        senderAddress,
-        network,
-      });
-      const lpBalance =
-        address &&
-        (await fetchCallReadOnlyFunction({
+  const fetchPoolState = useCallback(
+    async (address?: string | null) => {
+      setPoolPending(true);
+      try {
+        const senderAddress = address || CONTRACT_ADDRESS;
+        const reserves = await fetchCallReadOnlyFunction({
           contractAddress: poolContract.address,
           contractName: poolContract.contractName,
-          functionName: "get-lp-balance",
-          functionArgs: [standardPrincipalCV(address)],
+          functionName: "get-reserves",
+          functionArgs: [],
           senderAddress,
           network,
-        }));
+        });
+        const totalSupply = await fetchCallReadOnlyFunction({
+          contractAddress: poolContract.address,
+          contractName: poolContract.contractName,
+          functionName: "get-total-supply",
+          functionArgs: [],
+          senderAddress,
+          network,
+        });
+        const lpBalance =
+          address &&
+          (await fetchCallReadOnlyFunction({
+            contractAddress: poolContract.address,
+            contractName: poolContract.contractName,
+            functionName: "get-lp-balance",
+            functionArgs: [standardPrincipalCV(address)],
+            senderAddress,
+            network,
+          }));
 
-      const reserveValue = cvToValue(reserves) as { x: string; y: string };
-      const totalSupplyValue = Number(cvToValue(totalSupply) || 0);
-      const lpBalanceValue = lpBalance ? Number(cvToValue(lpBalance) || 0) : 0;
+        const reserveValue = cvToValue(reserves) as { x: string; y: string };
+        const totalSupplyValue = Number(cvToValue(totalSupply) || 0);
+        const lpBalanceValue = lpBalance
+          ? Number(cvToValue(lpBalance) || 0)
+          : 0;
 
-      setPool({
-        reserveX: Number(reserveValue?.x || 0) / TOKEN_DECIMALS,
-        reserveY: Number(reserveValue?.y || 0) / TOKEN_DECIMALS,
-        totalShares: totalSupplyValue,
-      });
-      if (address) {
-        setBalances((prev) => ({
-          ...prev,
-          lpShares: lpBalanceValue,
-        }));
+        setPool({
+          reserveX: Number(reserveValue?.x || 0) / TOKEN_DECIMALS,
+          reserveY: Number(reserveValue?.y || 0) / TOKEN_DECIMALS,
+          totalShares: totalSupplyValue,
+        });
+        if (address) {
+          setBalances((prev) => ({
+            ...prev,
+            lpShares: lpBalanceValue,
+          }));
+        }
+      } catch (error) {
+        console.warn("Pool state fetch failed", error);
+      } finally {
+        setPoolPending(false);
       }
-    } catch (error) {
-      console.warn("Pool state fetch failed", error);
-    } finally {
-      setPoolPending(false);
-    }
-  }, [network, poolContract.address, poolContract.contractName]);
+    },
+    [network, poolContract.address, poolContract.contractName],
+  );
 
   const fetchOnChainBalances = async (address: string) => {
     const response = await fetch(
@@ -591,18 +597,21 @@ function App() {
     };
   };
 
-  const fetchPoolReserves = useCallback(async (address?: string | null) => {
-    const senderAddress = address || CONTRACT_ADDRESS;
-    const reserves = await fetchCallReadOnlyFunction({
-      contractAddress: poolContract.address,
-      contractName: poolContract.contractName,
-      functionName: "get-reserves",
-      functionArgs: [],
-      senderAddress,
-      network,
-    });
-    return cvToValue(reserves) as { x: string; y: string };
-  }, [network, poolContract.address, poolContract.contractName]);
+  const fetchPoolReserves = useCallback(
+    async (address?: string | null) => {
+      const senderAddress = address || CONTRACT_ADDRESS;
+      const reserves = await fetchCallReadOnlyFunction({
+        contractAddress: poolContract.address,
+        contractName: poolContract.contractName,
+        functionName: "get-reserves",
+        functionArgs: [],
+        senderAddress,
+        network,
+      });
+      return cvToValue(reserves) as { x: string; y: string };
+    },
+    [network, poolContract.address, poolContract.contractName],
+  );
 
   const syncBalances = useCallback(
     async (address: string, opts?: { silent?: boolean }) => {
@@ -931,7 +940,9 @@ function App() {
         uniquePending.map(async (item) => {
           if (!item.txid || cancelled) return;
           try {
-            const res = await fetch(`${STACKS_API}/extended/v1/tx/${item.txid}`);
+            const res = await fetch(
+              `${STACKS_API}/extended/v1/tx/${item.txid}`,
+            );
             if (!res.ok) return;
             const data = await res.json().catch(() => ({}));
             const status = String(data?.tx_status || "");
@@ -944,7 +955,9 @@ function App() {
                 detail: "Confirmed on-chain",
               });
               if (stacksAddress) {
-                await syncBalances(stacksAddress, { silent: true }).catch(() => {});
+                await syncBalances(stacksAddress, { silent: true }).catch(
+                  () => {},
+                );
                 await fetchPoolState(stacksAddress).catch(() => {});
               }
               return;
@@ -956,7 +969,8 @@ function App() {
               status.includes("failed")
             ) {
               const repr = data?.tx_result?.repr as string | undefined;
-              const reason = explainPoolError(repr) || repr || "Execution failed";
+              const reason =
+                explainPoolError(repr) || repr || "Execution failed";
               patchActivityByTxid(item.txid, {
                 status: "failed",
                 message: `${item.kind.replace(/-/g, " ")} failed`,
@@ -2554,7 +2568,9 @@ function App() {
                   </a>
                 ) : null}
               </div>
-              {item.detail ? <p className="muted small">{item.detail}</p> : null}
+              {item.detail ? (
+                <p className="muted small">{item.detail}</p>
+              ) : null}
             </div>
           ))}
         </div>
