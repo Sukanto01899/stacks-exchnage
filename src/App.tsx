@@ -52,6 +52,8 @@ type PortfolioSnapshot = {
   reserveX?: number;
   reserveY?: number;
 };
+
+// TODO: Update activity item structure if you want to track additional types of activities, include more detailed information, or implement a different status system based on your contract's specific functions and events
 type ActivityItem = {
   id: string;
   ts: number;
