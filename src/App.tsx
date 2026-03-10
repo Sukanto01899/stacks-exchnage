@@ -76,6 +76,7 @@ type PriceAlert = {
   triggeredPrice?: number;
 };
 
+// TODO: Update these constants based on your contract's specific fee structure, token decimal precision, price impact thresholds, and other relevant parameters that affect the swap logic, user experience, and risk management in your application
 const FEE_BPS = 30;
 const BPS = 10_000;
 const FAUCET_AMOUNT = 5_000;
