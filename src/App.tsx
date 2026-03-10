@@ -170,6 +170,7 @@ const formatCompactNumber = (value: number) =>
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+// TODO: Update line path building logic if you want to customize the appearance of the chart lines
 const buildLinePath = (
   values: number[],
   width: number,
