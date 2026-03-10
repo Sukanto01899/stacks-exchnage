@@ -388,6 +388,8 @@ function App() {
     }),
     [],
   );
+
+  // TODO: Update the spender contract ID if your contract uses a different approval mechanism
   const spenderContractId = useMemo(
     () => `${poolContract.address}.${poolContract.contractName}`,
     [poolContract.address, poolContract.contractName],
