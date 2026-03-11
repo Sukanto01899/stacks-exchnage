@@ -2158,6 +2158,14 @@ function App() {
     setLiqY(y.toFixed(4));
   };
 
+  const fillLiquidityInput = (token: "x" | "y") => {
+    if (token === "x") {
+      setLiqX(String(Number(balances.tokenX.toFixed(4))));
+      return;
+    }
+    setLiqY(String(Number(balances.tokenY.toFixed(4))));
+  };
+
   const setMaxSwap = () => {
     if (swapDirection === "x-to-y") {
       setSwapInput(String(balances.tokenX || ""));
@@ -2906,6 +2914,12 @@ function App() {
             <p className="muted small">
               Balance: {formatNumber(balances.tokenX)}
             </p>
+            <button
+              className="tiny ghost"
+              onClick={() => fillLiquidityInput("x")}
+            >
+              Use X balance
+            </button>
           </div>
           <div>
             <label>Token Y</label>
@@ -2919,6 +2933,12 @@ function App() {
             <p className="muted small">
               Balance: {formatNumber(balances.tokenY)}
             </p>
+            <button
+              className="tiny ghost"
+              onClick={() => fillLiquidityInput("y")}
+            >
+              Use Y balance
+            </button>
           </div>
         </div>
         {renderApprovalManager("liquidity")}
