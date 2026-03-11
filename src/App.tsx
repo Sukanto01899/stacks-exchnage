@@ -2193,6 +2193,12 @@ function App() {
     setBurnShares(String(balances.lpShares || "0"));
   };
 
+  const setBurnPreset = (percent: number) => {
+    if (!balances.lpShares || balances.lpShares <= 0) return;
+    const next = balances.lpShares * percent;
+    setBurnShares(String(Number(next.toFixed(4))));
+  };
+
   const priceImpact = useMemo(() => {
     const amount = Number(swapInput || 0);
     const reserve = swapDirection === "x-to-y" ? pool.reserveX : pool.reserveY;
@@ -2951,9 +2957,20 @@ function App() {
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">Remove from pool</span>
-          <button className="tiny ghost" onClick={setMaxBurn}>
-            Max
-          </button>
+          <div className="mini-actions">
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.25)}>
+              25%
+            </button>
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.5)}>
+              50%
+            </button>
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.75)}>
+              75%
+            </button>
+            <button className="tiny ghost" onClick={setMaxBurn}>
+              Max
+            </button>
+          </div>
         </div>
         <div className="token-input">
           <input
