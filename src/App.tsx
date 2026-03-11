@@ -2174,6 +2174,13 @@ function App() {
     setSwapInput(String(Number(next.toFixed(4))));
   };
 
+  const clearSwapInput = () => {
+    setSwapInput("");
+    setImpactConfirmed(false);
+    setSwapMessage(null);
+    setPreflightMessage(null);
+  };
+
   const setMaxBurn = () => {
     setBurnShares(String(balances.lpShares || "0"));
   };
@@ -2403,6 +2410,9 @@ function App() {
             </button>
             <button className="tiny" onClick={setMaxSwap}>
               Max
+            </button>
+            <button className="tiny ghost" onClick={clearSwapInput}>
+              Clear
             </button>
           </div>
         </div>
