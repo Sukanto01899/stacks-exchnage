@@ -356,6 +356,7 @@ function App() {
     dismissed: false,
     visitedTabs: ["swap"],
   });
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
   const [btcStatus, setBtcStatus] = useState<string | null>(null);
@@ -2129,6 +2130,26 @@ function App() {
     }));
   }, []);
 
+  const copyToClipboard = useCallback(async (value: string, label: string) => {
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard) {
+        throw new Error("Clipboard is not available in this browser.");
+      }
+      await navigator.clipboard.writeText(value);
+      setCopyMessage(`${label} copied.`);
+    } catch (error) {
+      setCopyMessage(
+        error instanceof Error ? error.message : `Could not copy ${label}.`,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!copyMessage) return;
+    const timeout = window.setTimeout(() => setCopyMessage(null), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [copyMessage]);
+
   const handleSyncToPoolRatio = () => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return;
     const ratio = pool.reserveY / pool.reserveX;
@@ -3365,6 +3386,12 @@ function App() {
             </button>
             <button
               className="chip ghost"
+              onClick={() => copyToClipboard(spenderContractId, "Pool contract")}
+            >
+              Copy pool
+            </button>
+            <button
+              className="chip ghost"
               onClick={() => stacksAddress && syncBalances(stacksAddress)}
               disabled={!stacksAddress || balancePending}
             >
@@ -3375,6 +3402,14 @@ function App() {
                 <span className="chip success">
                   Stacks: {shortAddress(stacksAddress)}
                 </span>
+                <button
+                  className="chip ghost"
+                  onClick={() =>
+                    copyToClipboard(stacksAddress, "Stacks address")
+                  }
+                >
+                  Copy address
+                </button>
                 <button className="chip ghost" onClick={handleStacksDisconnect}>
                   Disconnect
                 </button>
@@ -3396,6 +3431,7 @@ function App() {
                 Connect Bitcoin
               </button>
             ) : null}
+            {copyMessage && <span className="chip success">{copyMessage}</span>}
           </div>
         </div>
       </header>
