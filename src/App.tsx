@@ -12,7 +12,6 @@ import {
 import type { ClarityValue } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
-import { appKit } from "./wallets/appkit";
 
 // TODO: Replace with your contract and token information
 type PoolState = {
@@ -356,11 +355,8 @@ function App() {
     dismissed: false,
     visitedTabs: ["swap"],
   });
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
-
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
-  const [btcStatus, setBtcStatus] = useState<string | null>(null);
-  const [balancePending, setBalancePending] = useState(false);
+  const [, setBalancePending] = useState(false);
   const [poolPending, setPoolPending] = useState(false);
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioSnapshot[]>(
     [],
@@ -1062,25 +1058,6 @@ function App() {
     } catch (error) {
       console.warn("Stacks disconnect cleanup failed", error);
     }
-  };
-
-  const handleBtcConnect = () => {
-    setBtcStatus("Opening modal...");
-    appKit
-      .open({ view: "Connect" })
-      .then(() =>
-        setBtcStatus("Modal open: select Leather, Xverse, or WalletConnect."),
-      )
-      .catch((error) => {
-        console.error("Bitcoin connect error", error);
-        setBtcStatus(
-          "Could not open modal. Check WalletConnect project id and extensions.",
-        );
-      });
-  };
-
-  const handleBtcDisconnect = () => {
-    setBtcStatus(null);
   };
 
   useEffect(() => {
@@ -2130,26 +2107,6 @@ function App() {
     }));
   }, []);
 
-  const copyToClipboard = useCallback(async (value: string, label: string) => {
-    try {
-      if (typeof navigator === "undefined" || !navigator.clipboard) {
-        throw new Error("Clipboard is not available in this browser.");
-      }
-      await navigator.clipboard.writeText(value);
-      setCopyMessage(`${label} copied.`);
-    } catch (error) {
-      setCopyMessage(
-        error instanceof Error ? error.message : `Could not copy ${label}.`,
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!copyMessage) return;
-    const timeout = window.setTimeout(() => setCopyMessage(null), 1800);
-    return () => window.clearTimeout(timeout);
-  }, [copyMessage]);
-
   const handleSyncToPoolRatio = () => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return;
     const ratio = pool.reserveY / pool.reserveX;
@@ -2301,6 +2258,7 @@ function App() {
       (item) => item.kind === activityFilter || item.status === activityFilter,
     );
   }, [activityFilter, activityItems]);
+  const showMinimalSwapLayout = activeTab === "swap";
 
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
@@ -3434,136 +3392,128 @@ function App() {
     <div className="page single">
       <header className="nav">
         <div className="nav-inner">
-          <div className="brand">
-            <img
-              className="brand-mark"
-              src="/favicon.png"
-              alt="Clardex logo"
-            />
-            <div>
-              <p className="eyebrow">Clardex</p>
-              <h1>Swap</h1>
+          <div className="nav-cluster">
+            <div className="brand">
+              <img
+                className="brand-mark"
+                src="/favicon.png"
+                alt="Clardex logo"
+              />
+              <div>
+                <p className="eyebrow">Clardex</p>
+                <h1>Trade</h1>
+              </div>
             </div>
+            <nav className="nav-links" aria-label="Primary">
+              <button
+                className={activeTab === "swap" ? "is-active" : ""}
+                onClick={() => setActiveTab("swap")}
+              >
+                Trade
+              </button>
+              <button
+                className={activeTab === "analytics" ? "is-active" : ""}
+                onClick={() => setActiveTab("analytics")}
+              >
+                Explore
+              </button>
+              <button
+                className={activeTab === "liquidity" ? "is-active" : ""}
+                onClick={() => setActiveTab("liquidity")}
+              >
+                Pool
+              </button>
+            </nav>
+          </div>
+          <div className="nav-search" aria-hidden="true">
+            <span className="nav-search-icon">Search</span>
+            <span className="nav-search-text">
+              tokens, pools, and wallets
+            </span>
           </div>
           <div className="nav-actions">
-            {IS_MAINNET && <span className="chip success">Mainnet live</span>}
-            <button className="chip ghost" onClick={openOnboarding}>
-              Guide
-            </button>
-            <button
-              className="chip ghost"
-              onClick={() => copyToClipboard(spenderContractId, "Pool contract")}
-            >
-              Copy pool
-            </button>
-            <button
-              className="chip ghost"
-              onClick={() => stacksAddress && syncBalances(stacksAddress)}
-              disabled={!stacksAddress || balancePending}
-            >
-              {balancePending ? "Refreshing..." : "Refresh balances"}
-            </button>
             {stacksAddress ? (
-              <>
-                <span className="chip success">
-                  Stacks: {shortAddress(stacksAddress)}
-                </span>
-                <button
-                  className="chip ghost"
-                  onClick={() =>
-                    copyToClipboard(stacksAddress, "Stacks address")
-                  }
-                >
-                  Copy address
-                </button>
-                <button className="chip ghost" onClick={handleStacksDisconnect}>
-                  Disconnect
-                </button>
-              </>
+              <button className="wallet-pill" onClick={handleStacksDisconnect}>
+                {shortAddress(stacksAddress)}
+              </button>
             ) : (
-              <button className="chip ghost" onClick={handleStacksConnect}>
+              <button className="wallet-pill" onClick={handleStacksConnect}>
                 Connect Stacks
               </button>
             )}
-            {btcStatus ? (
-              <>
-                <span className="chip ghost">BTC: {btcStatus}</span>
-                <button className="chip ghost" onClick={handleBtcDisconnect}>
-                  Clear
-                </button>
-              </>
-            ) : !stacksAddress ? (
-              <button className="chip ghost" onClick={handleBtcConnect}>
-                Connect Bitcoin
-              </button>
-            ) : null}
-            {copyMessage && <span className="chip success">{copyMessage}</span>}
           </div>
         </div>
       </header>
 
       <main className="content single">
-        <section className="panel swap-panel">
-          {!onboarding.dismissed && <SetupPanel />}
-          <PortfolioPanel />
-          <ActivityPanel />
-          <div className="panel-head">
-            <div className="tabs">
-              <button
-                className={activeTab === "swap" ? "active" : ""}
-                onClick={() => setActiveTab("swap")}
-              >
-                Swap
-              </button>
-              <button
-                className={activeTab === "liquidity" ? "active" : ""}
-                onClick={() => setActiveTab("liquidity")}
-              >
-                Pool
-              </button>
-              <button
-                className={activeTab === "analytics" ? "active" : ""}
-                onClick={() => setActiveTab("analytics")}
-              >
-                Analytics
-              </button>
-            </div>
-            <div className="panel-subtitle">
-              {activeTab === "swap"
-                ? "Trade tokens with a simple quote and confirm."
-                : activeTab === "liquidity"
-                  ? "Add or remove liquidity from the pool."
-                  : "Inspect price movement, reserves, and local activity trends."}
+        <section
+          className={`panel swap-panel ${showMinimalSwapLayout ? "simple-mode" : ""}`}
+        >
+          <div className="dashboard-layout">
+            {!showMinimalSwapLayout && (
+              <aside className="dashboard-sidebar">
+                {!onboarding.dismissed && <SetupPanel />}
+                <PortfolioPanel />
+                <ActivityPanel />
+              </aside>
+            )}
+
+            <div className="dashboard-main">
+              {!showMinimalSwapLayout && (
+                <div className="panel-head">
+                  <div className="tabs">
+                    <button
+                      className={activeTab === "liquidity" ? "active" : ""}
+                      onClick={() => setActiveTab("liquidity")}
+                    >
+                      Pool
+                    </button>
+                    <button
+                      className={activeTab === "analytics" ? "active" : ""}
+                      onClick={() => setActiveTab("analytics")}
+                    >
+                      Analytics
+                    </button>
+                  </div>
+                  <div className="panel-subtitle">
+                    {activeTab === "liquidity"
+                      ? "Add or remove liquidity from the pool."
+                      : "Inspect price movement, reserves, and local activity trends."}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "swap" ? (
+                <SwapCard />
+              ) : activeTab === "liquidity" ? (
+                <LiquidityCard />
+              ) : (
+                <AnalyticsPanel />
+              )}
+
+              {!showMinimalSwapLayout && faucetMessage && (
+                <p className="note subtle">{faucetMessage}</p>
+              )}
+              {!showMinimalSwapLayout && faucetTxids.length > 0 && (
+                <div className="note subtle">
+                  <p className="muted small">Recent faucet tx</p>
+                  <div className="chip-row">
+                    {faucetTxids.map((txid) => (
+                      <a
+                        key={txid}
+                        className="chip ghost"
+                        href={`https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {txid.slice(0, 6)}...{txid.slice(-6)}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {activeTab === "swap" ? (
-            <SwapCard />
-          ) : activeTab === "liquidity" ? (
-            <LiquidityCard />
-          ) : (
-            <AnalyticsPanel />
-          )}
-
-          {faucetMessage && <p className="note subtle">{faucetMessage}</p>}
-          {faucetTxids.length > 0 && (
-            <div className="note subtle">
-              <p className="muted small">Recent faucet tx</p>
-              <div className="chip-row">
-                {faucetTxids.map((txid) => (
-                  <a
-                    key={txid}
-                    className="chip ghost"
-                    href={`https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {txid.slice(0, 6)}...{txid.slice(-6)}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       </main>
       {swapDraft && (
@@ -3636,22 +3586,24 @@ function App() {
         </div>
       )}
       {showOnboarding && <OnboardingModal />}
-      <div className="floating-faucet" aria-label="Quick faucet controls">
-        <button
-          className="chip"
-          onClick={() => handleFaucet("x")}
-          disabled={faucetPending}
-        >
-          X Faucet
-        </button>
-        <button
-          className="chip"
-          onClick={() => handleFaucet("y")}
-          disabled={faucetPending}
-        >
-          Y Faucet
-        </button>
-      </div>
+      {!showMinimalSwapLayout && (
+        <div className="floating-faucet" aria-label="Quick faucet controls">
+          <button
+            className="chip"
+            onClick={() => handleFaucet("x")}
+            disabled={faucetPending}
+          >
+            X Faucet
+          </button>
+          <button
+            className="chip"
+            onClick={() => handleFaucet("y")}
+            disabled={faucetPending}
+          >
+            Y Faucet
+          </button>
+        </div>
+      )}
       {poolPending && <span className="sr-only">Loading pool data</span>}
     </div>
   );
