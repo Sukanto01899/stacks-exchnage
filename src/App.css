@@ -200,6 +200,10 @@ h3 {
   gap: 10px;
 }
 
+.activity-summary {
+  margin-top: 10px;
+}
+
 .activity-list {
   margin-top: 10px;
   display: flex;

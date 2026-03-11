@@ -365,6 +365,9 @@ function App() {
     [],
   );
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityFilter, setActivityFilter] = useState<
+    "all" | ActivityItem["kind"] | ActivityItem["status"]
+  >("all");
 
   // TODO: Update this if your contract uses a different network configuration
   const network = useMemo(
@@ -2242,6 +2245,12 @@ function App() {
     const triggered = priceAlerts.filter((item) => item.status === "triggered");
     return { active, triggered };
   }, [priceAlerts]);
+  const filteredActivityItems = useMemo(() => {
+    if (activityFilter === "all") return activityItems;
+    return activityItems.filter(
+      (item) => item.kind === activityFilter || item.status === activityFilter,
+    );
+  }, [activityFilter, activityItems]);
 
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
@@ -3020,26 +3029,88 @@ function App() {
           <p className="eyebrow">Recent Activity</p>
           <h3>Transactions</h3>
         </div>
-        <button
-          className="tiny ghost"
-          onClick={() => {
-            setActivityItems([]);
-            try {
-              localStorage.removeItem(activityKey);
-            } catch (error) {
-              console.warn("Activity history clear failed", error);
-            }
-          }}
-          disabled={activityItems.length === 0}
-        >
-          Clear
-        </button>
+        <div className="mini-actions">
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("all")}
+            disabled={activityFilter === "all"}
+          >
+            All
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("swap")}
+            disabled={activityFilter === "swap"}
+          >
+            Swaps
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("add-liquidity")}
+            disabled={activityFilter === "add-liquidity"}
+          >
+            Add LP
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("remove-liquidity")}
+            disabled={activityFilter === "remove-liquidity"}
+          >
+            Remove LP
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("faucet")}
+            disabled={activityFilter === "faucet"}
+          >
+            Faucet
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("submitted")}
+            disabled={activityFilter === "submitted"}
+          >
+            Pending
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("failed")}
+            disabled={activityFilter === "failed"}
+          >
+            Failed
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => {
+              setActivityItems([]);
+              setActivityFilter("all");
+              try {
+                localStorage.removeItem(activityKey);
+              } catch (error) {
+                console.warn("Activity history clear failed", error);
+              }
+            }}
+            disabled={activityItems.length === 0}
+          >
+            Clear
+          </button>
+        </div>
       </div>
-      {activityItems.length === 0 ? (
-        <p className="muted small">No activity yet.</p>
+      {activityItems.length > 0 && (
+        <p className="muted small activity-summary">
+          Showing {Math.min(filteredActivityItems.length, 8)} of{" "}
+          {filteredActivityItems.length} matching entries.
+        </p>
+      )}
+      {filteredActivityItems.length === 0 ? (
+        <p className="muted small">
+          {activityItems.length === 0
+            ? "No activity yet."
+            : "No activity matches the current filter."}
+        </p>
       ) : (
         <div className="activity-list">
-          {activityItems.slice(0, 8).map((item) => (
+          {filteredActivityItems.slice(0, 8).map((item) => (
             <div className="activity-item" key={item.id}>
               <div className="activity-main">
                 <span className={`chip ghost status-${item.status}`}>
