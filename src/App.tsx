@@ -1392,26 +1392,26 @@ function App() {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
 
-  const handleSwap = async () => {
+  const prepareSwapDraft = async () => {
     setSwapMessage(null);
     const amount = Number(swapInput);
     if (!amount || amount <= 0) {
       setSwapMessage("Enter an amount greater than 0.");
-      return;
+      return null;
     }
     if (!stacksAddress) {
       setSwapMessage("Connect a Stacks wallet first.");
-      return;
+      return null;
     }
     if (pool.reserveX <= 0 || pool.reserveY <= 0) {
       setSwapMessage("Pool has no liquidity yet. Add liquidity first.");
-      return;
+      return null;
     }
     const fromX = swapDirection === "x-to-y";
     const inputBalance = fromX ? balances.tokenX : balances.tokenY;
     if (amount > inputBalance) {
       setSwapMessage("Not enough balance for this swap.");
-      return;
+      return null;
     }
     const inputToken: TokenKey = fromX ? "x" : "y";
     if (approvalSupport[inputToken]) {
@@ -1420,13 +1420,13 @@ function App() {
         setSwapMessage(
           `Approve ${fromX ? "Token X" : "Token Y"} first. Required: ${formatNumber(amount)}, current allowance: ${formatNumber(allowance)}.`,
         );
-        return;
+        return null;
       }
     }
     const outputPreview = quoteSwap(amount, fromX);
     if (outputPreview <= 0) {
       setSwapMessage("Pool has no liquidity for this direction yet.");
-      return;
+      return null;
     }
     const reserve = fromX ? pool.reserveX : pool.reserveY;
     const impactPct = reserve > 0 ? (amount / reserve) * 100 : 0;
@@ -1434,7 +1434,7 @@ function App() {
       setSwapMessage(
         `Swap blocked: price impact ${impactPct.toFixed(2)}% is too high (max ${PRICE_IMPACT_BLOCK_PCT}%). Split into smaller trades.`,
       );
-      return;
+      return null;
     }
     if (
       impactPct >= PRICE_IMPACT_CONFIRM_PCT &&
@@ -1444,7 +1444,7 @@ function App() {
       setSwapMessage(
         `High price impact (${impactPct.toFixed(2)}%). Confirm the high-impact checkbox before swapping.`,
       );
-      return;
+      return null;
     }
     const slippagePercent = Number(slippageInput);
     if (
@@ -1453,7 +1453,7 @@ function App() {
       slippagePercent > 50
     ) {
       setSwapMessage("Set slippage between 0 and 50%.");
-      return;
+      return null;
     }
     const deadlineMinutes = Number(deadlineMinutesInput);
     if (
@@ -1462,7 +1462,7 @@ function App() {
       deadlineMinutes > 1440
     ) {
       setSwapMessage("Set deadline minutes between 1 and 1440.");
-      return;
+      return null;
     }
     const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
     const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
@@ -1519,7 +1519,7 @@ function App() {
       );
       setSwapMessage("Swap blocked: preview failed.");
       setPreflightPending(false);
-      return;
+      return null;
     } finally {
       setPreflightPending(false);
     }
@@ -1555,7 +1555,7 @@ function App() {
           uintCV(deadline),
         ];
 
-    setSwapDraft({
+    return {
       amount,
       outputPreview,
       minReceived: minOut,
@@ -1566,12 +1566,19 @@ function App() {
       toSymbol: fromX ? "Y" : "X",
       functionName,
       functionArgs,
-    });
+    } satisfies SwapDraft;
+  };
+
+  const handleSwap = async () => {
+    const draft = await prepareSwapDraft();
+    if (!draft) return;
+    setSwapDraft(draft);
     setSwapMessage("Review swap details and confirm.");
   };
 
-  const executeSwap = async () => {
-    if (!swapDraft || !stacksAddress) return;
+  const executeSwap = async (draftOverride?: SwapDraft) => {
+    const draft = draftOverride || swapDraft;
+    if (!draft || !stacksAddress) return;
     try {
       setSwapPending(true);
       await openContractCall({
@@ -1580,8 +1587,8 @@ function App() {
         postConditionMode: PostConditionMode.Allow,
         contractAddress: poolContract.address,
         contractName: poolContract.contractName,
-        functionName: swapDraft.functionName,
-        functionArgs: swapDraft.functionArgs,
+        functionName: draft.functionName,
+        functionArgs: draft.functionArgs,
         onFinish: async (payload) => {
           setSwapMessage(`Swap submitted. Txid: ${payload.txId}`);
           pushActivity({
@@ -1619,6 +1626,16 @@ function App() {
       setSwapPending(false);
       setSwapDraft(null);
     }
+  };
+
+  const handleSimpleSwap = async () => {
+    if (swapDraft) {
+      await executeSwap(swapDraft);
+      return;
+    }
+    const draft = await prepareSwapDraft();
+    if (!draft) return;
+    await executeSwap(draft);
   };
 
   const handleSwapPreview = async () => {
@@ -2847,9 +2864,7 @@ function App() {
         className="primary"
         onClick={
           showMinimalSwapLayout
-            ? swapDraft
-              ? executeSwap
-              : handleSwap
+            ? handleSimpleSwap
             : handleSwap
         }
         disabled={
@@ -3614,7 +3629,7 @@ function App() {
               </button>
               <button
                 className="primary"
-                onClick={executeSwap}
+                onClick={() => executeSwap()}
                 disabled={swapPending}
               >
                 {swapPending ? "Submitting..." : "Confirm Swap"}
