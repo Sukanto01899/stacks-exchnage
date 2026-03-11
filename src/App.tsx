@@ -1254,7 +1254,7 @@ function App() {
             : currentPrice > 0
               ? 1 / currentPrice
               : 0;
-        new Notification("Stacks Exchange price alert", {
+        new Notification("Clardex price alert", {
           body: `1 ${unitFrom} is now ${formatNumber(livePrice)} ${unitTo}.`,
         });
       }
@@ -3357,7 +3357,7 @@ function App() {
         <div className="onboarding-head">
           <div>
             <p className="eyebrow">First Run Guide</p>
-            <h3>How to use this exchange</h3>
+            <h3>How to use Clardex</h3>
           </div>
           <button className="tiny ghost" onClick={() => closeOnboarding(false)}>
             Close
@@ -3438,10 +3438,10 @@ function App() {
             <img
               className="brand-mark"
               src="/favicon.png"
-              alt="Stacks Exchange logo"
+              alt="Clardex logo"
             />
             <div>
-              <p className="eyebrow">Stacks Exchange</p>
+              <p className="eyebrow">Clardex</p>
               <h1>Swap</h1>
             </div>
           </div>
