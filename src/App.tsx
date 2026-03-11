@@ -2166,6 +2166,14 @@ function App() {
     setSwapInput(String(balances.tokenY || ""));
   };
 
+  const setSwapPreset = (percent: number) => {
+    const balance =
+      swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
+    if (!balance || balance <= 0) return;
+    const next = balance * percent;
+    setSwapInput(String(Number(next.toFixed(4))));
+  };
+
   const setMaxBurn = () => {
     setBurnShares(String(balances.lpShares || "0"));
   };
@@ -2423,6 +2431,17 @@ function App() {
             ? formatNumber(balances.tokenX)
             : formatNumber(balances.tokenY)}
         </p>
+        <div className="mini-actions">
+          <button className="tiny ghost" onClick={() => setSwapPreset(0.25)}>
+            25%
+          </button>
+          <button className="tiny ghost" onClick={() => setSwapPreset(0.5)}>
+            50%
+          </button>
+          <button className="tiny ghost" onClick={() => setSwapPreset(0.75)}>
+            75%
+          </button>
+        </div>
       </div>
 
       <button
