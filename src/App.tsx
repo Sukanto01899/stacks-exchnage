@@ -3241,6 +3241,39 @@ function App() {
     </section>
   );
 
+  const MarketPulseStrip = () => (
+    <section className="market-pulse" aria-label="Pool market pulse">
+      <div className="market-pulse-copy">
+        <p className="eyebrow">Live Pool Snapshot</p>
+        <h2>Swap against the current X/Y pool</h2>
+        <p className="muted">
+          {stacksAddress
+            ? `Wallet ${shortAddress(stacksAddress)} is connected on ${RESOLVED_STACKS_NETWORK}.`
+            : `Connect a wallet to trade on ${RESOLVED_STACKS_NETWORK} and mint demo assets.`}
+        </p>
+      </div>
+      <div className="market-pulse-stats">
+        <div className="market-pulse-stat">
+          <span className="muted small">Spot price</span>
+          <strong>
+            {currentPrice ? `1 X = ${formatNumber(currentPrice)} Y` : "Waiting for pool"}
+          </strong>
+        </div>
+        <div className="market-pulse-stat">
+          <span className="muted small">Pool depth</span>
+          <strong>
+            {formatCompactNumber(pool.reserveX)} X /{" "}
+            {formatCompactNumber(pool.reserveY)} Y
+          </strong>
+        </div>
+        <div className="market-pulse-stat">
+          <span className="muted small">24h move</span>
+          <strong>{formatSignedPercent(analytics.priceChange24)}</strong>
+        </div>
+      </div>
+    </section>
+  );
+
   const AnalyticsPanel = () => (
     <section className="analytics-panel">
       <div className="analytics-head">
@@ -3512,6 +3545,8 @@ function App() {
             )}
 
             <div className="dashboard-main">
+              {showMinimalSwapLayout && <MarketPulseStrip />}
+
               {!showMinimalSwapLayout && (
                 <div className="panel-head">
                   <div className="tabs">
