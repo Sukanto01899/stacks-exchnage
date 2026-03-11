@@ -1436,7 +1436,11 @@ function App() {
       );
       return;
     }
-    if (impactPct >= PRICE_IMPACT_CONFIRM_PCT && !impactConfirmed) {
+    if (
+      impactPct >= PRICE_IMPACT_CONFIRM_PCT &&
+      !showMinimalSwapLayout &&
+      !impactConfirmed
+    ) {
       setSwapMessage(
         `High price impact (${impactPct.toFixed(2)}%). Confirm the high-impact checkbox before swapping.`,
       );
@@ -2453,11 +2457,30 @@ function App() {
               ? "Loading..."
               : liveSwapOutput !== null
                 ? formatNumber(liveSwapOutput)
-                : "0.0"}
+                : pool.reserveX <= 0 || pool.reserveY <= 0
+                  ? "No pool"
+                  : "0.0"}
           </h3>
           <p className="muted small">Expected output</p>
         </div>
       </div>
+
+      {showMinimalSwapLayout && (
+        <div className="simple-quote-line">
+          <span className="muted small">
+            {pool.reserveX > 0 && pool.reserveY > 0
+              ? `1 X = ${formatNumber(currentPrice || 0)} Y`
+              : "No liquidity yet"}
+          </span>
+          <span className="muted small">
+            {quoteLoading
+              ? "Refreshing pool..."
+              : liveSwapOutput !== null
+                ? `Est. ${formatNumber(liveSwapOutput)} ${swapDirection === "x-to-y" ? "Y" : "X"}`
+                : "Enter amount"}
+          </span>
+        </div>
+      )}
 
       <div className="inline-stats">
         <div>
@@ -2822,18 +2845,33 @@ function App() {
 
       <button
         className="primary"
-        onClick={handleSwap}
+        onClick={
+          showMinimalSwapLayout
+            ? swapDraft
+              ? executeSwap
+              : handleSwap
+            : handleSwap
+        }
         disabled={
-          quoteLoading || swapPending || preflightPending || Boolean(swapDraft)
+          quoteLoading ||
+          swapPending ||
+          preflightPending ||
+          (!showMinimalSwapLayout && Boolean(swapDraft))
         }
       >
         {quoteLoading
           ? "Loading quote..."
+          : preflightPending
+            ? "Preparing swap..."
           : swapPending
             ? "Swapping..."
             : swapDraft
-              ? "Review open"
-              : "Review swap"}
+              ? showMinimalSwapLayout
+                ? "Confirm swap"
+                : "Review open"
+              : showMinimalSwapLayout
+                ? "Swap"
+                : "Review swap"}
       </button>
       <button
         className="secondary"
@@ -3601,6 +3639,27 @@ function App() {
             disabled={faucetPending}
           >
             Y Faucet
+          </button>
+        </div>
+      )}
+      {showMinimalSwapLayout && (
+        <div
+          className="bottom-faucet-bar"
+          aria-label="Quick faucet controls for swap"
+        >
+          <button
+            className="chip"
+            onClick={() => handleFaucet("x")}
+            disabled={faucetPending}
+          >
+            {faucetPending ? "Loading..." : "X Faucet"}
+          </button>
+          <button
+            className="chip"
+            onClick={() => handleFaucet("y")}
+            disabled={faucetPending}
+          >
+            {faucetPending ? "Loading..." : "Y Faucet"}
           </button>
         </div>
       )}

@@ -9,9 +9,9 @@
   --stroke-strong: rgba(255, 255, 255, 0.2);
   --text: #f7f9ff;
   --text-muted: #aeb8cf;
-  --accent: #ff4fa3;
-  --accent-strong: #ff2f93;
-  --accent-soft: rgba(255, 79, 163, 0.17);
+  --accent: #ff9a3d;
+  --accent-strong: #ff6a1a;
+  --accent-soft: rgba(255, 154, 61, 0.18);
   --chip: #181c27;
   --ok: #21c38c;
   --radius-xl: 28px;
@@ -28,6 +28,10 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 129, 34, 0.16) 0%, rgba(255, 129, 34, 0.04) 24%, transparent 48%),
+    linear-gradient(180deg, #120d08 0%, #0b0b10 24%, #09090c 100%);
 }
 
 .page.single {
@@ -37,7 +41,7 @@
 .nav {
   display: block;
   padding: 12px 16px;
-  background: var(--bg-shell);
+  background: linear-gradient(180deg, rgba(22, 18, 14, 0.94) 0%, rgba(12, 12, 17, 0.92) 100%);
   border: 1px solid var(--stroke);
   backdrop-filter: blur(10px);
   position: fixed;
@@ -201,9 +205,9 @@ h3 {
 }
 
 .chip.success {
-  background: rgba(33, 195, 140, 0.14);
-  border-color: rgba(33, 195, 140, 0.46);
-  color: #bcffe6;
+  background: rgba(255, 154, 61, 0.14);
+  border-color: rgba(255, 154, 61, 0.46);
+  color: #ffd9b5;
 }
 
 .content {
@@ -406,7 +410,7 @@ h3 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #7ef0c7 0%, #ff4fa3 100%);
+  background: linear-gradient(90deg, #ffb15d 0%, #ff6a1a 100%);
 }
 
 .setup-list,
@@ -583,8 +587,9 @@ h3 {
 }
 
 .simple-mode .token-card {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 167, 84, 0.08) 0%, rgba(255, 255, 255, 0.03) 32%, rgba(255, 255, 255, 0.025) 100%);
+  border-color: rgba(255, 173, 92, 0.16);
   border-radius: 28px;
   padding: 18px 20px;
 }
@@ -721,10 +726,18 @@ h3 {
   color: rgba(255, 255, 255, 0.82);
 }
 
+.simple-quote-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 6px;
+}
+
 .simple-mode .primary {
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.88);
+  background: linear-gradient(180deg, rgba(255, 165, 76, 0.22) 0%, rgba(255, 124, 40, 0.16) 100%);
+  border: 1px solid rgba(255, 173, 92, 0.18);
+  color: rgba(255, 245, 233, 0.96);
   font-size: 19px;
   padding: 18px 20px;
 }
@@ -1005,8 +1018,8 @@ h3 {
 
 .simulator {
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 79, 163, 0.32);
-  background: linear-gradient(180deg, rgba(255, 79, 163, 0.09) 0%, rgba(25, 28, 40, 0.95) 55%);
+  border: 1px solid rgba(255, 154, 61, 0.32);
+  background: linear-gradient(180deg, rgba(255, 154, 61, 0.09) 0%, rgba(25, 28, 40, 0.95) 55%);
   padding: 12px;
 }
 
@@ -1019,9 +1032,9 @@ h3 {
 
 .pill-small {
   border-radius: 999px;
-  background: rgba(255, 79, 163, 0.18);
-  border: 1px solid rgba(255, 79, 163, 0.38);
-  color: #ffd6eb;
+  background: rgba(255, 154, 61, 0.18);
+  border: 1px solid rgba(255, 154, 61, 0.38);
+  color: #ffe2c6;
   font-size: 11px;
   padding: 5px 8px;
 }
@@ -1074,7 +1087,7 @@ h3 {
 
 .curve-path {
   fill: none;
-  stroke: #ff6db2;
+  stroke: #ff9a3d;
   stroke-width: 2.3;
 }
 
@@ -1084,7 +1097,7 @@ h3 {
 }
 
 .curve-point {
-  fill: #ff2f93;
+  fill: #ff6a1a;
 }
 
 .sim-stats {
@@ -1128,8 +1141,8 @@ h3 {
 .analytics-chart-card {
   margin-top: 10px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 79, 163, 0.28);
-  background: linear-gradient(180deg, rgba(255, 79, 163, 0.08) 0%, rgba(20, 24, 34, 0.92) 100%);
+  border: 1px solid rgba(255, 154, 61, 0.28);
+  background: linear-gradient(180deg, rgba(255, 154, 61, 0.08) 0%, rgba(20, 24, 34, 0.92) 100%);
   padding: 12px;
 }
 
@@ -1167,7 +1180,7 @@ h3 {
 }
 
 .analytics-marker {
-  fill: #ff4fa3;
+  fill: #ff8a2a;
   stroke: rgba(255, 255, 255, 0.85);
   stroke-width: 1.5;
 }
@@ -1201,7 +1214,7 @@ h3 {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #ff4fa3;
+  background: #ff8a2a;
   border: 1px solid rgba(255, 255, 255, 0.85);
 }
 
@@ -1325,8 +1338,8 @@ label {
 }
 
 .note.subtle {
-  border-color: rgba(255, 79, 163, 0.38);
-  background: rgba(255, 79, 163, 0.1);
+  border-color: rgba(255, 154, 61, 0.38);
+  background: rgba(255, 154, 61, 0.1);
 }
 
 .chip-row {
@@ -1352,6 +1365,26 @@ label {
   justify-content: center;
 }
 
+.bottom-faucet-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(25, 18, 13, 0.92) 0%, rgba(11, 12, 18, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  z-index: 1001;
+}
+
+.bottom-faucet-bar .chip {
+  min-width: 110px;
+  justify-content: center;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1371,7 +1404,7 @@ label {
 .tiny:focus-visible,
 .switcher:focus-visible,
 .token-select:focus-visible {
-  outline: 2px solid rgba(255, 79, 163, 0.64);
+  outline: 2px solid rgba(255, 154, 61, 0.64);
   outline-offset: 2px;
 }
 
@@ -1537,6 +1570,19 @@ label {
     right: 10px;
     bottom: 14px;
     transform: none;
+  }
+
+  .bottom-faucet-bar {
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    transform: none;
+    justify-content: center;
+  }
+
+  .bottom-faucet-bar .chip {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .sim-body {
