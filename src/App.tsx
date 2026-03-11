@@ -76,6 +76,13 @@ type PriceAlert = {
   triggeredPrice?: number;
 };
 
+type AppTab = "swap" | "liquidity" | "analytics";
+type OnboardingState = {
+  seenModal: boolean;
+  dismissed: boolean;
+  visitedTabs: AppTab[];
+};
+
 // TODO: Update these constants based on your contract's specific fee structure, token decimal precision, price impact thresholds, and other relevant parameters that affect the swap logic, user experience, and risk management in your application
 const FEE_BPS = 30;
 const BPS = 10_000;
@@ -103,6 +110,7 @@ const STACKS_API =
 const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
+const ONBOARDING_STORAGE_KEY = `onboarding-${RESOLVED_STACKS_NETWORK}`;
 
 // TODO: Update token normalization logic if your contract uses a different asset ID format or if you want to support multiple tokens per contract
 const normalizeTokenId = (value: string | undefined, assetName: string) => {
@@ -230,12 +238,6 @@ const bigintSqrt = (value: bigint) => {
   return x0;
 };
 
-// TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
-const sleep = (ms: number) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
 // Simulate a quote calculation with a delay to mimic an API call or complex on-chain logic
 const explainPoolError = (repr?: string) => {
   if (!repr) return null;
@@ -301,9 +303,7 @@ function App() {
   });
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
 
-  const [activeTab, setActiveTab] = useState<
-    "swap" | "liquidity" | "analytics"
-  >("swap");
+  const [activeTab, setActiveTab] = useState<AppTab>("swap");
   const [swapDirection, setSwapDirection] = useState<"x-to-y" | "y-to-x">(
     "x-to-y",
   );
@@ -350,6 +350,12 @@ function App() {
 
   const [faucetMessage, setFaucetMessage] = useState<string | null>(null);
   const [faucetPending, setFaucetPending] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingState>({
+    seenModal: false,
+    dismissed: false,
+    visitedTabs: ["swap"],
+  });
 
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
   const [btcStatus, setBtcStatus] = useState<string | null>(null);
@@ -407,6 +413,48 @@ function App() {
     () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const poolShare = useMemo(() => {
+    if (pool.totalShares === 0) return 0;
+    return balances.lpShares / pool.totalShares;
+  }, [balances.lpShares, pool.totalShares]);
+
+  const currentPrice = useMemo(() => {
+    if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
+    return pool.reserveY / pool.reserveX;
+  }, [pool.reserveX, pool.reserveY]);
+
+  const directionalPrice = useMemo(() => {
+    if (!currentPrice) return 0;
+    return targetPairDirection === "x-to-y" ? currentPrice : 1 / currentPrice;
+  }, [currentPrice, targetPairDirection]);
+
+  const targetPrice = useMemo(() => {
+    const parsed = Number(targetPriceInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+  }, [targetPriceInput]);
+
+  const lpPosition = useMemo(() => {
+    const share = Math.max(0, Math.min(1, poolShare));
+    return {
+      x: pool.reserveX * share,
+      y: pool.reserveY * share,
+    };
+  }, [pool.reserveX, pool.reserveY, poolShare]);
+
+  const portfolioTotals = useMemo(() => {
+    const totalX = balances.tokenX + lpPosition.x;
+    const totalY = balances.tokenY + lpPosition.y;
+    const valueInX = currentPrice > 0 ? totalX + totalY / currentPrice : totalX;
+    const valueInY = currentPrice > 0 ? totalY + totalX * currentPrice : totalY;
+    return { totalX, totalY, valueInX, valueInY };
+  }, [
+    balances.tokenX,
+    balances.tokenY,
+    lpPosition.x,
+    lpPosition.y,
+    currentPrice,
+  ]);
 
   // TODO: Update this function if you want to implement more robust logic for fetching the current block height, such as using a WebSocket connection to listen for new blocks or implementing retry logic in case of network errors
   const fetchTipHeight = async () => {
@@ -426,10 +474,10 @@ function App() {
       const data = await response.json().catch(() => ({}));
       const functions = Array.isArray(data?.functions) ? data.functions : [];
       const hasApprove = functions.some(
-        (fn) => isNamedFunctionLike(fn) && fn.name === "approve",
+        (fn: unknown) => isNamedFunctionLike(fn) && fn.name === "approve",
       );
       const hasAllowance = functions.some(
-        (fn) => isNamedFunctionLike(fn) && fn.name === "get-allowance",
+        (fn: unknown) => isNamedFunctionLike(fn) && fn.name === "get-allowance",
       );
       return hasApprove && hasAllowance;
     },
@@ -715,6 +763,54 @@ function App() {
 
   useEffect(() => {
     try {
+      const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<OnboardingState> | null;
+      const visitedTabs = Array.isArray(parsed?.visitedTabs)
+        ? parsed.visitedTabs.filter(
+            (tab): tab is AppTab =>
+              tab === "swap" || tab === "liquidity" || tab === "analytics",
+          )
+        : [];
+      setOnboarding({
+        seenModal: Boolean(parsed?.seenModal),
+        dismissed: Boolean(parsed?.dismissed),
+        visitedTabs:
+          visitedTabs.length > 0
+            ? Array.from(new Set<AppTab>(["swap", ...visitedTabs]))
+            : ["swap"],
+      });
+    } catch (error) {
+      console.warn("Onboarding state load failed", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    setOnboarding((prev) => {
+      if (prev.visitedTabs.includes(activeTab)) return prev;
+      return {
+        ...prev,
+        visitedTabs: [...prev.visitedTabs, activeTab],
+      };
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(onboarding));
+    } catch (error) {
+      console.warn("Onboarding state save failed", error);
+    }
+  }, [onboarding]);
+
+  useEffect(() => {
+    if (!onboarding.seenModal) {
+      setShowOnboarding(true);
+    }
+  }, [onboarding.seenModal]);
+
+  useEffect(() => {
+    try {
       const raw = localStorage.getItem(portfolioHistoryKey);
       if (!raw) {
         setPortfolioHistory([]);
@@ -983,36 +1079,6 @@ function App() {
     setBtcStatus(null);
   };
 
-  const poolShare = useMemo(() => {
-    if (pool.totalShares === 0) return 0;
-    return balances.lpShares / pool.totalShares;
-  }, [balances.lpShares, pool.totalShares]);
-
-  const currentPrice = useMemo(() => {
-    if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
-    return pool.reserveY / pool.reserveX;
-  }, [pool.reserveX, pool.reserveY]);
-  const lpPosition = useMemo(() => {
-    const share = Math.max(0, Math.min(1, poolShare));
-    return {
-      x: pool.reserveX * share,
-      y: pool.reserveY * share,
-    };
-  }, [pool.reserveX, pool.reserveY, poolShare]);
-  const portfolioTotals = useMemo(() => {
-    const totalX = balances.tokenX + lpPosition.x;
-    const totalY = balances.tokenY + lpPosition.y;
-    const valueInX = currentPrice > 0 ? totalX + totalY / currentPrice : totalX;
-    const valueInY = currentPrice > 0 ? totalY + totalX * currentPrice : totalY;
-    return { totalX, totalY, valueInX, valueInY };
-  }, [
-    balances.tokenX,
-    balances.tokenY,
-    lpPosition.x,
-    lpPosition.y,
-    currentPrice,
-  ]);
-
   useEffect(() => {
     if (!stacksAddress || currentPrice <= 0) return;
     const now = Date.now();
@@ -1155,7 +1221,7 @@ function App() {
         triggeredIds.push(item.id);
         return {
           ...item,
-          status: "triggered",
+          status: "triggered" as const,
           triggeredAt: now,
           triggeredPrice: price,
         };
@@ -1981,6 +2047,85 @@ function App() {
     }
   };
 
+  const onboardingSteps = useMemo(
+    () => [
+      {
+        id: "connect",
+        title: "Connect Stacks wallet",
+        description:
+          "Use the wallet picker so balances, swaps, and LP actions bind to a real address.",
+        complete: Boolean(stacksAddress),
+        actionLabel: stacksAddress ? "Connected" : "Connect",
+        action: handleStacksConnect,
+      },
+      {
+        id: "fund",
+        title: "Get demo liquidity",
+        description:
+          "Mint X and Y from the faucet so the swap and pool tabs have usable balances.",
+        complete:
+          balances.tokenX > 0 ||
+          balances.tokenY > 0 ||
+          faucetTxids.length > 0 ||
+          activityItems.some((item) => item.kind === "faucet"),
+        actionLabel: faucetPending ? "Requesting..." : "Use faucet",
+        action: () => handleFaucet(),
+      },
+      {
+        id: "explore-pool",
+        title: "Open the pool tab",
+        description:
+          "Review add/remove liquidity inputs and the LP share panel before depositing.",
+        complete: onboarding.visitedTabs.includes("liquidity"),
+        actionLabel: "Go to pool",
+        action: () => setActiveTab("liquidity"),
+      },
+      {
+        id: "explore-analytics",
+        title: "Open analytics",
+        description:
+          "Inspect price, reserves, and local activity trends to understand pool behavior.",
+        complete: onboarding.visitedTabs.includes("analytics"),
+        actionLabel: "View analytics",
+        action: () => setActiveTab("analytics"),
+      },
+    ],
+    [
+      activityItems,
+      balances.tokenX,
+      balances.tokenY,
+      faucetPending,
+      faucetTxids.length,
+      handleFaucet,
+      handleStacksConnect,
+      onboarding.visitedTabs,
+      stacksAddress,
+    ],
+  );
+  const onboardingCompletedCount = onboardingSteps.filter(
+    (step) => step.complete,
+  ).length;
+  const onboardingProgressPercent =
+    (onboardingCompletedCount / onboardingSteps.length) * 100;
+
+  const openOnboarding = useCallback(() => {
+    setShowOnboarding(true);
+    setOnboarding((prev) => ({
+      ...prev,
+      seenModal: true,
+      dismissed: false,
+    }));
+  }, []);
+
+  const closeOnboarding = useCallback((dismissed: boolean) => {
+    setShowOnboarding(false);
+    setOnboarding((prev) => ({
+      ...prev,
+      seenModal: true,
+      dismissed,
+    }));
+  }, []);
+
   const handleSyncToPoolRatio = () => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return;
     const ratio = pool.reserveY / pool.reserveX;
@@ -2085,17 +2230,6 @@ function App() {
     if (!balance || balance <= 0) return 0;
     return Math.max(0, Number(balance.toFixed(4)));
   }, [balances.tokenX, balances.tokenY, swapDirection]);
-
-  const directionalPrice = useMemo(() => {
-    if (!currentPrice) return 0;
-    return targetPairDirection === "x-to-y" ? currentPrice : 1 / currentPrice;
-  }, [currentPrice, targetPairDirection]);
-
-  const targetPrice = useMemo(() => {
-    const parsed = Number(targetPriceInput);
-    if (!Number.isFinite(parsed) || parsed <= 0) return null;
-    return parsed;
-  }, [targetPriceInput]);
 
   const targetTriggered = useMemo(() => {
     if (!targetPriceEnabled || !targetPrice || !directionalPrice) return false;
@@ -2764,6 +2898,72 @@ function App() {
     </div>
   );
 
+  const SetupPanel = () => (
+    <section className="setup-panel">
+      <div className="setup-head">
+        <div>
+          <p className="eyebrow">Start Here</p>
+          <h3>Guided setup</h3>
+        </div>
+        <button className="tiny ghost" onClick={openOnboarding}>
+          Open guide
+        </button>
+      </div>
+      <div className="setup-progress">
+        <div>
+          <p className="muted small">
+            {onboardingCompletedCount}/{onboardingSteps.length} steps complete
+          </p>
+          <strong>
+            {onboardingCompletedCount === onboardingSteps.length
+              ? "Exchange ready"
+              : "Finish setup to trade with fewer surprises"}
+          </strong>
+        </div>
+        <div className="setup-progress-bar" aria-hidden="true">
+          <span style={{ width: `${onboardingProgressPercent}%` }} />
+        </div>
+      </div>
+      <div className="setup-list">
+        {onboardingSteps.map((step, index) => (
+          <div
+            key={step.id}
+            className={`setup-item ${step.complete ? "is-complete" : ""}`}
+          >
+            <div className="setup-step">
+              <span className="setup-index">{index + 1}</span>
+              <div>
+                <strong>{step.title}</strong>
+                <p className="muted small">{step.description}</p>
+              </div>
+            </div>
+            <button
+              className={step.complete ? "tiny ghost" : "tiny"}
+              onClick={step.action}
+              disabled={step.complete || (step.id === "fund" && faucetPending)}
+            >
+              {step.actionLabel}
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="setup-tips">
+        <p className="muted small">
+          {activeTab === "swap"
+            ? "Swap tab tip: compare price impact before submitting and use preview if the trade is large."
+            : activeTab === "liquidity"
+              ? "Pool tab tip: use Match pool ratio before adding liquidity to avoid avoidable skew."
+              : "Analytics tip: keep the app open after trading to build more local history points."}
+        </p>
+        {!onboarding.dismissed && onboardingCompletedCount < onboardingSteps.length && (
+          <button className="tiny ghost" onClick={() => closeOnboarding(true)}>
+            Hide setup card
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
   const PortfolioPanel = () => (
     <section className="portfolio-panel">
       <div className="portfolio-head">
@@ -2993,6 +3193,85 @@ function App() {
     </section>
   );
 
+  const OnboardingModal = () => (
+    <div className="onboarding-backdrop" onClick={() => closeOnboarding(false)}>
+      <div className="onboarding-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="onboarding-head">
+          <div>
+            <p className="eyebrow">First Run Guide</p>
+            <h3>How to use this exchange</h3>
+          </div>
+          <button className="tiny ghost" onClick={() => closeOnboarding(false)}>
+            Close
+          </button>
+        </div>
+        <div className="onboarding-grid">
+          <div className="onboarding-card">
+            <span className="chip success">
+              {onboardingCompletedCount}/{onboardingSteps.length} complete
+            </span>
+            <h4>Fastest path</h4>
+            <p className="muted small">
+              Connect a Stacks wallet, mint demo assets, then review Pool and
+              Analytics before making your first swap.
+            </p>
+            <div className="setup-progress-bar" aria-hidden="true">
+              <span style={{ width: `${onboardingProgressPercent}%` }} />
+            </div>
+          </div>
+          <div className="onboarding-card">
+            <h4>What is simulated vs on-chain</h4>
+            <p className="muted small">
+              Quotes, alerts, and local analytics are frontend-derived. Swaps,
+              approvals, liquidity actions, and faucet mints use the connected
+              wallet and configured contracts.
+            </p>
+          </div>
+        </div>
+        <div className="onboarding-list">
+          {onboardingSteps.map((step, index) => (
+            <div
+              key={step.id}
+              className={`onboarding-item ${step.complete ? "is-complete" : ""}`}
+            >
+              <div>
+                <p className="muted small">Step {index + 1}</p>
+                <strong>{step.title}</strong>
+                <p className="muted small">{step.description}</p>
+              </div>
+              <button
+                className={step.complete ? "tiny ghost" : "tiny"}
+                onClick={() => {
+                  step.action();
+                  if (step.id !== "connect" && step.id !== "fund") {
+                    closeOnboarding(false);
+                  }
+                }}
+                disabled={step.complete || (step.id === "fund" && faucetPending)}
+              >
+                {step.actionLabel}
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="onboarding-footer">
+          <p className="muted small">
+            The guide is local to this browser. Reopen it any time from the
+            setup card.
+          </p>
+          <div className="mini-actions">
+            <button className="secondary" onClick={() => closeOnboarding(true)}>
+              Dismiss
+            </button>
+            <button className="primary" onClick={() => closeOnboarding(false)}>
+              Continue exploring
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="page single">
       <header className="nav">
@@ -3010,6 +3289,9 @@ function App() {
           </div>
           <div className="nav-actions">
             {IS_MAINNET && <span className="chip success">Mainnet live</span>}
+            <button className="chip ghost" onClick={openOnboarding}>
+              Guide
+            </button>
             <button
               className="chip ghost"
               onClick={() => stacksAddress && syncBalances(stacksAddress)}
@@ -3049,6 +3331,7 @@ function App() {
 
       <main className="content single">
         <section className="panel swap-panel">
+          {!onboarding.dismissed && <SetupPanel />}
           <PortfolioPanel />
           <ActivityPanel />
           <div className="panel-head">
@@ -3179,6 +3462,7 @@ function App() {
           </div>
         </div>
       )}
+      {showOnboarding && <OnboardingModal />}
       <div className="floating-faucet" aria-label="Quick faucet controls">
         <button
           className="chip"
