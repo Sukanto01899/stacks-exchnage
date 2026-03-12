@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
@@ -73,6 +73,13 @@ type PriceAlert = {
   status: "active" | "triggered";
   triggeredAt?: number;
   triggeredPrice?: number;
+};
+
+type ToastTone = "success" | "warning" | "error" | "info";
+type ToastItem = {
+  id: string;
+  message: string;
+  tone: ToastTone;
 };
 
 type AppTab = "swap" | "liquidity" | "analytics";
@@ -235,13 +242,38 @@ const parseTokenAssetId = (id: string) => {
   return { fullId: id, contractId, address, contractName, assetName };
 };
 
-const readReserveValue = (raw: unknown, ...keys: string[]) => {
-  if (!raw || typeof raw !== "object") return 0;
+const parseClarityNumber = (value: unknown): number => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (value && typeof value === "object") {
+    const record = value as { value?: unknown };
+    if ("value" in record) {
+      return parseClarityNumber(record.value);
+    }
+  }
+  return 0;
+};
+
+const readClarityField = (raw: unknown, key: string): unknown => {
+  if (!raw || typeof raw !== "object") return undefined;
   const record = raw as Record<string, unknown>;
+  if (key in record) return record[key];
+  const nested = record.value;
+  if (nested && typeof nested === "object" && key in (nested as Record<string, unknown>)) {
+    return (nested as Record<string, unknown>)[key];
+  }
+  return undefined;
+};
+
+const readReserveValue = (raw: unknown, ...keys: string[]) => {
   for (const key of keys) {
-    const value = record[key];
+    const value = readClarityField(raw, key);
     if (value !== undefined && value !== null) {
-      const parsed = Number(value);
+      const parsed = parseClarityNumber(value);
       if (Number.isFinite(parsed)) return parsed;
     }
   }
@@ -317,6 +349,52 @@ const isNamedFunctionLike = (value: unknown): value is { name: string } => {
   return typeof maybe.name === "string";
 };
 
+const inferToastTone = (
+  source:
+    | "swap"
+    | "preflight"
+    | "frontend"
+    | "alert"
+    | "approval"
+    | "liquidity"
+    | "remove"
+    | "faucet",
+  message: string,
+): ToastTone => {
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes("failed") ||
+    normalized.includes("error") ||
+    normalized.includes("blocked") ||
+    normalized.includes("not enough") ||
+    normalized.includes("unavailable")
+  ) {
+    return "error";
+  }
+  if (
+    normalized.includes("cancelled") ||
+    normalized.includes("warning") ||
+    normalized.includes("preview")
+  ) {
+    return "warning";
+  }
+  if (
+    normalized.includes("submitted") ||
+    normalized.includes("loaded") ||
+    normalized.includes("enabled") ||
+    normalized.includes("sent") ||
+    normalized.includes("copied") ||
+    normalized.includes("refreshed") ||
+    normalized.includes("connected")
+  ) {
+    return "success";
+  }
+  if (source === "preflight" || source === "frontend") {
+    return "info";
+  }
+  return "warning";
+};
+
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [pool, setPool] = useState<PoolState>({
@@ -340,7 +418,6 @@ function App() {
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
-  const [swapDraft, setSwapDraft] = useState<SwapDraft | null>(null);
   const [impactConfirmed, setImpactConfirmed] = useState(false);
   const [preflightPending, setPreflightPending] = useState(false);
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
@@ -381,6 +458,7 @@ function App() {
 
   const [faucetMessage, setFaucetMessage] = useState<string | null>(null);
   const [faucetPending, setFaucetPending] = useState(false);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
     seenModal: false,
@@ -400,6 +478,15 @@ function App() {
   const [activityFilter, setActivityFilter] = useState<
     "all" | ActivityItem["kind"] | ActivityItem["status"]
   >("all");
+  const lastToastMessages = useRef<Record<string, string | null>>({});
+
+  const pushToast = useCallback((message: string, tone: ToastTone) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setToasts((prev) => [...prev.slice(-4), { id, message, tone }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id));
+    }, 4200);
+  }, []);
 
   // TODO: Update this if your contract uses a different network configuration
   const network = useMemo(
@@ -536,7 +623,7 @@ function App() {
         network,
       });
       const raw = unwrapReadOnlyOk(result);
-      const value = Number(raw || 0) / TOKEN_DECIMALS;
+      const value = parseClarityNumber(raw) / TOKEN_DECIMALS;
       return Number.isFinite(value) ? value : 0;
     },
     [
@@ -642,10 +729,12 @@ function App() {
             network,
           }));
 
-        const reserveValue = cvToValue(reserves);
-        const totalSupplyValue = Number(cvToValue(totalSupply) || 0);
+        const reserveValue = unwrapReadOnlyOk(reserves);
+        const totalSupplyValue = parseClarityNumber(
+          unwrapReadOnlyOk(totalSupply),
+        );
         const lpBalanceValue = lpBalance
-          ? Number(cvToValue(lpBalance) || 0)
+          ? parseClarityNumber(unwrapReadOnlyOk(lpBalance))
           : 0;
         const parsedReserves = parsePoolReserves(reserveValue);
 
@@ -724,7 +813,7 @@ function App() {
         senderAddress,
         network,
       });
-      return parsePoolReserves(cvToValue(reserves));
+      return parsePoolReserves(unwrapReadOnlyOk(reserves));
     },
     [network, poolContract.address, poolContract.contractName],
   );
@@ -1090,7 +1179,6 @@ function App() {
 
   const handleStacksDisconnect = () => {
     setStacksAddress(null);
-    setSwapDraft(null);
     setSwapPending(false);
     try {
       localStorage.removeItem("stacks-connect-selected-provider");
@@ -1539,11 +1627,20 @@ function App() {
         dy?: string;
         dx?: string;
         fee?: string;
+        value?: { dy?: unknown; dx?: unknown; fee?: unknown };
       };
       const outMicro = BigInt(
-        String(fromX ? (quoteValue?.dy ?? 0) : (quoteValue?.dx ?? 0)),
+        Math.floor(
+          parseClarityNumber(
+            fromX
+              ? (quoteValue?.dy ?? quoteValue?.value?.dy)
+              : (quoteValue?.dx ?? quoteValue?.value?.dx),
+          ),
+        ),
       );
-      const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
+      const feeMicro = BigInt(
+        Math.floor(parseClarityNumber(quoteValue?.fee ?? quoteValue?.value?.fee)),
+      );
       if (outMicro <= 0n) {
         throw new Error("Pre-flight failed: expected output is zero.");
       }
@@ -1625,20 +1722,14 @@ function App() {
   const handleSwap = async () => {
     const draft = await prepareSwapDraft();
     if (!draft) return;
-    setSwapDraft(draft);
-    setSwapMessage("Review swap details and confirm.");
+    await executeSwap(draft);
   };
 
   const executeSwap = async (
-    draftOverride?: SwapDraft,
+    draft: SwapDraft,
     addressOverride?: string | null,
   ) => {
-    const draft = draftOverride || swapDraft;
     const activeAddress = addressOverride || stacksAddress;
-    if (!draft) {
-      setSwapMessage("Swap quote expired. Review the swap again.");
-      return;
-    }
     if (!activeAddress) {
       setSwapMessage("Connect a Stacks wallet first.");
       return;
@@ -1663,7 +1754,6 @@ function App() {
             detail: "Waiting for on-chain confirmation",
           });
           setSwapPending(false);
-          setSwapDraft(null);
         },
         onCancel: () => {
           setSwapMessage("Swap cancelled.");
@@ -1673,7 +1763,6 @@ function App() {
             message: "Swap cancelled",
           });
           setSwapPending(false);
-          setSwapDraft(null);
         },
       });
     } catch (error) {
@@ -1688,7 +1777,6 @@ function App() {
           : "Swap failed. Check wallet and try again.",
       );
       setSwapPending(false);
-      setSwapDraft(null);
     }
   };
 
@@ -1701,101 +1789,9 @@ function App() {
       setSwapMessage("Connect a Stacks wallet first.");
       return;
     }
-    if (swapDraft) {
-      await executeSwap(swapDraft, activeAddress);
-      return;
-    }
     const draft = await prepareSwapDraft(activeAddress);
     if (!draft) return;
     await executeSwap(draft, activeAddress);
-  };
-
-  const handleSwapPreview = async () => {
-    setPreflightMessage(null);
-    const amount = Number(swapInput);
-    if (!amount || amount <= 0) {
-      setPreflightMessage("Enter an amount greater than 0.");
-      return;
-    }
-    if (!stacksAddress) {
-      setPreflightMessage("Connect a Stacks wallet first.");
-      return;
-    }
-    if (pool.reserveX <= 0 || pool.reserveY <= 0) {
-      setPreflightMessage("Pool has no liquidity yet.");
-      return;
-    }
-    const fromX = swapDirection === "x-to-y";
-    const inputBalance = fromX ? balances.tokenX : balances.tokenY;
-    if (amount > inputBalance) {
-      setPreflightMessage("Not enough token balance for this preview.");
-      return;
-    }
-    const slippagePercent = Number(slippageInput);
-    if (
-      !Number.isFinite(slippagePercent) ||
-      slippagePercent < 0 ||
-      slippagePercent > 50
-    ) {
-      setPreflightMessage("Set slippage between 0 and 50%.");
-      return;
-    }
-    const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
-    const outputPreview = quoteSwap(amount, fromX);
-    if (!Number.isFinite(outputPreview)) {
-      setPreflightMessage("Preview failed: quote is unavailable. Refresh pool data and try again.");
-      return;
-    }
-    const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
-    if (!Number.isFinite(minOut)) {
-      setPreflightMessage(
-        "Preview failed: minimum output could not be calculated. Refresh pool data and try again.",
-      );
-      return;
-    }
-    const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
-
-    try {
-      setPreflightPending(true);
-      const senderAddress = stacksAddress || CONTRACT_ADDRESS;
-      const quoteFn = fromX ? "quote-x-for-y" : "quote-y-for-x";
-      const quoteResult = await fetchCallReadOnlyFunction({
-        contractAddress: poolContract.address,
-        contractName: poolContract.contractName,
-        functionName: quoteFn,
-        functionArgs: [uintCV(amountMicro)],
-        senderAddress,
-        network,
-      });
-      const quoteValue = unwrapReadOnlyOk(quoteResult) as {
-        dy?: string;
-        dx?: string;
-        fee?: string;
-      };
-      const outMicro = BigInt(
-        String(fromX ? (quoteValue?.dy ?? 0) : (quoteValue?.dx ?? 0)),
-      );
-      const feeMicro = BigInt(String(quoteValue?.fee ?? 0));
-      if (outMicro <= 0n) {
-        setPreflightMessage("Preview failed: output is zero.");
-        return;
-      }
-      if (outMicro < minOutMicro) {
-        setPreflightMessage(
-          "Preview failed: slippage settings too strict for current reserves.",
-        );
-        return;
-      }
-      setPreflightMessage(
-        `Preview ok: output ~${formatNumber(Number(outMicro) / TOKEN_DECIMALS)} ${fromX ? "Y" : "X"}, fee ~${formatNumber(Number(feeMicro) / TOKEN_DECIMALS)} ${fromX ? "X" : "Y"}.`,
-      );
-    } catch (error) {
-      const raw = error instanceof Error ? error.message : "Preview failed.";
-      const reason = explainPoolError(raw);
-      setPreflightMessage(reason ? `Preview failed. ${reason}.` : raw);
-    } finally {
-      setPreflightPending(false);
-    }
   };
 
   const handleApprove = async (token: TokenKey, requiredAmount?: number) => {
@@ -2397,6 +2393,35 @@ function App() {
   }, [activityFilter, activityItems]);
   const showMinimalSwapLayout = activeTab === "swap";
 
+  useEffect(() => {
+    const entries = [
+      ["swap", swapMessage],
+      ["preflight", preflightMessage],
+      ["frontend", frontendMessage],
+      ["alert", alertMessage],
+      ["approval", approvalMessage],
+      ["liquidity", liqMessage],
+      ["remove", burnMessage],
+      ["faucet", faucetMessage],
+    ] as const;
+
+    for (const [source, message] of entries) {
+      if (!message || lastToastMessages.current[source] === message) continue;
+      lastToastMessages.current[source] = message;
+      pushToast(message, inferToastTone(source, message));
+    }
+  }, [
+    alertMessage,
+    approvalMessage,
+    burnMessage,
+    faucetMessage,
+    frontendMessage,
+    liqMessage,
+    preflightMessage,
+    pushToast,
+    swapMessage,
+  ]);
+
   const handleManualRefresh = useCallback(async () => {
     setFrontendMessage(null);
     try {
@@ -2546,7 +2571,6 @@ function App() {
           </div>
         )}
         <p className="muted small">Spender: {spenderContractId}</p>
-        {approvalMessage && <p className="note subtle">{approvalMessage}</p>}
       </div>
     );
   };
@@ -2908,7 +2932,6 @@ function App() {
               Clear triggered
             </button>
           </div>
-          {alertMessage ? <p className="note subtle">{alertMessage}</p> : null}
           {priceAlerts.length === 0 ? (
             <p className="muted small">No saved alerts yet.</p>
           ) : (
@@ -3056,42 +3079,21 @@ function App() {
 
       <button
         className="primary"
-        onClick={
-          showMinimalSwapLayout
-            ? handleSimpleSwap
-            : handleSwap
-        }
+        onClick={showMinimalSwapLayout ? handleSimpleSwap : handleSwap}
         disabled={
           quoteLoading ||
           swapPending ||
-          preflightPending ||
-          (!showMinimalSwapLayout && Boolean(swapDraft))
+          preflightPending
         }
       >
         {quoteLoading
           ? "Loading quote..."
           : preflightPending
             ? "Preparing swap..."
-          : swapPending
+            : swapPending
             ? "Swapping..."
-            : swapDraft
-              ? showMinimalSwapLayout
-                ? "Confirm swap"
-                : "Review open"
-              : showMinimalSwapLayout
-                ? "Swap"
-                : "Review swap"}
+            : "Swap"}
       </button>
-      <button
-        className="secondary"
-        onClick={handleSwapPreview}
-        disabled={quoteLoading || swapPending || preflightPending}
-      >
-        {preflightPending ? "Previewing..." : "Preview transaction"}
-      </button>
-      {frontendMessage && <p className="note subtle">{frontendMessage}</p>}
-      {preflightMessage && <p className="note subtle">{preflightMessage}</p>}
-      {swapMessage && <p className="note">{swapMessage}</p>}
     </div>
   );
 
@@ -3157,7 +3159,6 @@ function App() {
         <button className="primary" onClick={handleAddLiquidity}>
           Add liquidity
         </button>
-        {liqMessage && <p className="note">{liqMessage}</p>}
       </div>
 
       <div className="token-card">
@@ -3195,7 +3196,6 @@ function App() {
         <button className="primary" onClick={handleRemoveLiquidity}>
           Remove from pool
         </button>
-        {burnMessage && <p className="note">{burnMessage}</p>}
       </div>
     </div>
   );
@@ -3436,44 +3436,6 @@ function App() {
     </section>
   );
 
-  const MarketPulseStrip = () => (
-    <section className="market-pulse" aria-label="Pool market pulse">
-      <div className="market-pulse-copy">
-        <p className="eyebrow">Live Pool Snapshot</p>
-        <h2>Swap against the current X/Y pool</h2>
-        <p className="muted">
-          {stacksAddress
-            ? `Wallet ${shortAddress(stacksAddress)} is connected on ${RESOLVED_STACKS_NETWORK}.`
-            : `Connect a wallet to trade on ${RESOLVED_STACKS_NETWORK} and mint demo assets.`}
-        </p>
-        <p className="muted small market-pulse-updated">
-          {lastPoolRefreshAt
-            ? `Updated ${new Date(lastPoolRefreshAt).toLocaleTimeString()}`
-            : "Waiting for first pool sync"}
-        </p>
-      </div>
-      <div className="market-pulse-stats">
-        <div className="market-pulse-stat">
-          <span className="muted small">Spot price</span>
-          <strong>
-            {currentPrice ? `1 X = ${formatNumber(currentPrice)} Y` : "Waiting for pool"}
-          </strong>
-        </div>
-        <div className="market-pulse-stat">
-          <span className="muted small">Pool depth</span>
-          <strong>
-            {formatCompactNumber(pool.reserveX)} X /{" "}
-            {formatCompactNumber(pool.reserveY)} Y
-          </strong>
-        </div>
-        <div className="market-pulse-stat">
-          <span className="muted small">24h move</span>
-          <strong>{formatSignedPercent(analytics.priceChange24)}</strong>
-        </div>
-      </div>
-    </section>
-  );
-
   const AnalyticsPanel = () => (
     <section className="analytics-panel">
       <div className="analytics-head">
@@ -3675,7 +3637,7 @@ function App() {
   );
 
   return (
-    <div className="page single">
+    <div className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}>
       <header className="nav">
         <div className="nav-inner">
           <div className="nav-cluster">
@@ -3731,7 +3693,7 @@ function App() {
         </div>
       </header>
 
-      <main className="content single">
+      <main className={`content single ${showMinimalSwapLayout ? "simple-content" : ""}`}>
         <section
           className={`panel swap-panel ${showMinimalSwapLayout ? "simple-mode" : ""}`}
         >
@@ -3745,8 +3707,6 @@ function App() {
             )}
 
             <div className="dashboard-main">
-              {showMinimalSwapLayout && <MarketPulseStrip />}
-
               {!showMinimalSwapLayout && (
                 <div className="panel-head">
                   <div className="tabs">
@@ -3779,9 +3739,6 @@ function App() {
                 <AnalyticsPanel />
               )}
 
-              {!showMinimalSwapLayout && faucetMessage && (
-                <p className="note subtle">{faucetMessage}</p>
-              )}
               {!showMinimalSwapLayout && faucetTxids.length > 0 && (
                 <div className="note subtle">
                   <p className="muted small">Recent faucet tx</p>
@@ -3804,115 +3761,34 @@ function App() {
           </div>
         </section>
       </main>
-      {swapDraft && (
-        <div
-          className="swap-drawer-backdrop"
-          onClick={() => !swapPending && setSwapDraft(null)}
-        >
-          <div className="swap-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="swap-drawer-head">
-              <h3>Confirm Swap</h3>
-              <button
-                className="tiny ghost"
-                onClick={() => setSwapDraft(null)}
-                disabled={swapPending}
-              >
-                Close
-              </button>
-            </div>
-            <div className="swap-drawer-grid">
-              <div>
-                <span className="muted small">You pay</span>
-                <strong>
-                  {formatNumber(swapDraft.amount)} {swapDraft.fromSymbol}
-                </strong>
-              </div>
-              <div>
-                <span className="muted small">You receive (est.)</span>
-                <strong>
-                  {formatNumber(swapDraft.outputPreview)} {swapDraft.toSymbol}
-                </strong>
-              </div>
-              <div>
-                <span className="muted small">Minimum received</span>
-                <strong>
-                  {formatNumber(swapDraft.minReceived)} {swapDraft.toSymbol}
-                </strong>
-              </div>
-              <div>
-                <span className="muted small">Slippage / Deadline</span>
-                <strong>
-                  {swapDraft.slippagePercent}% / {swapDraft.deadlineMinutes}m
-                </strong>
-              </div>
-              <div>
-                <span className="muted small">Route</span>
-                <strong>{poolContract.contractName}</strong>
-              </div>
-              <div>
-                <span className="muted small">Price impact</span>
-                <strong>{swapDraft.priceImpact.toFixed(3)}%</strong>
-              </div>
-            </div>
-            <div className="swap-drawer-actions">
-              <button
-                className="secondary"
-                onClick={() => setSwapDraft(null)}
-                disabled={swapPending}
-              >
-                Cancel
-              </button>
-              <button
-                className="primary"
-                onClick={() => executeSwap()}
-                disabled={swapPending}
-              >
-                {swapPending ? "Submitting..." : "Confirm Swap"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {showOnboarding && <OnboardingModal />}
-      {!showMinimalSwapLayout && (
-        <div className="floating-faucet" aria-label="Quick faucet controls">
-          <button
-            className="chip"
-            onClick={() => handleFaucet("x")}
-            disabled={faucetPending}
+      <div className="toast-stack" aria-live="polite" aria-atomic="true">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`toast-item toast-${toast.tone}`}
+            role="status"
           >
-            X Faucet
-          </button>
-          <button
-            className="chip"
-            onClick={() => handleFaucet("y")}
-            disabled={faucetPending}
-          >
-            Y Faucet
-          </button>
-        </div>
-      )}
-      {showMinimalSwapLayout && (
-        <div
-          className="bottom-faucet-bar"
-          aria-label="Quick faucet controls for swap"
+            {toast.message}
+          </div>
+        ))}
+      </div>
+      <div className="floating-faucet is-corner" aria-label="Quick faucet controls">
+        <button
+          className="chip"
+          onClick={() => handleFaucet("x")}
+          disabled={faucetPending}
         >
-          <button
-            className="chip"
-            onClick={() => handleFaucet("x")}
-            disabled={faucetPending}
-          >
-            {faucetPending ? "Loading..." : "X Faucet"}
-          </button>
-          <button
-            className="chip"
-            onClick={() => handleFaucet("y")}
-            disabled={faucetPending}
-          >
-            {faucetPending ? "Loading..." : "Y Faucet"}
-          </button>
-        </div>
-      )}
+          {faucetPending ? "Loading..." : "X Faucet"}
+        </button>
+        <button
+          className="chip"
+          onClick={() => handleFaucet("y")}
+          disabled={faucetPending}
+        >
+          {faucetPending ? "Loading..." : "Y Faucet"}
+        </button>
+      </div>
       {poolPending && <span className="sr-only">Loading pool data</span>}
     </div>
   );
