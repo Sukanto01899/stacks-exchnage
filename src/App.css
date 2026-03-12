@@ -310,6 +310,10 @@ h3 {
   letter-spacing: -0.03em;
 }
 
+.market-pulse-updated {
+  margin-top: 8px;
+}
+
 .market-pulse-stats {
   position: relative;
   z-index: 1;
@@ -822,6 +826,13 @@ h3 {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   padding: 8px 12px;
+}
+
+.swap-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .simple-mode .primary {

@@ -313,6 +313,7 @@ function App() {
   const [impactConfirmed, setImpactConfirmed] = useState(false);
   const [preflightPending, setPreflightPending] = useState(false);
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
+  const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
@@ -358,6 +359,9 @@ function App() {
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
   const [, setBalancePending] = useState(false);
   const [poolPending, setPoolPending] = useState(false);
+  const [lastPoolRefreshAt, setLastPoolRefreshAt] = useState<number | null>(
+    null,
+  );
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioSnapshot[]>(
     [],
   );
@@ -618,6 +622,7 @@ function App() {
           reserveY: Number(reserveValue?.y || 0) / TOKEN_DECIMALS,
           totalShares: totalSupplyValue,
         });
+        setLastPoolRefreshAt(Date.now());
         if (address) {
           setBalances((prev) => ({
             ...prev,
@@ -2281,6 +2286,58 @@ function App() {
   }, [activityFilter, activityItems]);
   const showMinimalSwapLayout = activeTab === "swap";
 
+  const handleManualRefresh = useCallback(async () => {
+    setFrontendMessage(null);
+    try {
+      if (stacksAddress) {
+        await syncBalances(stacksAddress);
+      } else {
+        await fetchPoolState(null);
+      }
+      setFrontendMessage("Pool data refreshed.");
+    } catch (error) {
+      setFrontendMessage(
+        error instanceof Error ? error.message : "Could not refresh pool data.",
+      );
+    }
+  }, [fetchPoolState, stacksAddress, syncBalances]);
+
+  const handleCopySwapSnapshot = useCallback(async () => {
+    const fromSymbol = swapDirection === "x-to-y" ? "X" : "Y";
+    const toSymbol = swapDirection === "x-to-y" ? "Y" : "X";
+    const snapshot = [
+      `Route: ${fromSymbol} -> ${toSymbol}`,
+      currentPrice ? `Spot price: 1 X = ${formatNumber(currentPrice)} Y` : null,
+      liveSwapOutput !== null
+        ? `Estimated output: ${formatNumber(liveSwapOutput)} ${toSymbol}`
+        : "Estimated output: unavailable",
+      `Pool depth: ${formatNumber(pool.reserveX)} X / ${formatNumber(pool.reserveY)} Y`,
+      lastPoolRefreshAt
+        ? `Updated: ${new Date(lastPoolRefreshAt).toLocaleTimeString()}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      await navigator.clipboard.writeText(snapshot);
+      setFrontendMessage("Swap snapshot copied.");
+    } catch (error) {
+      setFrontendMessage(
+        error instanceof Error
+          ? error.message
+          : "Clipboard access is not available.",
+      );
+    }
+  }, [
+    currentPrice,
+    lastPoolRefreshAt,
+    liveSwapOutput,
+    pool.reserveX,
+    pool.reserveY,
+    swapDirection,
+  ]);
+
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
     if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
@@ -2504,6 +2561,24 @@ function App() {
                 ? `Est. ${formatNumber(liveSwapOutput)} ${swapDirection === "x-to-y" ? "Y" : "X"}`
                 : "Enter amount"}
           </span>
+        </div>
+      )}
+
+      {showMinimalSwapLayout && (
+        <div className="swap-quick-actions">
+          <button
+            className="tiny ghost"
+            onClick={() => void handleManualRefresh()}
+            disabled={poolPending}
+          >
+            {poolPending ? "Refreshing..." : "Refresh data"}
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => void handleCopySwapSnapshot()}
+          >
+            Copy snapshot
+          </button>
         </div>
       )}
 
@@ -2903,6 +2978,7 @@ function App() {
       >
         {preflightPending ? "Previewing..." : "Preview transaction"}
       </button>
+      {frontendMessage && <p className="note subtle">{frontendMessage}</p>}
       {preflightMessage && <p className="note subtle">{preflightMessage}</p>}
       {swapMessage && <p className="note">{swapMessage}</p>}
     </div>
@@ -3258,6 +3334,11 @@ function App() {
           {stacksAddress
             ? `Wallet ${shortAddress(stacksAddress)} is connected on ${RESOLVED_STACKS_NETWORK}.`
             : `Connect a wallet to trade on ${RESOLVED_STACKS_NETWORK} and mint demo assets.`}
+        </p>
+        <p className="muted small market-pulse-updated">
+          {lastPoolRefreshAt
+            ? `Updated ${new Date(lastPoolRefreshAt).toLocaleTimeString()}`
+            : "Waiting for first pool sync"}
         </p>
       </div>
       <div className="market-pulse-stats">
