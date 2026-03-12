@@ -262,6 +262,73 @@ h3 {
   gap: 14px;
 }
 
+@media (max-width: 720px) {
+  .nav {
+    padding: 10px 12px;
+  }
+
+  .nav-inner {
+    gap: 10px;
+  }
+
+  .nav-cluster {
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .nav-links {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-links button {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+
+  .nav-search {
+    display: none;
+  }
+
+  .page {
+    padding-top: 126px;
+  }
+
+  .page.simple-page {
+    padding-top: 112px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nav-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .wallet-pill {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .simple-mode .dashboard-layout {
   display: flex;
   justify-content: center;
