@@ -2385,6 +2385,14 @@ function App() {
 
   const SwapCard = () => (
     <div className="swap-card">
+      {showMinimalSwapLayout && (
+        <div className="swap-hero-row" aria-label="Swap status">
+          <span className="chip success">Instant route</span>
+          <span className="chip ghost">{poolContract.contractName}</span>
+          <span className="chip ghost">{(FEE_BPS / 100).toFixed(2)}% fee</span>
+        </div>
+      )}
+
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">From</span>
@@ -2484,12 +2492,12 @@ function App() {
 
       {showMinimalSwapLayout && (
         <div className="simple-quote-line">
-          <span className="muted small">
+          <span className="simple-quote-pill muted small">
             {pool.reserveX > 0 && pool.reserveY > 0
               ? `1 X = ${formatNumber(currentPrice || 0)} Y`
               : "No liquidity yet"}
           </span>
-          <span className="muted small">
+          <span className="simple-quote-pill muted small">
             {quoteLoading
               ? "Refreshing pool..."
               : liveSwapOutput !== null
