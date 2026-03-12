@@ -177,6 +177,8 @@ const formatCompactNumber = (value: number) =>
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+const isFiniteNumber = (value: number) => Number.isFinite(value);
+
 // TODO: Update line path building logic if you want to customize the appearance of the chart lines
 const buildLinePath = (
   values: number[],
@@ -184,16 +186,25 @@ const buildLinePath = (
   height: number,
   padding = 10,
 ) => {
-  if (values.length === 0) return "";
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const cleanValues = values.filter((value) => isFiniteNumber(value));
+  if (
+    cleanValues.length === 0 ||
+    !isFiniteNumber(width) ||
+    !isFiniteNumber(height) ||
+    !isFiniteNumber(padding)
+  ) {
+    return "";
+  }
+  const min = Math.min(...cleanValues);
+  const max = Math.max(...cleanValues);
   const range = max - min || 1;
-  return values
+  return cleanValues
     .map((value, index) => {
       const x =
-        values.length === 1
+        cleanValues.length === 1
           ? width / 2
-          : padding + (index / (values.length - 1)) * (width - padding * 2);
+          : padding +
+            (index / (cleanValues.length - 1)) * (width - padding * 2);
       const y =
         height - padding - ((value - min) / range) * (height - padding * 2);
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
@@ -223,6 +234,26 @@ const parseTokenAssetId = (id: string) => {
   const [address = "", contractName = ""] = contractId.split(".");
   return { fullId: id, contractId, address, contractName, assetName };
 };
+
+const readReserveValue = (raw: unknown, ...keys: string[]) => {
+  if (!raw || typeof raw !== "object") return 0;
+  const record = raw as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return 0;
+};
+
+const parsePoolReserves = (raw: unknown) => ({
+  reserveX:
+    readReserveValue(raw, "reserve-x", "reserveX", "x") / TOKEN_DECIMALS,
+  reserveY:
+    readReserveValue(raw, "reserve-y", "reserveY", "y") / TOKEN_DECIMALS,
+});
 
 // TODO: Update this function if your contract uses a different liquidity math or if you want to implement more precise calculations (e.g. using a library for fixed-point arithmetic)
 const bigintSqrt = (value: bigint) => {
@@ -611,15 +642,16 @@ function App() {
             network,
           }));
 
-        const reserveValue = cvToValue(reserves) as { x: string; y: string };
+        const reserveValue = cvToValue(reserves);
         const totalSupplyValue = Number(cvToValue(totalSupply) || 0);
         const lpBalanceValue = lpBalance
           ? Number(cvToValue(lpBalance) || 0)
           : 0;
+        const parsedReserves = parsePoolReserves(reserveValue);
 
         setPool({
-          reserveX: Number(reserveValue?.x || 0) / TOKEN_DECIMALS,
-          reserveY: Number(reserveValue?.y || 0) / TOKEN_DECIMALS,
+          reserveX: parsedReserves.reserveX,
+          reserveY: parsedReserves.reserveY,
           totalShares: totalSupplyValue,
         });
         setLastPoolRefreshAt(Date.now());
@@ -692,7 +724,7 @@ function App() {
         senderAddress,
         network,
       });
-      return cvToValue(reserves) as { x: string; y: string };
+      return parsePoolReserves(cvToValue(reserves));
     },
     [network, poolContract.address, poolContract.contractName],
   );
@@ -714,8 +746,8 @@ function App() {
         }));
         setPool((prev) => ({
           ...prev,
-          reserveX: Number(reserves?.x || 0) / TOKEN_DECIMALS,
-          reserveY: Number(reserves?.y || 0) / TOKEN_DECIMALS,
+          reserveX: reserves.reserveX,
+          reserveY: reserves.reserveY,
         }));
         await fetchPoolState(address);
         if (!opts?.silent) {
@@ -1043,6 +1075,7 @@ function App() {
         console.warn("Stacks cache write failed", error);
       }
       await syncBalances(addr);
+      return addr;
     } catch (error) {
       console.error("Stacks connect error", error);
       setStacksAddress(null);
@@ -1051,11 +1084,14 @@ function App() {
           ? error.message
           : `Failed to connect a Stacks ${RESOLVED_STACKS_NETWORK} wallet.`,
       );
+      return null;
     }
   };
 
   const handleStacksDisconnect = () => {
     setStacksAddress(null);
+    setSwapDraft(null);
+    setSwapPending(false);
     try {
       localStorage.removeItem("stacks-connect-selected-provider");
       localStorage.removeItem("stacks-connect-addresses");
@@ -1289,7 +1325,9 @@ function App() {
     const now = Date.now();
     const sorted = [...portfolioHistory].sort((a, b) => a.ts - b.ts);
     const chartPoints = sorted.slice(-28);
-    const values = chartPoints.map((item) => item.priceYX).filter((v) => v > 0);
+    const values = chartPoints
+      .map((item) => item.priceYX)
+      .filter((v) => isFiniteNumber(v) && v > 0);
     const chartWidth = 320;
     const chartHeight = 140;
     const pricePath = buildLinePath(values, chartWidth, chartHeight, 12);
@@ -1348,7 +1386,8 @@ function App() {
           12,
           308,
         ),
-      }));
+      }))
+      .filter((item) => isFiniteNumber(item.x));
 
     return {
       baseline24,
@@ -1397,14 +1436,15 @@ function App() {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
 
-  const prepareSwapDraft = async () => {
+  const prepareSwapDraft = async (addressOverride?: string | null) => {
+    const activeAddress = addressOverride || stacksAddress;
     setSwapMessage(null);
     const amount = Number(swapInput);
     if (!amount || amount <= 0) {
       setSwapMessage("Enter an amount greater than 0.");
       return null;
     }
-    if (!stacksAddress) {
+    if (!activeAddress) {
       setSwapMessage("Connect a Stacks wallet first.");
       return null;
     }
@@ -1429,6 +1469,10 @@ function App() {
       }
     }
     const outputPreview = quoteSwap(amount, fromX);
+    if (!Number.isFinite(outputPreview)) {
+      setSwapMessage("Swap quote is unavailable. Refresh pool data and try again.");
+      return null;
+    }
     if (outputPreview <= 0) {
       setSwapMessage("Pool has no liquidity for this direction yet.");
       return null;
@@ -1471,13 +1515,17 @@ function App() {
     }
     const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
     const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
+    if (!Number.isFinite(minOut)) {
+      setSwapMessage("Swap minimum output could not be calculated. Refresh pool data and try again.");
+      return null;
+    }
     const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
     const tip = await fetchTipHeight();
     const blocksAhead = Math.max(1, Math.ceil(deadlineMinutes / 10));
     const deadline = tip > 0 ? BigInt(tip + blocksAhead) : 9_999_999_999n;
 
     const runPreflight = async () => {
-      const senderAddress = stacksAddress || CONTRACT_ADDRESS;
+      const senderAddress = activeAddress || CONTRACT_ADDRESS;
       const quoteFn = fromX ? "quote-x-for-y" : "quote-y-for-x";
       const quoteResult = await fetchCallReadOnlyFunction({
         contractAddress: poolContract.address,
@@ -1542,7 +1590,7 @@ function App() {
           ),
           uintCV(amountMicro),
           uintCV(minOutMicro),
-          standardPrincipalCV(stacksAddress),
+          standardPrincipalCV(activeAddress),
           uintCV(deadline),
         ]
       : [
@@ -1556,7 +1604,7 @@ function App() {
           ),
           uintCV(amountMicro),
           uintCV(minOutMicro),
-          standardPrincipalCV(stacksAddress),
+          standardPrincipalCV(activeAddress),
           uintCV(deadline),
         ];
 
@@ -1581,9 +1629,20 @@ function App() {
     setSwapMessage("Review swap details and confirm.");
   };
 
-  const executeSwap = async (draftOverride?: SwapDraft) => {
+  const executeSwap = async (
+    draftOverride?: SwapDraft,
+    addressOverride?: string | null,
+  ) => {
     const draft = draftOverride || swapDraft;
-    if (!draft || !stacksAddress) return;
+    const activeAddress = addressOverride || stacksAddress;
+    if (!draft) {
+      setSwapMessage("Swap quote expired. Review the swap again.");
+      return;
+    }
+    if (!activeAddress) {
+      setSwapMessage("Connect a Stacks wallet first.");
+      return;
+    }
     try {
       setSwapPending(true);
       await openContractCall({
@@ -1634,13 +1693,21 @@ function App() {
   };
 
   const handleSimpleSwap = async () => {
-    if (swapDraft) {
-      await executeSwap(swapDraft);
+    let activeAddress = stacksAddress;
+    if (!activeAddress) {
+      activeAddress = await handleStacksConnect();
+    }
+    if (!activeAddress) {
+      setSwapMessage("Connect a Stacks wallet first.");
       return;
     }
-    const draft = await prepareSwapDraft();
+    if (swapDraft) {
+      await executeSwap(swapDraft, activeAddress);
+      return;
+    }
+    const draft = await prepareSwapDraft(activeAddress);
     if (!draft) return;
-    await executeSwap(draft);
+    await executeSwap(draft, activeAddress);
   };
 
   const handleSwapPreview = async () => {
@@ -1675,7 +1742,17 @@ function App() {
     }
     const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
     const outputPreview = quoteSwap(amount, fromX);
+    if (!Number.isFinite(outputPreview)) {
+      setPreflightMessage("Preview failed: quote is unavailable. Refresh pool data and try again.");
+      return;
+    }
     const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
+    if (!Number.isFinite(minOut)) {
+      setPreflightMessage(
+        "Preview failed: minimum output could not be calculated. Refresh pool data and try again.",
+      );
+      return;
+    }
     const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
 
     try {
@@ -2209,14 +2286,15 @@ function App() {
     const reserveY = pool.reserveY;
     const fee = (amount * FEE_BPS) / BPS;
     const output = quoteSwap(amount, fromX);
-    const nextReserveX = fromX ? reserveX + amount : reserveX - output;
-    const nextReserveY = fromX ? reserveY - output : reserveY + amount;
+    const safeOutput = isFiniteNumber(output) ? output : 0;
+    const nextReserveX = fromX ? reserveX + amount : reserveX - safeOutput;
+    const nextReserveY = fromX ? reserveY - safeOutput : reserveY + amount;
     const nextPrice =
       nextReserveX > 0 && nextReserveY > 0 ? nextReserveY / nextReserveX : 0;
     return {
       amount,
       fee,
-      output,
+      output: safeOutput,
       nextReserveX,
       nextReserveY,
       nextPrice,
@@ -2224,19 +2302,38 @@ function App() {
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
 
   const curvePreview = useMemo(() => {
-    if (pool.reserveX <= 0 || pool.reserveY <= 0) return null;
+    if (
+      pool.reserveX <= 0 ||
+      pool.reserveY <= 0 ||
+      !isFiniteNumber(pool.reserveX) ||
+      !isFiniteNumber(pool.reserveY)
+    ) {
+      return null;
+    }
     const k = pool.reserveX * pool.reserveY;
     const xMin = pool.reserveX * 0.3;
     const xMax = pool.reserveX * 1.7;
+    if (
+      !isFiniteNumber(k) ||
+      !isFiniteNumber(xMin) ||
+      !isFiniteNumber(xMax) ||
+      xMax <= xMin
+    ) {
+      return null;
+    }
     const points: { x: number; y: number }[] = [];
     const total = 26;
     for (let i = 0; i <= total; i += 1) {
       const x = xMin + ((xMax - xMin) * i) / total;
       const y = k / x;
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) return null;
       points.push({ x, y });
     }
     const yMax = k / xMin;
     const yMin = k / xMax;
+    if (!isFiniteNumber(yMax) || !isFiniteNumber(yMin) || yMax === yMin) {
+      return null;
+    }
     const mapPoint = (x: number, y: number) => ({
       x: ((x - xMin) / (xMax - xMin)) * 100,
       y: 100 - ((y - yMin) / (yMax - yMin)) * 100,
@@ -2244,14 +2341,28 @@ function App() {
     const path = points
       .map((pt, index) => {
         const mapped = mapPoint(pt.x, pt.y);
+        if (!isFiniteNumber(mapped.x) || !isFiniteNumber(mapped.y)) {
+          return null;
+        }
         return `${index === 0 ? "M" : "L"}${mapped.x.toFixed(2)},${mapped.y.toFixed(2)}`;
       })
+      .filter((segment): segment is string => Boolean(segment))
       .join(" ");
+    if (!path) return null;
     const current = mapPoint(pool.reserveX, pool.reserveY);
+    if (!isFiniteNumber(current.x) || !isFiniteNumber(current.y)) {
+      return null;
+    }
     const simulated =
       simulator.nextReserveX > 0 && simulator.nextReserveY > 0
         ? mapPoint(simulator.nextReserveX, simulator.nextReserveY)
         : null;
+    if (
+      simulated &&
+      (!isFiniteNumber(simulated.x) || !isFiniteNumber(simulated.y))
+    ) {
+      return { path, current, simulated: null };
+    }
     return { path, current, simulated };
   }, [
     pool.reserveX,
