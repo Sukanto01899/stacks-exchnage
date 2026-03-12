@@ -24,3 +24,5 @@ export const appKit = createAppKit({
   metadata,
   themeMode: "dark",
 });
+
+export type AppKit = typeof appKit;
