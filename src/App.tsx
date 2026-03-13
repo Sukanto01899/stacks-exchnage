@@ -9,33 +9,11 @@ import {
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
-import type { ClarityValue } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
-import type { PoolState } from "./type";
-
-// TODO: Update types and logic to match your contract's state and functions
-type Balances = {
-  tokenX: number;
-  tokenY: number;
-  lpShares: number;
-};
-
-// TODO: Update swap draft structure to match your contract's swap function arguments and quote logic
-type SwapDraft = {
-  amount: number;
-  outputPreview: number;
-  minReceived: number;
-  slippagePercent: number;
-  deadlineMinutes: number;
-  priceImpact: number;
-  fromSymbol: "X" | "Y";
-  toSymbol: "X" | "Y";
-  functionName: "swap-x-for-y" | "swap-y-for-x";
-  functionArgs: ClarityValue[];
-};
+import type { Balances, PoolState, SwapDraft } from "./type";
 
 //  TODO: Update token key type if your contract supports more than 2 tokens or uses different identifiers for the tokens
 type TokenKey = "x" | "y";
