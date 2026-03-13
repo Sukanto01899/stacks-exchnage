@@ -2,11 +2,11 @@ import { createAppKit } from "@reown/appkit";
 import { bitcoinTestnet } from "@reown/appkit/networks";
 import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 
-// TODO: Replace with your WalletConnect Project ID
+// Replace with your WalletConnect Project ID
 const projectId =
   import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "walletconnect-project-id";
 
-// TODO: Update metadata with your app's information
+//Update metadata with your app's information
 const metadata = {
   name: "Stacks AMM",
   description: "Connect Bitcoin wallets for swaps/liquidity",
@@ -24,5 +24,3 @@ export const appKit = createAppKit({
   metadata,
   themeMode: "dark",
 });
-
-export type AppKit = typeof appKit;

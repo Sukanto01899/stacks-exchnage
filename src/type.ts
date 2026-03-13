@@ -27,3 +27,14 @@ export type SwapDraft = {
   functionName: "swap-x-for-y" | "swap-y-for-x";
   functionArgs: ClarityValue[];
 };
+
+//  Update token key type if your contract supports more than 2 tokens or uses different identifiers for the tokens
+export type TokenKey = "x" | "y";
+export type PortfolioSnapshot = {
+  ts: number;
+  totalX: number;
+  totalY: number;
+  priceYX: number;
+  reserveX?: number;
+  reserveY?: number;
+};

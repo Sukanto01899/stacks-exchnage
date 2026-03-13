@@ -13,18 +13,13 @@ import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
-import type { Balances, PoolState, SwapDraft } from "./type";
-
-//  TODO: Update token key type if your contract supports more than 2 tokens or uses different identifiers for the tokens
-type TokenKey = "x" | "y";
-type PortfolioSnapshot = {
-  ts: number;
-  totalX: number;
-  totalY: number;
-  priceYX: number;
-  reserveX?: number;
-  reserveY?: number;
-};
+import type {
+  Balances,
+  PoolState,
+  PortfolioSnapshot,
+  SwapDraft,
+  TokenKey,
+} from "./type";
 
 // TODO: Update activity item structure if you want to track additional types of activities, include more detailed information, or implement a different status system based on your contract's specific functions and events
 type ActivityItem = {
