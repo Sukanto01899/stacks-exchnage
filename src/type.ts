@@ -38,3 +38,14 @@ export type PortfolioSnapshot = {
   reserveX?: number;
   reserveY?: number;
 };
+
+//  Update activity item structure if you want to track additional types of activities, include more detailed information, or implement a different status system based on your contract's specific functions and events
+export type ActivityItem = {
+  id: string;
+  ts: number;
+  kind: "swap" | "add-liquidity" | "remove-liquidity" | "approve" | "faucet";
+  status: "submitted" | "confirmed" | "failed" | "cancelled";
+  txid?: string;
+  message: string;
+  detail?: string;
+};

@@ -14,23 +14,13 @@ import "./App.css";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
 import type {
+  ActivityItem,
   Balances,
   PoolState,
   PortfolioSnapshot,
   SwapDraft,
   TokenKey,
 } from "./type";
-
-// TODO: Update activity item structure if you want to track additional types of activities, include more detailed information, or implement a different status system based on your contract's specific functions and events
-type ActivityItem = {
-  id: string;
-  ts: number;
-  kind: "swap" | "add-liquidity" | "remove-liquidity" | "approve" | "faucet";
-  status: "submitted" | "confirmed" | "failed" | "cancelled";
-  txid?: string;
-  message: string;
-  detail?: string;
-};
 
 // TODO: Update price alert structure if you want to track additional alert types, include more detailed information, or implement a different status system based on your contract's specific functions and events
 type PriceAlert = {
