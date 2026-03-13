@@ -14,13 +14,7 @@ import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
-
-// TODO: Replace with your contract and token information
-type PoolState = {
-  reserveX: number;
-  reserveY: number;
-  totalShares: number;
-};
+import type { PoolState } from "./type";
 
 // TODO: Update types and logic to match your contract's state and functions
 type Balances = {
@@ -265,7 +259,11 @@ const readClarityField = (raw: unknown, key: string): unknown => {
   const record = raw as Record<string, unknown>;
   if (key in record) return record[key];
   const nested = record.value;
-  if (nested && typeof nested === "object" && key in (nested as Record<string, unknown>)) {
+  if (
+    nested &&
+    typeof nested === "object" &&
+    key in (nested as Record<string, unknown>)
+  ) {
     return (nested as Record<string, unknown>)[key];
   }
   return undefined;
@@ -1560,7 +1558,9 @@ function App() {
     }
     const outputPreview = quoteSwap(amount, fromX);
     if (!Number.isFinite(outputPreview)) {
-      setSwapMessage("Swap quote is unavailable. Refresh pool data and try again.");
+      setSwapMessage(
+        "Swap quote is unavailable. Refresh pool data and try again.",
+      );
       return null;
     }
     if (outputPreview <= 0) {
@@ -1606,7 +1606,9 @@ function App() {
     const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
     const minOut = Math.max(0, outputPreview * (1 - slippagePercent / 100));
     if (!Number.isFinite(minOut)) {
-      setSwapMessage("Swap minimum output could not be calculated. Refresh pool data and try again.");
+      setSwapMessage(
+        "Swap minimum output could not be calculated. Refresh pool data and try again.",
+      );
       return null;
     }
     const minOutMicro = BigInt(Math.floor(minOut * TOKEN_DECIMALS));
@@ -1641,7 +1643,9 @@ function App() {
         ),
       );
       const feeMicro = BigInt(
-        Math.floor(parseClarityNumber(quoteValue?.fee ?? quoteValue?.value?.fee)),
+        Math.floor(
+          parseClarityNumber(quoteValue?.fee ?? quoteValue?.value?.fee),
+        ),
       );
       if (outMicro <= 0n) {
         throw new Error("Pre-flight failed: expected output is zero.");
@@ -2636,11 +2640,15 @@ function App() {
               ? "Pool tab tip: use Match pool ratio before adding liquidity to avoid avoidable skew."
               : "Analytics tip: keep the app open after trading to build more local history points."}
         </p>
-        {!onboarding.dismissed && onboardingCompletedCount < onboardingSteps.length && (
-          <button className="tiny ghost" onClick={() => closeOnboarding(true)}>
-            Hide setup card
-          </button>
-        )}
+        {!onboarding.dismissed &&
+          onboardingCompletedCount < onboardingSteps.length && (
+            <button
+              className="tiny ghost"
+              onClick={() => closeOnboarding(true)}
+            >
+              Hide setup card
+            </button>
+          )}
       </div>
     </section>
   );
@@ -2990,7 +2998,9 @@ function App() {
                     closeOnboarding(false);
                   }
                 }}
-                disabled={step.complete || (step.id === "fund" && faucetPending)}
+                disabled={
+                  step.complete || (step.id === "fund" && faucetPending)
+                }
               >
                 {step.actionLabel}
               </button>
@@ -3016,7 +3026,9 @@ function App() {
   );
 
   return (
-    <div className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}>
+    <div
+      className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}
+    >
       <header className="nav">
         <div className="nav-inner">
           <div className="nav-cluster">
@@ -3054,9 +3066,7 @@ function App() {
           </div>
           <div className="nav-search" aria-hidden="true">
             <span className="nav-search-icon">Search</span>
-            <span className="nav-search-text">
-              tokens, pools, and wallets
-            </span>
+            <span className="nav-search-text">tokens, pools, and wallets</span>
           </div>
           <div className="nav-actions">
             {stacksAddress ? (
@@ -3072,7 +3082,9 @@ function App() {
         </div>
       </header>
 
-      <main className={`content single ${showMinimalSwapLayout ? "simple-content" : ""}`}>
+      <main
+        className={`content single ${showMinimalSwapLayout ? "simple-content" : ""}`}
+      >
         <section
           className={`panel swap-panel ${showMinimalSwapLayout ? "simple-mode" : ""}`}
         >
@@ -3230,7 +3242,10 @@ function App() {
           </div>
         ))}
       </div>
-      <div className="floating-faucet is-corner" aria-label="Quick faucet controls">
+      <div
+        className="floating-faucet is-corner"
+        aria-label="Quick faucet controls"
+      >
         <button
           className="chip"
           onClick={() => handleFaucet("x")}
