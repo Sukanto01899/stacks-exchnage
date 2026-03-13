@@ -31,8 +31,8 @@ export default function SwapCard(props: any) {
     setImpactConfirmed,
     slippageInput,
     setSlippageInput,
-    deadlineInput,
-    setDeadlineInput,
+    deadlineMinutesInput,
+    setDeadlineMinutesInput,
     directionalPrice,
     targetPriceEnabled,
     setTargetPriceEnabled,
@@ -136,7 +136,9 @@ export default function SwapCard(props: any) {
       <button
         className="switcher"
         onClick={() =>
-          setSwapDirection((prev) => (prev === "x-to-y" ? "y-to-x" : "x-to-y"))
+          setSwapDirection((prev: any) =>
+            prev === "x-to-y" ? "y-to-x" : "x-to-y",
+          )
         }
       >
         Switch
@@ -333,7 +335,7 @@ export default function SwapCard(props: any) {
           <button
             className="tiny ghost"
             onClick={() =>
-              setTargetPairDirection((prev) =>
+              setTargetPairDirection((prev: any) =>
                 prev === "x-to-y" ? "y-to-x" : "x-to-y",
               )
             }
@@ -422,11 +424,11 @@ export default function SwapCard(props: any) {
             <p className="muted small">No saved alerts yet.</p>
           ) : (
             <div className="alerts-list">
-              {priceAlerts.slice(0, 6).map((alert) => {
-                const unitFrom = alert.pairDirection === "x-to-y" ? "X" : "Y";
-                const unitTo = alert.pairDirection === "x-to-y" ? "Y" : "X";
-                return (
-                  <div className="alerts-item" key={alert.id}>
+            {priceAlerts.slice(0, 6).map((alert: any) => {
+              const unitFrom = alert.pairDirection === "x-to-y" ? "X" : "Y";
+              const unitTo = alert.pairDirection === "x-to-y" ? "Y" : "X";
+              return (
+                <div className="alerts-item" key={alert.id}>
                     <div className="alerts-main">
                       <span
                         className={`chip ghost status-${alert.status === "triggered" ? "confirmed" : "submitted"}`}
