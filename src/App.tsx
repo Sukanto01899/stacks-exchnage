@@ -14,6 +14,7 @@ import "./App.css";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
 import AnalyticsPanel from "./components/AnalyticsPanel";
+import PortfolioPanel from "./components/PortfolioPanel";
 import type {
   ActivityItem,
   Balances,
@@ -2607,54 +2608,7 @@ function App() {
     </section>
   );
 
-  const PortfolioPanel = () => (
-    <section className="portfolio-panel">
-      <div className="portfolio-head">
-        <div>
-          <p className="eyebrow">Portfolio</p>
-          <h3>PnL & Position</h3>
-        </div>
-        <span className="chip ghost">
-          {portfolioMetrics.has24h ? "24h window" : "Building 24h data"}
-        </span>
-      </div>
-      <div className="portfolio-grid">
-        <div>
-          <p className="muted small">Holdings</p>
-          <strong>
-            {formatNumber(portfolioTotals.totalX)} X /{" "}
-            {formatNumber(portfolioTotals.totalY)} Y
-          </strong>
-        </div>
-        <div>
-          <p className="muted small">Total value</p>
-          <strong>{formatNumber(portfolioTotals.valueInX)} X</strong>
-          <p className="muted small">
-            {formatNumber(portfolioTotals.valueInY)} Y
-          </p>
-        </div>
-        <div>
-          <p className="muted small">24h PnL</p>
-          <strong>{formatSignedPercent(portfolioMetrics.pnl24X)} in X</strong>
-          <p className="muted small">
-            {formatSignedPercent(portfolioMetrics.pnl24Y)} in Y
-          </p>
-        </div>
-        <div>
-          <p className="muted small">LP position</p>
-          <strong>{(poolShare * 100).toFixed(2)}% share</strong>
-          <p className="muted small">
-            {formatNumber(lpPosition.x)} X / {formatNumber(lpPosition.y)} Y
-          </p>
-        </div>
-      </div>
-      <p
-        className={`note ${portfolioMetrics.ilPercent !== null ? "subtle" : ""}`}
-      >
-        Estimated IL vs hold: {formatSignedPercent(portfolioMetrics.ilPercent)}.
-      </p>
-    </section>
-  );
+  // PortfolioPanel moved to `frontend/src/components/PortfolioPanel`.
 
   const ActivityPanel = () => (
     <section className="activity-panel">
@@ -2926,7 +2880,14 @@ function App() {
             {!showMinimalSwapLayout && (
               <aside className="dashboard-sidebar">
                 {!onboarding.dismissed && <SetupPanel />}
-                <PortfolioPanel />
+                <PortfolioPanel
+                  portfolioMetrics={portfolioMetrics}
+                  portfolioTotals={portfolioTotals}
+                  poolShare={poolShare}
+                  lpPosition={lpPosition}
+                  formatNumber={formatNumber}
+                  formatSignedPercent={formatSignedPercent}
+                />
                 <ActivityPanel />
               </aside>
             )}
