@@ -17,6 +17,7 @@ import AnalyticsPanel from "./components/AnalyticsPanel";
 import PortfolioPanel from "./components/PortfolioPanel";
 import ActivityPanel from "./components/ActivityPanel";
 import OnboardingModal from "./components/OnboardingModal";
+import SetupPanel from "./components/SetupPanel";
 import type {
   ActivityItem,
   Balances,
@@ -2540,75 +2541,7 @@ function App() {
 
   // SwapCard and LiquidityCard moved to `frontend/src/components/*`.
 
-  const SetupPanel = () => (
-    <section className="setup-panel">
-      <div className="setup-head">
-        <div>
-          <p className="eyebrow">Start Here</p>
-          <h3>Guided setup</h3>
-        </div>
-        <button className="tiny ghost" onClick={openOnboarding}>
-          Open guide
-        </button>
-      </div>
-      <div className="setup-progress">
-        <div>
-          <p className="muted small">
-            {onboardingCompletedCount}/{onboardingSteps.length} steps complete
-          </p>
-          <strong>
-            {onboardingCompletedCount === onboardingSteps.length
-              ? "Exchange ready"
-              : "Finish setup to trade with fewer surprises"}
-          </strong>
-        </div>
-        <div className="setup-progress-bar" aria-hidden="true">
-          <span style={{ width: `${onboardingProgressPercent}%` }} />
-        </div>
-      </div>
-      <div className="setup-list">
-        {onboardingSteps.map((step, index) => (
-          <div
-            key={step.id}
-            className={`setup-item ${step.complete ? "is-complete" : ""}`}
-          >
-            <div className="setup-step">
-              <span className="setup-index">{index + 1}</span>
-              <div>
-                <strong>{step.title}</strong>
-                <p className="muted small">{step.description}</p>
-              </div>
-            </div>
-            <button
-              className={step.complete ? "tiny ghost" : "tiny"}
-              onClick={step.action}
-              disabled={step.complete || (step.id === "fund" && faucetPending)}
-            >
-              {step.actionLabel}
-            </button>
-          </div>
-        ))}
-      </div>
-      <div className="setup-tips">
-        <p className="muted small">
-          {activeTab === "swap"
-            ? "Swap tab tip: compare price impact before submitting and use preview if the trade is large."
-            : activeTab === "liquidity"
-              ? "Pool tab tip: use Match pool ratio before adding liquidity to avoid avoidable skew."
-              : "Analytics tip: keep the app open after trading to build more local history points."}
-        </p>
-        {!onboarding.dismissed &&
-          onboardingCompletedCount < onboardingSteps.length && (
-            <button
-              className="tiny ghost"
-              onClick={() => closeOnboarding(true)}
-            >
-              Hide setup card
-            </button>
-          )}
-      </div>
-    </section>
-  );
+  // SetupPanel moved to `frontend/src/components/SetupPanel`.
 
   // PortfolioPanel moved to `frontend/src/components/PortfolioPanel`.
 
@@ -2683,7 +2616,18 @@ function App() {
           <div className="dashboard-layout">
             {!showMinimalSwapLayout && (
               <aside className="dashboard-sidebar">
-                {!onboarding.dismissed && <SetupPanel />}
+                {!onboarding.dismissed && (
+                  <SetupPanel
+                    onboardingSteps={onboardingSteps}
+                    onboardingCompletedCount={onboardingCompletedCount}
+                    onboardingProgressPercent={onboardingProgressPercent}
+                    activeTab={activeTab}
+                    onboardingDismissed={onboarding.dismissed}
+                    faucetPending={faucetPending}
+                    openOnboarding={openOnboarding}
+                    closeOnboarding={closeOnboarding}
+                  />
+                )}
                 <PortfolioPanel
                   portfolioMetrics={portfolioMetrics}
                   portfolioTotals={portfolioTotals}
