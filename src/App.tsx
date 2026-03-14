@@ -15,6 +15,7 @@ import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
 import AnalyticsPanel from "./components/AnalyticsPanel";
 import PortfolioPanel from "./components/PortfolioPanel";
+import ActivityPanel from "./components/ActivityPanel";
 import type {
   ActivityItem,
   Balances,
@@ -2610,126 +2611,7 @@ function App() {
 
   // PortfolioPanel moved to `frontend/src/components/PortfolioPanel`.
 
-  const ActivityPanel = () => (
-    <section className="activity-panel">
-      <div className="activity-head">
-        <div>
-          <p className="eyebrow">Recent Activity</p>
-          <h3>Transactions</h3>
-        </div>
-        <div className="mini-actions">
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("all")}
-            disabled={activityFilter === "all"}
-          >
-            All
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("swap")}
-            disabled={activityFilter === "swap"}
-          >
-            Swaps
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("add-liquidity")}
-            disabled={activityFilter === "add-liquidity"}
-          >
-            Add LP
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("remove-liquidity")}
-            disabled={activityFilter === "remove-liquidity"}
-          >
-            Remove LP
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("faucet")}
-            disabled={activityFilter === "faucet"}
-          >
-            Faucet
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("submitted")}
-            disabled={activityFilter === "submitted"}
-          >
-            Pending
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => setActivityFilter("failed")}
-            disabled={activityFilter === "failed"}
-          >
-            Failed
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => {
-              setActivityItems([]);
-              setActivityFilter("all");
-              try {
-                localStorage.removeItem(activityKey);
-              } catch (error) {
-                console.warn("Activity history clear failed", error);
-              }
-            }}
-            disabled={activityItems.length === 0}
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-      {activityItems.length > 0 && (
-        <p className="muted small activity-summary">
-          Showing {Math.min(filteredActivityItems.length, 8)} of{" "}
-          {filteredActivityItems.length} matching entries.
-        </p>
-      )}
-      {filteredActivityItems.length === 0 ? (
-        <p className="muted small">
-          {activityItems.length === 0
-            ? "No activity yet."
-            : "No activity matches the current filter."}
-        </p>
-      ) : (
-        <div className="activity-list">
-          {filteredActivityItems.slice(0, 8).map((item) => (
-            <div className="activity-item" key={item.id}>
-              <div className="activity-main">
-                <span className={`chip ghost status-${item.status}`}>
-                  {item.status}
-                </span>
-                <strong>{item.message}</strong>
-              </div>
-              <div className="activity-meta">
-                <span className="muted small">
-                  {new Date(item.ts).toLocaleString()}
-                </span>
-                {item.txid ? (
-                  <a
-                    className="chip ghost"
-                    href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                  </a>
-                ) : null}
-              </div>
-              {item.detail ? (
-                <p className="muted small">{item.detail}</p>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
+  // ActivityPanel moved to `frontend/src/components/ActivityPanel`.
 
   // AnalyticsPanel moved to `frontend/src/components/AnalyticsPanel`.
   const OnboardingModal = () => (
@@ -2888,7 +2770,15 @@ function App() {
                   formatNumber={formatNumber}
                   formatSignedPercent={formatSignedPercent}
                 />
-                <ActivityPanel />
+                <ActivityPanel
+                  activityFilter={activityFilter}
+                  setActivityFilter={setActivityFilter}
+                  activityItems={activityItems}
+                  filteredActivityItems={filteredActivityItems}
+                  setActivityItems={setActivityItems}
+                  activityKey={activityKey}
+                  resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+                />
               </aside>
             )}
 
