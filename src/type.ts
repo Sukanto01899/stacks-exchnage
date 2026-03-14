@@ -61,3 +61,17 @@ export type PriceAlert = {
   triggeredAt?: number;
   triggeredPrice?: number;
 };
+
+export type ToastTone = "success" | "warning" | "error" | "info";
+export type ToastItem = {
+  id: string;
+  message: string;
+  tone: ToastTone;
+};
+
+export type AppTab = "swap" | "liquidity" | "analytics";
+export type OnboardingState = {
+  seenModal: boolean;
+  dismissed: boolean;
+  visitedTabs: AppTab[];
+};

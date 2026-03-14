@@ -21,11 +21,15 @@ import SetupPanel from "./components/SetupPanel";
 import ApprovalManager from "./components/ApprovalManager";
 import type {
   ActivityItem,
+  AppTab,
   Balances,
+  OnboardingState,
   PoolState,
   PortfolioSnapshot,
   PriceAlert,
   SwapDraft,
+  ToastItem,
+  ToastTone,
   TokenKey,
 } from "./type";
 import {
@@ -37,20 +41,6 @@ import {
   PRICE_IMPACT_TARGET_PCT,
   PRICE_IMPACT_WARN_PCT,
 } from "./constant";
-
-type ToastTone = "success" | "warning" | "error" | "info";
-type ToastItem = {
-  id: string;
-  message: string;
-  tone: ToastTone;
-};
-
-type AppTab = "swap" | "liquidity" | "analytics";
-type OnboardingState = {
-  seenModal: boolean;
-  dismissed: boolean;
-  visitedTabs: AppTab[];
-};
 
 const CONTRACT_ADDRESS =
   (typeof import.meta !== "undefined" &&
@@ -2478,17 +2468,6 @@ function App() {
       spenderContractId={spenderContractId}
     />
   );
-
-  // SwapCard and LiquidityCard moved to `frontend/src/components/*`.
-
-  // SetupPanel moved to `frontend/src/components/SetupPanel`.
-
-  // PortfolioPanel moved to `frontend/src/components/PortfolioPanel`.
-
-  // ActivityPanel moved to `frontend/src/components/ActivityPanel`.
-
-  // AnalyticsPanel moved to `frontend/src/components/AnalyticsPanel`.
-  // OnboardingModal moved to `frontend/src/components/OnboardingModal`.
 
   return (
     <div
