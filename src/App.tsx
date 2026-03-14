@@ -18,21 +18,10 @@ import type {
   Balances,
   PoolState,
   PortfolioSnapshot,
+  PriceAlert,
   SwapDraft,
   TokenKey,
 } from "./type";
-
-// TODO: Update price alert structure if you want to track additional alert types, include more detailed information, or implement a different status system based on your contract's specific functions and events
-type PriceAlert = {
-  id: string;
-  createdAt: number;
-  pairDirection: "x-to-y" | "y-to-x";
-  condition: ">=" | "<=";
-  targetPrice: number;
-  status: "active" | "triggered";
-  triggeredAt?: number;
-  triggeredPrice?: number;
-};
 
 type ToastTone = "success" | "warning" | "error" | "info";
 type ToastItem = {
