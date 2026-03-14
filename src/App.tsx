@@ -22,6 +22,15 @@ import type {
   SwapDraft,
   TokenKey,
 } from "./type";
+import {
+  BPS,
+  FAUCET_AMOUNT,
+  FEE_BPS,
+  PRICE_IMPACT_BLOCK_PCT,
+  PRICE_IMPACT_CONFIRM_PCT,
+  PRICE_IMPACT_TARGET_PCT,
+  PRICE_IMPACT_WARN_PCT,
+} from "./constant";
 
 type ToastTone = "success" | "warning" | "error" | "info";
 type ToastItem = {
@@ -37,14 +46,6 @@ type OnboardingState = {
   visitedTabs: AppTab[];
 };
 
-// TODO: Update these constants based on your contract's specific fee structure, token decimal precision, price impact thresholds, and other relevant parameters that affect the swap logic, user experience, and risk management in your application
-const FEE_BPS = 30;
-const BPS = 10_000;
-const FAUCET_AMOUNT = 5_000;
-const PRICE_IMPACT_WARN_PCT = 1;
-const PRICE_IMPACT_CONFIRM_PCT = 3;
-const PRICE_IMPACT_BLOCK_PCT = 15;
-const PRICE_IMPACT_TARGET_PCT = 1;
 const CONTRACT_ADDRESS =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
