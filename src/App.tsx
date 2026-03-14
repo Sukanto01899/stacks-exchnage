@@ -18,6 +18,7 @@ import PortfolioPanel from "./components/PortfolioPanel";
 import ActivityPanel from "./components/ActivityPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import SetupPanel from "./components/SetupPanel";
+import ApprovalManager from "./components/ApprovalManager";
 import type {
   ActivityItem,
   Balances,
@@ -2459,85 +2460,24 @@ function App() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }, [liqY]);
 
-  const renderApprovalManager = (mode: "swap" | "liquidity") => {
-    const requiredX =
-      mode === "swap"
-        ? swapDirection === "x-to-y"
-          ? swapAmount
-          : 0
-        : liqAmountX;
-    const requiredY =
-      mode === "swap"
-        ? swapDirection === "y-to-x"
-          ? swapAmount
-          : 0
-        : liqAmountY;
-    const hasAnySupport = approvalSupport.x || approvalSupport.y;
-
-    return (
-      <div className="approval-panel">
-        <div className="approval-head">
-          <span className="muted">Approval Manager</span>
-          <label className="target-toggle">
-            <input
-              type="checkbox"
-              checked={approveUnlimited}
-              onChange={(e) => setApproveUnlimited(e.target.checked)}
-            />
-            Unlimited
-          </label>
-        </div>
-        {!hasAnySupport ? (
-          <p className="muted small">
-            Approval not required for current token contracts (direct transfer
-            model).
-          </p>
-        ) : (
-          <div className="approval-grid">
-            <div>
-              <p className="muted small">Token X allowance</p>
-              <strong>
-                {allowances.x === null
-                  ? "N/A"
-                  : `${formatNumber(allowances.x)} X`}
-              </strong>
-              <button
-                className="tiny ghost"
-                onClick={() => handleApprove("x", requiredX)}
-                disabled={
-                  !approvalSupport.x ||
-                  !stacksAddress ||
-                  approvePending !== null
-                }
-              >
-                {approvePending === "x" ? "Approving X..." : "Approve X"}
-              </button>
-            </div>
-            <div>
-              <p className="muted small">Token Y allowance</p>
-              <strong>
-                {allowances.y === null
-                  ? "N/A"
-                  : `${formatNumber(allowances.y)} Y`}
-              </strong>
-              <button
-                className="tiny ghost"
-                onClick={() => handleApprove("y", requiredY)}
-                disabled={
-                  !approvalSupport.y ||
-                  !stacksAddress ||
-                  approvePending !== null
-                }
-              >
-                {approvePending === "y" ? "Approving Y..." : "Approve Y"}
-              </button>
-            </div>
-          </div>
-        )}
-        <p className="muted small">Spender: {spenderContractId}</p>
-      </div>
-    );
-  };
+  const renderApprovalManager = (mode: "swap" | "liquidity") => (
+    <ApprovalManager
+      mode={mode}
+      swapDirection={swapDirection}
+      swapAmount={swapAmount}
+      liqAmountX={liqAmountX}
+      liqAmountY={liqAmountY}
+      approvalSupport={approvalSupport}
+      approveUnlimited={approveUnlimited}
+      setApproveUnlimited={setApproveUnlimited}
+      allowances={allowances}
+      formatNumber={formatNumber}
+      handleApprove={handleApprove}
+      stacksAddress={stacksAddress}
+      approvePending={approvePending}
+      spenderContractId={spenderContractId}
+    />
+  );
 
   // SwapCard and LiquidityCard moved to `frontend/src/components/*`.
 
