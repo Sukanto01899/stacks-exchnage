@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
@@ -15,8 +16,8 @@ import { useAnalytics } from "./hooks/useAnalytics";
 import { useBalances } from "./hooks/useBalances";
 import { usePool } from "./hooks/usePool";
 import SwapCard from "./components/SwapCard";
-import LiquidityCard from "./components/LiquidityCard";
-import AnalyticsPanel from "./components/AnalyticsPanel";
+const LiquidityCard = lazy(() => import("./components/LiquidityCard"));
+const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel"));
 import PortfolioPanel from "./components/PortfolioPanel";
 import ActivityPanel from "./components/ActivityPanel";
 import OnboardingModal from "./components/OnboardingModal";
@@ -115,7 +116,6 @@ const formatCompactNumber = (value: number) =>
     maximumFractionDigits: value >= 100 ? 1 : 2,
   });
 
-
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {
   if (!addr) return false;
@@ -138,7 +138,6 @@ const parseTokenAssetId = (id: string) => {
   const [address = "", contractName = ""] = contractId.split(".");
   return { fullId: id, contractId, address, contractName, assetName };
 };
-
 
 // TODO: Update this function if your contract uses a different liquidity math or if you want to implement more precise calculations (e.g. using a library for fixed-point arithmetic)
 const bigintSqrt = (value: bigint) => {
@@ -176,7 +175,6 @@ const explainPoolError = (repr?: string) => {
   };
   return map[code] ? `Error u${code}: ${map[code]}` : `Error u${code}`;
 };
-
 
 // TODO: Update this type guard if your contract's ABI includes more complex function argument or return value structures
 const isNamedFunctionLike = (value: unknown): value is { name: string } => {
@@ -368,15 +366,14 @@ function App() {
     tokenDecimals: TOKEN_DECIMALS,
     fetchPoolState,
   });
-  const { activityItems, setActivityItems, pushActivity, patchActivityByTxid } =
-    useActivity({
-      activityKey,
-      stacksApi: STACKS_API,
-      stacksAddress,
-      syncBalances,
-      fetchPoolState,
-      explainPoolError,
-    });
+  const { activityItems, setActivityItems, pushActivity } = useActivity({
+    activityKey,
+    stacksApi: STACKS_API,
+    stacksAddress,
+    syncBalances,
+    fetchPoolState,
+    explainPoolError,
+  });
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
@@ -548,7 +545,6 @@ function App() {
     tokenContracts.y.contractName,
   ]);
 
-
   useEffect(() => {
     fetchPoolState(stacksAddress);
   }, [fetchPoolState, stacksAddress]);
@@ -613,7 +609,6 @@ function App() {
     }
   }, [onboarding.seenModal]);
 
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem(priceAlertsKey);
@@ -649,7 +644,6 @@ function App() {
     if (typeof Notification === "undefined") return;
     setBrowserAlertsEnabled(Notification.permission === "granted");
   }, []);
-
 
   const persistPriceAlerts = useCallback(
     (next: PriceAlert[]) => {
@@ -771,8 +765,6 @@ function App() {
     }
   };
 
-
-
   useEffect(() => {
     if (directionalPrice <= 0) return;
     const now = Date.now();
@@ -839,7 +831,6 @@ function App() {
     persistPriceAlerts,
     priceAlerts,
   ]);
-
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
@@ -2029,35 +2020,39 @@ function App() {
                   preflightPending={preflightPending}
                 />
               ) : activeTab === "liquidity" ? (
-                <LiquidityCard
-                  handleSyncToPoolRatio={handleSyncToPoolRatio}
-                  handleFaucet={handleFaucet}
-                  faucetPending={faucetPending}
-                  liqX={liqX}
-                  setLiqX={setLiqX}
-                  formatNumber={formatNumber}
-                  balances={balances}
-                  fillLiquidityInput={fillLiquidityInput}
-                  liqY={liqY}
-                  setLiqY={setLiqY}
-                  renderApprovalManager={renderApprovalManager}
-                  handleAddLiquidity={handleAddLiquidity}
-                  setBurnPreset={setBurnPreset}
-                  setMaxBurn={setMaxBurn}
-                  burnShares={burnShares}
-                  setBurnShares={setBurnShares}
-                  poolShare={poolShare}
-                  pool={pool}
-                  handleRemoveLiquidity={handleRemoveLiquidity}
-                />
+                <Suspense fallback={<div className="note subtle">Loading pool...</div>}>
+                  <LiquidityCard
+                    handleSyncToPoolRatio={handleSyncToPoolRatio}
+                    handleFaucet={handleFaucet}
+                    faucetPending={faucetPending}
+                    liqX={liqX}
+                    setLiqX={setLiqX}
+                    formatNumber={formatNumber}
+                    balances={balances}
+                    fillLiquidityInput={fillLiquidityInput}
+                    liqY={liqY}
+                    setLiqY={setLiqY}
+                    renderApprovalManager={renderApprovalManager}
+                    handleAddLiquidity={handleAddLiquidity}
+                    setBurnPreset={setBurnPreset}
+                    setMaxBurn={setMaxBurn}
+                    burnShares={burnShares}
+                    setBurnShares={setBurnShares}
+                    poolShare={poolShare}
+                    pool={pool}
+                    handleRemoveLiquidity={handleRemoveLiquidity}
+                  />
+                </Suspense>
               ) : (
-                <AnalyticsPanel
-                  analytics={analytics}
-                  currentPrice={currentPrice}
-                  formatNumber={formatNumber}
-                  formatSignedPercent={formatSignedPercent}
-                  formatCompactNumber={formatCompactNumber}
-                />
+                <Suspense fallback={<div className="note subtle">Loading analytics...</div>}>
+                  <AnalyticsPanel
+                    analytics={analytics}
+                    currentPrice={currentPrice}
+                    formatNumber={formatNumber}
+                    formatSignedPercent={formatSignedPercent}
+                    formatCompactNumber={formatCompactNumber}
+                  />
+                </Suspense>
               )}
 
               {!showMinimalSwapLayout && faucetTxids.length > 0 && (
