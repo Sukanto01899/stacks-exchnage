@@ -35,30 +35,22 @@ import type {
 } from "./type";
 import {
   BPS,
+  DAY_MS,
   FAUCET_AMOUNT,
   FEE_BPS,
+  IS_MAINNET,
+  ONBOARDING_STORAGE_KEY,
   PRICE_IMPACT_BLOCK_PCT,
   PRICE_IMPACT_CONFIRM_PCT,
   PRICE_IMPACT_TARGET_PCT,
   PRICE_IMPACT_WARN_PCT,
   RESOLVED_STACKS_NETWORK,
+  SNAPSHOT_INTERVAL_MS,
+  STACKS_API,
 } from "./constant";
 import { CONTRACT_ADDRESS, normalizeTokenId } from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
-
-const STACKS_API =
-  (typeof import.meta !== "undefined" &&
-    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      "VITE_STACKS_API"
-    ]) ||
-  (RESOLVED_STACKS_NETWORK === "mainnet"
-    ? "https://api.hiro.so"
-    : "https://api.testnet.hiro.so");
-const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
-const DAY_MS = 24 * 60 * 60 * 1000;
-const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
-const ONBOARDING_STORAGE_KEY = `onboarding-${RESOLVED_STACKS_NETWORK}`;
 
 // TODO: Update token contract addresses and asset names, or add logic to fetch them dynamically if needed
 const TOKEN_CONTRACTS = {
@@ -2020,7 +2012,9 @@ function App() {
                   preflightPending={preflightPending}
                 />
               ) : activeTab === "liquidity" ? (
-                <Suspense fallback={<div className="note subtle">Loading pool...</div>}>
+                <Suspense
+                  fallback={<div className="note subtle">Loading pool...</div>}
+                >
                   <LiquidityCard
                     handleSyncToPoolRatio={handleSyncToPoolRatio}
                     handleFaucet={handleFaucet}
@@ -2044,7 +2038,11 @@ function App() {
                   />
                 </Suspense>
               ) : (
-                <Suspense fallback={<div className="note subtle">Loading analytics...</div>}>
+                <Suspense
+                  fallback={
+                    <div className="note subtle">Loading analytics...</div>
+                  }
+                >
                   <AnalyticsPanel
                     analytics={analytics}
                     currentPrice={currentPrice}
