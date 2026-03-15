@@ -18,7 +18,6 @@ type AnalyticsPanelProps = {
     latest?: { ts: number } | null;
     baseline24?: { ts: number } | null;
   };
-  pool: { reserveX: number; reserveY: number; totalShares: number };
   currentPrice: number | null;
   formatNumber: (value: number) => string;
   formatSignedPercent: (value: number | null) => string;
@@ -28,7 +27,6 @@ type AnalyticsPanelProps = {
 export default function AnalyticsPanel(props: AnalyticsPanelProps) {
   const {
     analytics,
-    pool,
     currentPrice,
     formatNumber,
     formatSignedPercent,
@@ -128,16 +126,6 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
       </div>
 
       <div className="analytics-grid">
-        <div className="analytics-stat">
-          <p className="muted small">Current reserves</p>
-          <strong>{formatNumber(pool.reserveX)} X</strong>
-          <p className="muted small">{formatNumber(pool.reserveY)} Y</p>
-        </div>
-        <div className="analytics-stat">
-          <p className="muted small">Pool share supply</p>
-          <strong>{formatCompactNumber(pool.totalShares)}</strong>
-          <p className="muted small">LP shares minted</p>
-        </div>
         <div className="analytics-stat">
           <p className="muted small">Latest baseline</p>
           <strong>

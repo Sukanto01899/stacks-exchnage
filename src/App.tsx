@@ -2651,7 +2651,6 @@ function App() {
               ) : (
                 <AnalyticsPanel
                   analytics={analytics}
-                  pool={pool}
                   currentPrice={currentPrice}
                   formatNumber={formatNumber}
                   formatSignedPercent={formatSignedPercent}
