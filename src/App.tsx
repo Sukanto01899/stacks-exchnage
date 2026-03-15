@@ -4,13 +4,16 @@ import {
   AnchorMode,
   PostConditionMode,
   contractPrincipalCV,
-  cvToValue,
   fetchCallReadOnlyFunction,
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET, createNetwork } from "@stacks/network";
 import "./App.css";
+import { useActivity } from "./hooks/useActivity";
+import { useAnalytics } from "./hooks/useAnalytics";
+import { useBalances } from "./hooks/useBalances";
+import { usePool } from "./hooks/usePool";
 import SwapCard from "./components/SwapCard";
 import LiquidityCard from "./components/LiquidityCard";
 import AnalyticsPanel from "./components/AnalyticsPanel";
@@ -22,10 +25,7 @@ import ApprovalManager from "./components/ApprovalManager";
 import type {
   ActivityItem,
   AppTab,
-  Balances,
   OnboardingState,
-  PoolState,
-  PortfolioSnapshot,
   PriceAlert,
   SwapDraft,
   ToastItem,
@@ -43,6 +43,8 @@ import {
   RESOLVED_STACKS_NETWORK,
 } from "./constant";
 import { CONTRACT_ADDRESS, normalizeTokenId } from "./lib/helper";
+import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
+import { isFiniteNumber } from "./lib/number";
 
 const STACKS_API =
   (typeof import.meta !== "undefined" &&
@@ -113,43 +115,6 @@ const formatCompactNumber = (value: number) =>
     maximumFractionDigits: value >= 100 ? 1 : 2,
   });
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const isFiniteNumber = (value: number) => Number.isFinite(value);
-
-// TODO: Update line path building logic if you want to customize the appearance of the chart lines
-const buildLinePath = (
-  values: number[],
-  width: number,
-  height: number,
-  padding = 10,
-) => {
-  const cleanValues = values.filter((value) => isFiniteNumber(value));
-  if (
-    cleanValues.length === 0 ||
-    !isFiniteNumber(width) ||
-    !isFiniteNumber(height) ||
-    !isFiniteNumber(padding)
-  ) {
-    return "";
-  }
-  const min = Math.min(...cleanValues);
-  const max = Math.max(...cleanValues);
-  const range = max - min || 1;
-  return cleanValues
-    .map((value, index) => {
-      const x =
-        cleanValues.length === 1
-          ? width / 2
-          : padding +
-            (index / (cleanValues.length - 1)) * (width - padding * 2);
-      const y =
-        height - padding - ((value - min) / range) * (height - padding * 2);
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
-};
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {
@@ -174,54 +139,6 @@ const parseTokenAssetId = (id: string) => {
   return { fullId: id, contractId, address, contractName, assetName };
 };
 
-const parseClarityNumber = (value: unknown): number => {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  if (value && typeof value === "object") {
-    const record = value as { value?: unknown };
-    if ("value" in record) {
-      return parseClarityNumber(record.value);
-    }
-  }
-  return 0;
-};
-
-const readClarityField = (raw: unknown, key: string): unknown => {
-  if (!raw || typeof raw !== "object") return undefined;
-  const record = raw as Record<string, unknown>;
-  if (key in record) return record[key];
-  const nested = record.value;
-  if (
-    nested &&
-    typeof nested === "object" &&
-    key in (nested as Record<string, unknown>)
-  ) {
-    return (nested as Record<string, unknown>)[key];
-  }
-  return undefined;
-};
-
-const readReserveValue = (raw: unknown, ...keys: string[]) => {
-  for (const key of keys) {
-    const value = readClarityField(raw, key);
-    if (value !== undefined && value !== null) {
-      const parsed = parseClarityNumber(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return 0;
-};
-
-const parsePoolReserves = (raw: unknown) => ({
-  reserveX:
-    readReserveValue(raw, "reserve-x", "reserveX", "x") / TOKEN_DECIMALS,
-  reserveY:
-    readReserveValue(raw, "reserve-y", "reserveY", "y") / TOKEN_DECIMALS,
-});
 
 // TODO: Update this function if your contract uses a different liquidity math or if you want to implement more precise calculations (e.g. using a library for fixed-point arithmetic)
 const bigintSqrt = (value: bigint) => {
@@ -260,23 +177,6 @@ const explainPoolError = (repr?: string) => {
   return map[code] ? `Error u${code}: ${map[code]}` : `Error u${code}`;
 };
 
-// TODO: Update this function if your contract's read-only functions return errors in a different format or if you want to implement more robust error handling based on your contract's specific response structure
-const unwrapReadOnlyOk = (raw: unknown) => {
-  const parsed = cvToValue(raw as never) as unknown;
-  if (parsed && typeof parsed === "object") {
-    const maybe = parsed as Record<string, unknown>;
-    if ("success" in maybe) {
-      if (!maybe.success) {
-        throw new Error(`Read-only call failed: ${String(maybe.value ?? "")}`);
-      }
-      return maybe.value;
-    }
-    if ("type" in maybe && maybe.type === "ok") {
-      return maybe.value;
-    }
-  }
-  return parsed;
-};
 
 // TODO: Update this type guard if your contract's ABI includes more complex function argument or return value structures
 const isNamedFunctionLike = (value: unknown): value is { name: string } => {
@@ -333,18 +233,6 @@ const inferToastTone = (
 
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
-  const [pool, setPool] = useState<PoolState>({
-    reserveX: 0,
-    reserveY: 0,
-    totalShares: 0,
-  });
-
-  // TODO: Update balance state structure if you want to track additional tokens, LP positions, or other relevant user data
-  const [balances, setBalances] = useState<Balances>({
-    tokenX: 0,
-    tokenY: 0,
-    lpShares: 0,
-  });
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
 
   const [activeTab, setActiveTab] = useState<AppTab>("swap");
@@ -392,7 +280,6 @@ function App() {
   const [burnShares, setBurnShares] = useState("0");
   const [burnMessage, setBurnMessage] = useState<string | null>(null);
 
-  const [faucetMessage, setFaucetMessage] = useState<string | null>(null);
   const [faucetPending, setFaucetPending] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -402,15 +289,6 @@ function App() {
     visitedTabs: ["swap"],
   });
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
-  const [, setBalancePending] = useState(false);
-  const [poolPending, setPoolPending] = useState(false);
-  const [lastPoolRefreshAt, setLastPoolRefreshAt] = useState<number | null>(
-    null,
-  );
-  const [portfolioHistory, setPortfolioHistory] = useState<PortfolioSnapshot[]>(
-    [],
-  );
-  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [activityFilter, setActivityFilter] = useState<
     "all" | ActivityItem["kind"] | ActivityItem["status"]
   >("all");
@@ -471,6 +349,34 @@ function App() {
     () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const { pool, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
+    network,
+    poolContract,
+    contractAddress: CONTRACT_ADDRESS,
+    tokenDecimals: TOKEN_DECIMALS,
+  });
+  const {
+    balances,
+    setBalances,
+    faucetMessage,
+    setFaucetMessage,
+    syncBalances,
+  } = useBalances({
+    stacksApi: STACKS_API,
+    tokenIds,
+    tokenContracts: TOKEN_CONTRACTS,
+    tokenDecimals: TOKEN_DECIMALS,
+    fetchPoolState,
+  });
+  const { activityItems, setActivityItems, pushActivity, patchActivityByTxid } =
+    useActivity({
+      activityKey,
+      stacksApi: STACKS_API,
+      stacksAddress,
+      syncBalances,
+      fetchPoolState,
+      explainPoolError,
+    });
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
@@ -513,6 +419,16 @@ function App() {
     lpPosition.y,
     currentPrice,
   ]);
+  const { analytics, portfolioMetrics } = useAnalytics({
+    stacksAddress,
+    portfolioHistoryKey,
+    portfolioTotals,
+    currentPrice,
+    pool,
+    activityItems,
+    dayMs: DAY_MS,
+    snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
+  });
 
   // TODO: Update this function if you want to implement more robust logic for fetching the current block height, such as using a WebSocket connection to listen for new blocks or implementing retry logic in case of network errors
   const fetchTipHeight = async () => {
@@ -632,184 +548,10 @@ function App() {
     tokenContracts.y.contractName,
   ]);
 
-  // TODO: Update this function if your contract uses a different pool state retrieval mechanism, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
-  const fetchPoolState = useCallback(
-    async (address?: string | null) => {
-      setPoolPending(true);
-      try {
-        const senderAddress = address || CONTRACT_ADDRESS;
-        const reserves = await fetchCallReadOnlyFunction({
-          contractAddress: poolContract.address,
-          contractName: poolContract.contractName,
-          functionName: "get-reserves",
-          functionArgs: [],
-          senderAddress,
-          network,
-        });
-        const totalSupply = await fetchCallReadOnlyFunction({
-          contractAddress: poolContract.address,
-          contractName: poolContract.contractName,
-          functionName: "get-total-supply",
-          functionArgs: [],
-          senderAddress,
-          network,
-        });
-        const lpBalance =
-          address &&
-          (await fetchCallReadOnlyFunction({
-            contractAddress: poolContract.address,
-            contractName: poolContract.contractName,
-            functionName: "get-lp-balance",
-            functionArgs: [standardPrincipalCV(address)],
-            senderAddress,
-            network,
-          }));
-
-        const reserveValue = unwrapReadOnlyOk(reserves);
-        const totalSupplyValue = parseClarityNumber(
-          unwrapReadOnlyOk(totalSupply),
-        );
-        const lpBalanceValue = lpBalance
-          ? parseClarityNumber(unwrapReadOnlyOk(lpBalance))
-          : 0;
-        const parsedReserves = parsePoolReserves(reserveValue);
-
-        setPool({
-          reserveX: parsedReserves.reserveX,
-          reserveY: parsedReserves.reserveY,
-          totalShares: totalSupplyValue,
-        });
-        setLastPoolRefreshAt(Date.now());
-        if (address) {
-          setBalances((prev) => ({
-            ...prev,
-            lpShares: lpBalanceValue,
-          }));
-        }
-      } catch (error) {
-        console.warn("Pool state fetch failed", error);
-      } finally {
-        setPoolPending(false);
-      }
-    },
-    [network, poolContract.address, poolContract.contractName],
-  );
-
-  const fetchOnChainBalances = async (address: string) => {
-    const response = await fetch(
-      `${STACKS_API}/extended/v1/address/${address}/balances`,
-    );
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      throw new Error(
-        `Failed to fetch balances from Stacks API (${response.status}). ${errorText}`,
-      );
-    }
-    const data = await response.json();
-    const fungible = data?.fungible_tokens || {};
-
-    const findTokenEntry = (target: {
-      fullId: string;
-      contractId: string;
-      contractName: string;
-      assetName: string;
-    }) => {
-      if (fungible[target.fullId]) return fungible[target.fullId];
-      if (fungible[target.contractId]) return fungible[target.contractId];
-      const suffix = `.${target.contractName}::${target.assetName}`;
-      const key = Object.keys(fungible).find((k) => k.endsWith(suffix));
-      return key ? fungible[key] : undefined;
-    };
-
-    const tokenX = findTokenEntry(tokenIds.x);
-    const tokenY = findTokenEntry(tokenIds.y);
-    const normalize = (balance?: { balance?: string }) =>
-      balance?.balance ? Number(balance.balance) / TOKEN_DECIMALS : 0;
-
-    const missing = [];
-    if (!tokenX) missing.push(TOKEN_CONTRACTS.x);
-    if (!tokenY) missing.push(TOKEN_CONTRACTS.y);
-
-    return {
-      tokenX: normalize(tokenX),
-      tokenY: normalize(tokenY),
-      missing,
-      found: Object.keys(fungible || {}),
-    };
-  };
-
-  const fetchPoolReserves = useCallback(
-    async (address?: string | null) => {
-      const senderAddress = address || CONTRACT_ADDRESS;
-      const reserves = await fetchCallReadOnlyFunction({
-        contractAddress: poolContract.address,
-        contractName: poolContract.contractName,
-        functionName: "get-reserves",
-        functionArgs: [],
-        senderAddress,
-        network,
-      });
-      return parsePoolReserves(unwrapReadOnlyOk(reserves));
-    },
-    [network, poolContract.address, poolContract.contractName],
-  );
-
-  const syncBalances = useCallback(
-    async (address: string, opts?: { silent?: boolean }) => {
-      if (!address) return;
-      try {
-        setBalancePending(true);
-        if (!opts?.silent) {
-          setFaucetMessage("Refreshing on-chain balances...");
-        }
-        const next = await fetchOnChainBalances(address);
-        const reserves = await fetchPoolReserves(address);
-        setBalances((prev) => ({
-          ...prev,
-          tokenX: next.tokenX ?? prev.tokenX,
-          tokenY: next.tokenY ?? prev.tokenY,
-        }));
-        setPool((prev) => ({
-          ...prev,
-          reserveX: reserves.reserveX,
-          reserveY: reserves.reserveY,
-        }));
-        await fetchPoolState(address);
-        if (!opts?.silent) {
-          if (next.missing?.length) {
-            const noTrackedTokenBalances =
-              (next.tokenX ?? 0) <= 0 && (next.tokenY ?? 0) <= 0;
-            setFaucetMessage(
-              noTrackedTokenBalances
-                ? "No tracked token balances found yet (likely zero balance)."
-                : `Some token entries are missing: ${next.missing.join(" & ")}`,
-            );
-          } else {
-            setFaucetMessage("Loaded on-chain balances.");
-          }
-        }
-      } catch (error) {
-        if (!opts?.silent) {
-          setFaucetMessage(
-            error instanceof Error
-              ? error.message
-              : "Could not load on-chain balances.",
-          );
-        }
-      } finally {
-        setBalancePending(false);
-      }
-    },
-    [fetchPoolReserves, fetchPoolState, tokenIds.x, tokenIds.y],
-  );
 
   useEffect(() => {
     fetchPoolState(stacksAddress);
-  }, [stacksAddress]);
-
-  useEffect(() => {
-    fetchPoolState(stacksAddress);
-  }, []);
+  }, [fetchPoolState, stacksAddress]);
 
   useEffect(() => {
     try {
@@ -821,7 +563,7 @@ function App() {
     } catch (error) {
       console.warn("Stacks cache read failed", error);
     }
-  }, []);
+  }, [syncBalances]);
 
   useEffect(() => {
     try {
@@ -871,58 +613,6 @@ function App() {
     }
   }, [onboarding.seenModal]);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(portfolioHistoryKey);
-      if (!raw) {
-        setPortfolioHistory([]);
-        return;
-      }
-      const parsed = JSON.parse(raw) as unknown;
-      const snapshots = Array.isArray(parsed)
-        ? parsed.filter(
-            (item): item is PortfolioSnapshot =>
-              !!item &&
-              typeof item === "object" &&
-              typeof (item as PortfolioSnapshot).ts === "number" &&
-              typeof (item as PortfolioSnapshot).totalX === "number" &&
-              typeof (item as PortfolioSnapshot).totalY === "number" &&
-              typeof (item as PortfolioSnapshot).priceYX === "number",
-          )
-        : [];
-      setPortfolioHistory(snapshots);
-    } catch (error) {
-      console.warn("Portfolio history load failed", error);
-      setPortfolioHistory([]);
-    }
-  }, [portfolioHistoryKey]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(activityKey);
-      if (!raw) {
-        setActivityItems([]);
-        return;
-      }
-      const parsed = JSON.parse(raw) as unknown;
-      const items = Array.isArray(parsed)
-        ? parsed.filter(
-            (item): item is ActivityItem =>
-              !!item &&
-              typeof item === "object" &&
-              typeof (item as ActivityItem).id === "string" &&
-              typeof (item as ActivityItem).ts === "number" &&
-              typeof (item as ActivityItem).kind === "string" &&
-              typeof (item as ActivityItem).status === "string" &&
-              typeof (item as ActivityItem).message === "string",
-          )
-        : [];
-      setActivityItems(items);
-    } catch (error) {
-      console.warn("Activity history load failed", error);
-      setActivityItems([]);
-    }
-  }, [activityKey]);
 
   useEffect(() => {
     try {
@@ -960,50 +650,6 @@ function App() {
     setBrowserAlertsEnabled(Notification.permission === "granted");
   }, []);
 
-  const pushActivity = useCallback(
-    (item: Omit<ActivityItem, "id" | "ts">) => {
-      const nextItem: ActivityItem = {
-        ...item,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        ts: Date.now(),
-      };
-      setActivityItems((prev) => {
-        const next = [nextItem, ...prev].slice(0, 30);
-        try {
-          localStorage.setItem(activityKey, JSON.stringify(next));
-        } catch (error) {
-          console.warn("Activity history save failed", error);
-        }
-        return next;
-      });
-    },
-    [activityKey],
-  );
-
-  const patchActivityByTxid = useCallback(
-    (
-      txid: string,
-      patch: Partial<Pick<ActivityItem, "status" | "message" | "detail">>,
-    ) => {
-      if (!txid) return;
-      setActivityItems((prev) => {
-        let changed = false;
-        const next = prev.map((item) => {
-          if (item.txid !== txid) return item;
-          changed = true;
-          return { ...item, ...patch };
-        });
-        if (!changed) return prev;
-        try {
-          localStorage.setItem(activityKey, JSON.stringify(next));
-        } catch (error) {
-          console.warn("Activity history save failed", error);
-        }
-        return next;
-      });
-    },
-    [activityKey],
-  );
 
   const persistPriceAlerts = useCallback(
     (next: PriceAlert[]) => {
@@ -1125,122 +771,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (!stacksAddress || currentPrice <= 0) return;
-    const now = Date.now();
-    setPortfolioHistory((prev) => {
-      const sorted = [...prev].sort((a, b) => a.ts - b.ts);
-      const last = sorted[sorted.length - 1];
-      if (
-        last &&
-        now - last.ts < SNAPSHOT_INTERVAL_MS &&
-        Math.abs(last.totalX - portfolioTotals.totalX) < 1e-6 &&
-        Math.abs(last.totalY - portfolioTotals.totalY) < 1e-6
-      ) {
-        return prev;
-      }
-      const next = [
-        ...sorted.filter((item) => now - item.ts <= DAY_MS * 7),
-        {
-          ts: now,
-          totalX: portfolioTotals.totalX,
-          totalY: portfolioTotals.totalY,
-          priceYX: currentPrice,
-          reserveX: pool.reserveX,
-          reserveY: pool.reserveY,
-        },
-      ];
-      try {
-        localStorage.setItem(portfolioHistoryKey, JSON.stringify(next));
-      } catch (error) {
-        console.warn("Portfolio history save failed", error);
-      }
-      return next;
-    });
-  }, [
-    stacksAddress,
-    currentPrice,
-    portfolioTotals.totalX,
-    portfolioTotals.totalY,
-    pool.reserveX,
-    pool.reserveY,
-    portfolioHistoryKey,
-  ]);
 
-  useEffect(() => {
-    const pendingItems = activityItems.filter(
-      (item) => item.status === "submitted" && item.txid,
-    );
-    if (pendingItems.length === 0) return;
-
-    const seen = new Set<string>();
-    const uniquePending = pendingItems.filter((item) => {
-      if (!item.txid || seen.has(item.txid)) return false;
-      seen.add(item.txid);
-      return true;
-    });
-
-    let cancelled = false;
-    const interval = window.setInterval(() => {
-      void Promise.all(
-        uniquePending.map(async (item) => {
-          if (!item.txid || cancelled) return;
-          try {
-            const res = await fetch(
-              `${STACKS_API}/extended/v1/tx/${item.txid}`,
-            );
-            if (!res.ok) return;
-            const data = await res.json().catch(() => ({}));
-            const status = String(data?.tx_status || "");
-            if (!status) return;
-
-            if (status === "success") {
-              patchActivityByTxid(item.txid, {
-                status: "confirmed",
-                message: `${item.kind.replace(/-/g, " ")} confirmed`,
-                detail: "Confirmed on-chain",
-              });
-              if (stacksAddress) {
-                await syncBalances(stacksAddress, { silent: true }).catch(
-                  () => {},
-                );
-                await fetchPoolState(stacksAddress).catch(() => {});
-              }
-              return;
-            }
-
-            if (
-              status.includes("abort") ||
-              status.includes("dropped") ||
-              status.includes("failed")
-            ) {
-              const repr = data?.tx_result?.repr as string | undefined;
-              const reason =
-                explainPoolError(repr) || repr || "Execution failed";
-              patchActivityByTxid(item.txid, {
-                status: "failed",
-                message: `${item.kind.replace(/-/g, " ")} failed`,
-                detail: reason,
-              });
-            }
-          } catch (error) {
-            console.warn("Tx status polling failed", error);
-          }
-        }),
-      );
-    }, 4000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [
-    activityItems,
-    patchActivityByTxid,
-    stacksAddress,
-    syncBalances,
-    fetchPoolState,
-  ]);
 
   useEffect(() => {
     if (directionalPrice <= 0) return;
@@ -1309,135 +840,6 @@ function App() {
     priceAlerts,
   ]);
 
-  const portfolioMetrics = useMemo(() => {
-    const cutoff = Date.now() - DAY_MS;
-    const baseline = [...portfolioHistory]
-      .sort((a, b) => a.ts - b.ts)
-      .reverse()
-      .find((item) => item.ts <= cutoff);
-
-    const pnl24X =
-      baseline && baseline.totalX > 0
-        ? ((portfolioTotals.totalX - baseline.totalX) / baseline.totalX) * 100
-        : null;
-    const pnl24Y =
-      baseline && baseline.totalY > 0
-        ? ((portfolioTotals.totalY - baseline.totalY) / baseline.totalY) * 100
-        : null;
-    const ilPercent =
-      baseline && baseline.priceYX > 0 && currentPrice > 0
-        ? ((2 * Math.sqrt(currentPrice / baseline.priceYX)) /
-            (1 + currentPrice / baseline.priceYX) -
-            1) *
-          100
-        : null;
-
-    return {
-      pnl24X,
-      pnl24Y,
-      ilPercent,
-      has24h: Boolean(baseline),
-    };
-  }, [
-    portfolioHistory,
-    portfolioTotals.totalX,
-    portfolioTotals.totalY,
-    currentPrice,
-  ]);
-
-  const analytics = useMemo(() => {
-    const now = Date.now();
-    const sorted = [...portfolioHistory].sort((a, b) => a.ts - b.ts);
-    const chartPoints = sorted.slice(-28);
-    const values = chartPoints
-      .map((item) => item.priceYX)
-      .filter((v) => isFiniteNumber(v) && v > 0);
-    const chartWidth = 320;
-    const chartHeight = 140;
-    const pricePath = buildLinePath(values, chartWidth, chartHeight, 12);
-    const minPrice = values.length ? Math.min(...values) : 0;
-    const maxPrice = values.length ? Math.max(...values) : 0;
-    const latest = sorted[sorted.length - 1] || null;
-    const baseline24 =
-      [...sorted].reverse().find((item) => item.ts <= now - DAY_MS) || null;
-    const priceChange24 =
-      baseline24 && baseline24.priceYX > 0 && currentPrice > 0
-        ? ((currentPrice - baseline24.priceYX) / baseline24.priceYX) * 100
-        : null;
-    const reserveXChange24 =
-      baseline24 &&
-      typeof baseline24.reserveX === "number" &&
-      baseline24.reserveX > 0
-        ? ((pool.reserveX - baseline24.reserveX) / baseline24.reserveX) * 100
-        : null;
-    const reserveYChange24 =
-      baseline24 &&
-      typeof baseline24.reserveY === "number" &&
-      baseline24.reserveY > 0
-        ? ((pool.reserveY - baseline24.reserveY) / baseline24.reserveY) * 100
-        : null;
-    const tvlX =
-      currentPrice > 0 ? pool.reserveX + pool.reserveY / currentPrice : 0;
-    const tvlY =
-      currentPrice > 0 ? pool.reserveY + pool.reserveX * currentPrice : 0;
-    const swaps24h = activityItems.filter(
-      (item) =>
-        item.kind === "swap" &&
-        item.status === "confirmed" &&
-        now - item.ts <= DAY_MS,
-    );
-    const liquidity24h = activityItems.filter(
-      (item) =>
-        (item.kind === "add-liquidity" || item.kind === "remove-liquidity") &&
-        now - item.ts <= DAY_MS,
-    );
-    const chartStart = chartPoints[0]?.ts ?? now;
-    const chartEnd = chartPoints[chartPoints.length - 1]?.ts ?? now;
-    const span = Math.max(chartEnd - chartStart, 1);
-    const swapMarkers = activityItems
-      .filter(
-        (item) =>
-          item.kind === "swap" &&
-          item.status === "confirmed" &&
-          item.ts >= chartStart &&
-          item.ts <= chartEnd,
-      )
-      .slice(-8)
-      .map((item) => ({
-        ...item,
-        x: clamp(
-          12 + ((item.ts - chartStart) / span) * (chartWidth - 24),
-          12,
-          308,
-        ),
-      }))
-      .filter((item) => isFiniteNumber(item.x));
-
-    return {
-      baseline24,
-      chartPoints,
-      chartWidth,
-      chartHeight,
-      liquidity24h: liquidity24h.length,
-      latest,
-      maxPrice,
-      minPrice,
-      priceChange24,
-      pricePath,
-      swapMarkers,
-      swaps24h: swaps24h.length,
-      tvlX,
-      tvlY,
-      reserveXChange24,
-      reserveYChange24,
-    };
-  }, [
-    activityItems,
-    currentPrice,
-    pool.reserveX,
-    pool.reserveY,
-    portfolioHistory,
-  ]);
 
   const quoteSwap = (amount: number, fromX: boolean) => {
     const reserveIn = fromX ? pool.reserveX : pool.reserveY;
