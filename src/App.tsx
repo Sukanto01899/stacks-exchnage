@@ -40,11 +40,10 @@ import {
   PRICE_IMPACT_CONFIRM_PCT,
   PRICE_IMPACT_TARGET_PCT,
   PRICE_IMPACT_WARN_PCT,
+  RESOLVED_STACKS_NETWORK,
 } from "./constant";
-import { CONTRACT_ADDRESS } from "./lib/helper";
+import { CONTRACT_ADDRESS, normalizeTokenId } from "./lib/helper";
 
-const CONTRACT_IS_MAINNET = /^(SP|SM)/.test(CONTRACT_ADDRESS);
-const RESOLVED_STACKS_NETWORK = CONTRACT_IS_MAINNET ? "mainnet" : "testnet";
 const STACKS_API =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
@@ -57,13 +56,6 @@ const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 const ONBOARDING_STORAGE_KEY = `onboarding-${RESOLVED_STACKS_NETWORK}`;
-
-// TODO: Update token normalization logic if your contract uses a different asset ID format or if you want to support multiple tokens per contract
-const normalizeTokenId = (value: string | undefined, assetName: string) => {
-  if (value?.includes("::")) return value;
-  if (value) return `${value}::${assetName}`;
-  return "";
-};
 
 // TODO: Update token contract addresses and asset names, or add logic to fetch them dynamically if needed
 const TOKEN_CONTRACTS = {
@@ -2493,7 +2485,7 @@ function App() {
                 className={activeTab === "analytics" ? "is-active" : ""}
                 onClick={() => setActiveTab("analytics")}
               >
-                Explore
+                Analytics
               </button>
               <button
                 className={activeTab === "liquidity" ? "is-active" : ""}
@@ -2565,20 +2557,6 @@ function App() {
             <div className="dashboard-main">
               {!showMinimalSwapLayout && (
                 <div className="panel-head">
-                  <div className="tabs">
-                    <button
-                      className={activeTab === "liquidity" ? "active" : ""}
-                      onClick={() => setActiveTab("liquidity")}
-                    >
-                      Pool
-                    </button>
-                    <button
-                      className={activeTab === "analytics" ? "active" : ""}
-                      onClick={() => setActiveTab("analytics")}
-                    >
-                      Analytics
-                    </button>
-                  </div>
                   <div className="panel-subtitle">
                     {activeTab === "liquidity"
                       ? "Add or remove liquidity from the pool."

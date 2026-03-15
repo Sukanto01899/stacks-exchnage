@@ -8,8 +8,8 @@ const projectId =
 
 //Update metadata with your app's information
 const metadata = {
-  name: "Stacks AMM",
-  description: "Connect Bitcoin wallets for swaps/liquidity",
+  name: "Clardex",
+  description: "Connect Bitcoin wallets for trading on Clardex",
   url:
     typeof window !== "undefined" ? window.location.origin : "http://localhost",
   icons: ["https://walletconnect.com/walletconnect-logo.png"],
