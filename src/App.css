@@ -315,6 +315,19 @@ h3 {
   .page.simple-page {
     padding-top: 112px;
   }
+
+  .pool-meta,
+  .pool-snapshot {
+    grid-template-columns: 1fr;
+  }
+
+  .pool-actions {
+    justify-content: stretch;
+  }
+
+  .pool-actions .primary {
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
@@ -658,6 +671,64 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.pool-page {
+  gap: 14px;
+}
+
+.pool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pool-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 240px;
+}
+
+.pool-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pool-stat {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.18);
+  min-width: 0;
+}
+
+.pool-stat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.pool-card .token-card-head {
+  margin-bottom: 12px;
+}
+
+.pool-helper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pool-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .simple-mode .swap-card {

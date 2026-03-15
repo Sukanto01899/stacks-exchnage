@@ -18,17 +18,58 @@ export default function LiquidityCard(props: any) {
     burnShares,
     setBurnShares,
     poolShare,
+    pool,
     handleRemoveLiquidity
   } = props;
 
+  const ratio =
+    pool && pool.reserveX > 0 && pool.reserveY > 0
+      ? pool.reserveY / pool.reserveX
+      : null;
+
   return (
-    <div className="lp-stack">
-      <div className="token-card">
+    <div className="lp-stack pool-page">
+      <div className="pool-header">
+        <div>
+          <p className="eyebrow">Pool</p>
+          <h3>Liquidity control</h3>
+        </div>
+        <div className="pool-meta">
+          <div className="pool-stat">
+            <span className="muted small">Your LP</span>
+            <strong>{formatNumber(balances.lpShares)} shares</strong>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">Pool share</span>
+            <strong>{(poolShare * 100).toFixed(2)}%</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="pool-snapshot">
+        <div className="pool-stat">
+          <span className="muted small">Reserves</span>
+          <strong>
+            {formatNumber(pool.reserveX)} X / {formatNumber(pool.reserveY)} Y
+          </strong>
+        </div>
+        <div className="pool-stat">
+          <span className="muted small">Current ratio</span>
+          <strong>
+            {ratio ? `1 X ~ ${formatNumber(ratio)} Y` : "No liquidity yet"}
+          </strong>
+        </div>
+      </div>
+
+      <div className="token-card pool-card">
         <div className="token-card-head">
-          <span className="muted">Add to pool</span>
+          <div>
+            <span className="muted small">Add to pool</span>
+            <strong>Provide balanced liquidity</strong>
+          </div>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
-              Match pool ratio
+              Match ratio
             </button>
             <button
               className="tiny ghost"
@@ -49,15 +90,17 @@ export default function LiquidityCard(props: any) {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">
-              Balance: {formatNumber(balances.tokenX)}
-            </p>
-            <button
-              className="tiny ghost"
-              onClick={() => fillLiquidityInput("x")}
-            >
-              Use X balance
-            </button>
+            <div className="pool-helper">
+              <span className="muted small">
+                Balance: {formatNumber(balances.tokenX)}
+              </span>
+              <button
+                className="tiny ghost"
+                onClick={() => fillLiquidityInput("x")}
+              >
+                Use X balance
+              </button>
+            </div>
           </div>
           <div>
             <label>Token Y</label>
@@ -68,26 +111,33 @@ export default function LiquidityCard(props: any) {
               min="0"
               placeholder="0.0"
             />
-            <p className="muted small">
-              Balance: {formatNumber(balances.tokenY)}
-            </p>
-            <button
-              className="tiny ghost"
-              onClick={() => fillLiquidityInput("y")}
-            >
-              Use Y balance
-            </button>
+            <div className="pool-helper">
+              <span className="muted small">
+                Balance: {formatNumber(balances.tokenY)}
+              </span>
+              <button
+                className="tiny ghost"
+                onClick={() => fillLiquidityInput("y")}
+              >
+                Use Y balance
+              </button>
+            </div>
           </div>
         </div>
         {renderApprovalManager("liquidity")}
-        <button className="primary" onClick={handleAddLiquidity}>
-          Add liquidity
-        </button>
+        <div className="pool-actions">
+          <button className="primary" onClick={handleAddLiquidity}>
+            Add liquidity
+          </button>
+        </div>
       </div>
 
-      <div className="token-card">
+      <div className="token-card pool-card">
         <div className="token-card-head">
-          <span className="muted">Remove from pool</span>
+          <div>
+            <span className="muted small">Remove from pool</span>
+            <strong>Withdraw your position</strong>
+          </div>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={() => setBurnPreset(0.25)}>
               25%
@@ -113,13 +163,19 @@ export default function LiquidityCard(props: any) {
           />
           <span className="token-pill">LP shares</span>
         </div>
-        <p className="muted small">
-          Your LP: {formatNumber(balances.lpShares)} / Pool share:{" "}
-          {(poolShare * 100).toFixed(2)}%
-        </p>
-        <button className="primary" onClick={handleRemoveLiquidity}>
-          Remove from pool
-        </button>
+        <div className="pool-helper">
+          <span className="muted small">
+            Your LP: {formatNumber(balances.lpShares)} shares
+          </span>
+          <span className="muted small">
+            Pool share: {(poolShare * 100).toFixed(2)}%
+          </span>
+        </div>
+        <div className="pool-actions">
+          <button className="primary" onClick={handleRemoveLiquidity}>
+            Remove liquidity
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -2645,6 +2645,7 @@ function App() {
                   burnShares={burnShares}
                   setBurnShares={setBurnShares}
                   poolShare={poolShare}
+                  pool={pool}
                   handleRemoveLiquidity={handleRemoveLiquidity}
                 />
               ) : (
