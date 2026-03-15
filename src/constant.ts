@@ -15,3 +15,15 @@ export const CONTRACT_IS_MAINNET = /^(SP|SM)/.test(CONTRACT_ADDRESS);
 export const RESOLVED_STACKS_NETWORK = CONTRACT_IS_MAINNET
   ? "mainnet"
   : "testnet";
+export const STACKS_API =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      "VITE_STACKS_API"
+    ]) ||
+  (RESOLVED_STACKS_NETWORK === "mainnet"
+    ? "https://api.hiro.so"
+    : "https://api.testnet.hiro.so");
+export const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
+export const DAY_MS = 24 * 60 * 60 * 1000;
+export const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
+export const ONBOARDING_STORAGE_KEY = `onboarding-${RESOLVED_STACKS_NETWORK}`;
