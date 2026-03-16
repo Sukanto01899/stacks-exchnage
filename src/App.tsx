@@ -198,6 +198,7 @@ function App() {
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
   const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
@@ -1846,6 +1847,17 @@ function App() {
             <span className="nav-search-text">tokens, pools, and wallets</span>
           </div>
           <div className="nav-actions">
+            <button
+              className="nav-burger"
+              type="button"
+              aria-label="Open menu"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
             {stacksAddress ? (
               <button className="wallet-pill" onClick={handleStacksDisconnect}>
                 {shortAddress(stacksAddress)}
@@ -1858,6 +1870,125 @@ function App() {
           </div>
         </div>
       </header>
+
+      {drawerOpen && (
+        <div
+          className="nav-drawer-backdrop"
+          onClick={() => setDrawerOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="nav-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="nav-drawer-head">
+              <h2>Menu</h2>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setDrawerOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">Wallet</h3>
+              <div className="drawer-balance-row">
+                <span>Token X</span>
+                <span>{formatNumber(balances.tokenX)}</span>
+              </div>
+              <div className="drawer-balance-row">
+                <span>Token Y</span>
+                <span>{formatNumber(balances.tokenY)}</span>
+              </div>
+              <div className="drawer-balance-row">
+                <span>LP shares</span>
+                <span>{formatNumber(balances.lpShares)}</span>
+              </div>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">Activity</h3>
+              <ul className="drawer-activity-list">
+                {activityItems.length === 0 ? (
+                  <li className="drawer-activity-empty">No recent activity</li>
+                ) : (
+                  activityItems.slice(0, 5).map((item) => (
+                    <li key={item.id} className="drawer-activity-item">
+                      <span className="drawer-activity-time">
+                        {new Date(item.ts).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      <span className="drawer-activity-message">
+                        {item.message}
+                      </span>
+                      <span
+                        className={`drawer-activity-status drawer-activity-status-${item.status}`}
+                      >
+                        {item.status}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+
+            <nav className="nav-drawer-links">
+              <button
+                className={activeTab === "swap" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveTab("swap");
+                  setDrawerOpen(false);
+                }}
+              >
+                Trade
+              </button>
+              <button
+                className={activeTab === "analytics" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveTab("analytics");
+                  setDrawerOpen(false);
+                }}
+              >
+                Analytics
+              </button>
+              <button
+                className={activeTab === "liquidity" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveTab("liquidity");
+                  setDrawerOpen(false);
+                }}
+              >
+                Pool
+              </button>
+              <hr />
+              {stacksAddress ? (
+                <button
+                  className="wallet-pill"
+                  onClick={() => {
+                    handleStacksDisconnect();
+                    setDrawerOpen(false);
+                  }}
+                >
+                  {shortAddress(stacksAddress)}
+                </button>
+              ) : (
+                <button
+                  className="wallet-pill"
+                  onClick={() => {
+                    handleStacksConnect();
+                    setDrawerOpen(false);
+                  }}
+                >
+                  Connect Stacks
+                </button>
+              )}
+            </nav>
+          </div>
+        </div>
+      )}
 
       <main
         className={`content single ${showMinimalSwapLayout ? "simple-content" : ""}`}
