@@ -37,6 +37,7 @@ import {
   BPS,
   DAY_MS,
   FAUCET_AMOUNT,
+  FAUCET_API,
   FEE_BPS,
   IS_MAINNET,
   MINIMUM_LIQUIDITY,
@@ -55,13 +56,6 @@ import {
 import { CONTRACT_ADDRESS } from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
-
-const FAUCET_API =
-  (typeof import.meta !== "undefined" &&
-    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      "VITE_FAUCET_URL"
-    ]) ||
-  "http://localhost:8787";
 
 const shortAddress = (addr: string) =>
   addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
