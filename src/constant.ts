@@ -56,3 +56,10 @@ export const POOL_CONTRACT_ID =
       "VITE_POOL_CONTRACT"
     ]) ||
   `${CONTRACT_ADDRESS}.dex-pool-v5`;
+
+export const FAUCET_API =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      "VITE_FAUCET_URL"
+    ]) ||
+  "http://localhost:8787";

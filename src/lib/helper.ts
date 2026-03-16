@@ -21,3 +21,6 @@ export const formatNumber = (value: number) =>
     maximumFractionDigits: 6,
     minimumFractionDigits: 0,
   });
+
+export const shortAddress = (addr: string) =>
+  addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;

@@ -53,19 +53,9 @@ import {
   TOKEN_CONTRACTS,
   TOKEN_DECIMALS,
 } from "./constant";
-import { CONTRACT_ADDRESS } from "./lib/helper";
+import { CONTRACT_ADDRESS, formatNumber, shortAddress } from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
-
-const shortAddress = (addr: string) =>
-  addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
-
-// TODO: Update formatting logic if your tokens use a different decimal precision or if you want to display more/less decimal places
-const formatNumber = (value: number) =>
-  value.toLocaleString(undefined, {
-    maximumFractionDigits: 6,
-    minimumFractionDigits: 0,
-  });
 
 const formatSignedPercent = (value: number | null) => {
   if (value === null || !Number.isFinite(value)) return "N/A";
