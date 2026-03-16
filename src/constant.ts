@@ -1,3 +1,5 @@
+import { normalizeTokenId } from "./lib/helper";
+
 export const FEE_BPS = 30;
 export const BPS = 10_000;
 export const FAUCET_AMOUNT = 5_000;
@@ -27,3 +29,21 @@ export const IS_MAINNET = RESOLVED_STACKS_NETWORK === "mainnet";
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 export const ONBOARDING_STORAGE_KEY = `onboarding-${RESOLVED_STACKS_NETWORK}`;
+export const TOKEN_CONTRACTS = {
+  x:
+    normalizeTokenId(
+      (typeof import.meta !== "undefined" &&
+        (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+          "VITE_TOKEN_X"
+        ]) as string | undefined,
+      "token-x",
+    ) || `${CONTRACT_ADDRESS}.dex-token-x::token-x`,
+  y:
+    normalizeTokenId(
+      (typeof import.meta !== "undefined" &&
+        (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+          "VITE_TOKEN_Y"
+        ]) as string | undefined,
+      "token-y",
+    ) || `${CONTRACT_ADDRESS}.dex-token-y::token-y`,
+};

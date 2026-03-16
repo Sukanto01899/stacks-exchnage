@@ -47,30 +47,12 @@ import {
   RESOLVED_STACKS_NETWORK,
   SNAPSHOT_INTERVAL_MS,
   STACKS_API,
+  TOKEN_CONTRACTS,
 } from "./constant";
-import { CONTRACT_ADDRESS, normalizeTokenId } from "./lib/helper";
+import { CONTRACT_ADDRESS } from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
 
-// TODO: Update token contract addresses and asset names, or add logic to fetch them dynamically if needed
-const TOKEN_CONTRACTS = {
-  x:
-    normalizeTokenId(
-      (typeof import.meta !== "undefined" &&
-        (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-          "VITE_TOKEN_X"
-        ]) as string | undefined,
-      "token-x",
-    ) || `${CONTRACT_ADDRESS}.dex-token-x::token-x`,
-  y:
-    normalizeTokenId(
-      (typeof import.meta !== "undefined" &&
-        (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-          "VITE_TOKEN_Y"
-        ]) as string | undefined,
-      "token-y",
-    ) || `${CONTRACT_ADDRESS}.dex-token-y::token-y`,
-};
 const TOKEN_DECIMALS = 1_000_000;
 const MINIMUM_LIQUIDITY = 1_000n;
 const POOL_CONTRACT_ID =
