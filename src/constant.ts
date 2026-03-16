@@ -47,3 +47,12 @@ export const TOKEN_CONTRACTS = {
       "token-y",
     ) || `${CONTRACT_ADDRESS}.dex-token-y::token-y`,
 };
+
+export const TOKEN_DECIMALS = 1_000_000;
+export const MINIMUM_LIQUIDITY = 1_000n;
+export const POOL_CONTRACT_ID =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      "VITE_POOL_CONTRACT"
+    ]) ||
+  `${CONTRACT_ADDRESS}.dex-pool-v5`;

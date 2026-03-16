@@ -14,3 +14,10 @@ export const normalizeTokenId = (
   if (value) return `${value}::${assetName}`;
   return "";
 };
+
+// Update formatting logic if your tokens use a different decimal precision or if you want to display more/less decimal places
+export const formatNumber = (value: number) =>
+  value.toLocaleString(undefined, {
+    maximumFractionDigits: 6,
+    minimumFractionDigits: 0,
+  });

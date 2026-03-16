@@ -39,7 +39,9 @@ import {
   FAUCET_AMOUNT,
   FEE_BPS,
   IS_MAINNET,
+  MINIMUM_LIQUIDITY,
   ONBOARDING_STORAGE_KEY,
+  POOL_CONTRACT_ID,
   PRICE_IMPACT_BLOCK_PCT,
   PRICE_IMPACT_CONFIRM_PCT,
   PRICE_IMPACT_TARGET_PCT,
@@ -48,19 +50,12 @@ import {
   SNAPSHOT_INTERVAL_MS,
   STACKS_API,
   TOKEN_CONTRACTS,
+  TOKEN_DECIMALS,
 } from "./constant";
 import { CONTRACT_ADDRESS } from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
 
-const TOKEN_DECIMALS = 1_000_000;
-const MINIMUM_LIQUIDITY = 1_000n;
-const POOL_CONTRACT_ID =
-  (typeof import.meta !== "undefined" &&
-    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
-      "VITE_POOL_CONTRACT"
-    ]) ||
-  `${CONTRACT_ADDRESS}.dex-pool-v5`;
 const FAUCET_API =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
