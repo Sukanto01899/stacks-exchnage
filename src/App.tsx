@@ -19,12 +19,10 @@ import SwapCard from "./components/SwapCard";
 const LiquidityCard = lazy(() => import("./components/LiquidityCard"));
 const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel"));
 import PortfolioPanel from "./components/PortfolioPanel";
-import ActivityPanel from "./components/ActivityPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import SetupPanel from "./components/SetupPanel";
 import ApprovalManager from "./components/ApprovalManager";
 import type {
-  ActivityItem,
   AppTab,
   OnboardingState,
   PriceAlert,
@@ -235,9 +233,6 @@ function App() {
     visitedTabs: ["swap"],
   });
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
-  const [activityFilter, setActivityFilter] = useState<
-    "all" | ActivityItem["kind"] | ActivityItem["status"]
-  >("all");
   const lastToastMessages = useRef<Record<string, string | null>>({});
 
   const pushToast = useCallback((message: string, tone: ToastTone) => {
@@ -314,7 +309,7 @@ function App() {
     tokenDecimals: TOKEN_DECIMALS,
     fetchPoolState,
   });
-  const { activityItems, setActivityItems, pushActivity } = useActivity({
+  const { activityItems, pushActivity } = useActivity({
     activityKey,
     stacksApi: STACKS_API,
     stacksAddress,
@@ -1668,12 +1663,6 @@ function App() {
     const triggered = priceAlerts.filter((item) => item.status === "triggered");
     return { active, triggered };
   }, [priceAlerts]);
-  const filteredActivityItems = useMemo(() => {
-    if (activityFilter === "all") return activityItems;
-    return activityItems.filter(
-      (item) => item.kind === activityFilter || item.status === activityFilter,
-    );
-  }, [activityFilter, activityItems]);
   const showMinimalSwapLayout = activeTab === "swap";
 
   useEffect(() => {
@@ -1901,33 +1890,37 @@ function App() {
               </div>
             </div>
 
-            <div className="drawer-section">
-              <h3 className="drawer-section-title">Activity</h3>
-              <ul className="drawer-activity-list">
-                {activityItems.length === 0 ? (
-                  <li className="drawer-activity-empty">No recent activity</li>
-                ) : (
-                  activityItems.slice(0, 5).map((item) => (
-                    <li key={item.id} className="drawer-activity-item">
-                      <span className="drawer-activity-time">
-                        {new Date(item.ts).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="drawer-activity-message">
-                        {item.message}
-                      </span>
-                      <span
-                        className={`drawer-activity-status drawer-activity-status-${item.status}`}
-                      >
-                        {item.status}
-                      </span>
+            {activeTab === "swap" && (
+              <div className="drawer-section">
+                <h3 className="drawer-section-title">Activity</h3>
+                <ul className="drawer-activity-list">
+                  {activityItems.length === 0 ? (
+                    <li className="drawer-activity-empty">
+                      No recent activity
                     </li>
-                  ))
-                )}
-              </ul>
-            </div>
+                  ) : (
+                    activityItems.slice(0, 5).map((item) => (
+                      <li key={item.id} className="drawer-activity-item">
+                        <span className="drawer-activity-time">
+                          {new Date(item.ts).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="drawer-activity-message">
+                          {item.message}
+                        </span>
+                        <span
+                          className={`drawer-activity-status drawer-activity-status-${item.status}`}
+                        >
+                          {item.status}
+                        </span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            )}
 
             <nav className="nav-drawer-links">
               <button
@@ -1993,18 +1986,6 @@ function App() {
           <div className="dashboard-layout">
             {!showMinimalSwapLayout && (
               <aside className="dashboard-sidebar">
-                {!onboarding.dismissed && (
-                  <SetupPanel
-                    onboardingSteps={onboardingSteps}
-                    onboardingCompletedCount={onboardingCompletedCount}
-                    onboardingProgressPercent={onboardingProgressPercent}
-                    activeTab={activeTab}
-                    onboardingDismissed={onboarding.dismissed}
-                    faucetPending={faucetPending}
-                    openOnboarding={openOnboarding}
-                    closeOnboarding={closeOnboarding}
-                  />
-                )}
                 <PortfolioPanel
                   portfolioMetrics={portfolioMetrics}
                   portfolioTotals={portfolioTotals}
@@ -2013,19 +1994,23 @@ function App() {
                   formatNumber={formatNumber}
                   formatSignedPercent={formatSignedPercent}
                 />
-                <ActivityPanel
-                  activityFilter={activityFilter}
-                  setActivityFilter={setActivityFilter}
-                  activityItems={activityItems}
-                  filteredActivityItems={filteredActivityItems}
-                  setActivityItems={setActivityItems}
-                  activityKey={activityKey}
-                  resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
-                />
               </aside>
             )}
 
             <div className="dashboard-main">
+              {showMinimalSwapLayout && !onboarding.dismissed && (
+                <SetupPanel
+                  onboardingSteps={onboardingSteps}
+                  onboardingCompletedCount={onboardingCompletedCount}
+                  onboardingProgressPercent={onboardingProgressPercent}
+                  activeTab={activeTab}
+                  onboardingDismissed={onboarding.dismissed}
+                  faucetPending={faucetPending}
+                  openOnboarding={openOnboarding}
+                  closeOnboarding={closeOnboarding}
+                />
+              )}
+
               {!showMinimalSwapLayout && (
                 <div className="panel-head">
                   <div className="panel-subtitle">
