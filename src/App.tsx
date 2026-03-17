@@ -53,21 +53,15 @@ import {
   TOKEN_CONTRACTS,
   TOKEN_DECIMALS,
 } from "./constant";
-import { CONTRACT_ADDRESS, formatNumber, shortAddress } from "./lib/helper";
+import {
+  CONTRACT_ADDRESS,
+  formatCompactNumber,
+  formatNumber,
+  formatSignedPercent,
+  shortAddress,
+} from "./lib/helper";
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
-
-const formatSignedPercent = (value: number | null) => {
-  if (value === null || !Number.isFinite(value)) return "N/A";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
-};
-
-const formatCompactNumber = (value: number) =>
-  value.toLocaleString(undefined, {
-    notation: "compact",
-    maximumFractionDigits: value >= 100 ? 1 : 2,
-  });
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {

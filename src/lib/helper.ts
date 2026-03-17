@@ -24,3 +24,15 @@ export const formatNumber = (value: number) =>
 
 export const shortAddress = (addr: string) =>
   addr.length > 12 ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : addr;
+
+export const formatSignedPercent = (value: number | null) => {
+  if (value === null || !Number.isFinite(value)) return "N/A";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+};
+
+export const formatCompactNumber = (value: number) =>
+  value.toLocaleString(undefined, {
+    notation: "compact",
+    maximumFractionDigits: value >= 100 ? 1 : 2,
+  });
