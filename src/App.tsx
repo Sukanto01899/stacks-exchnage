@@ -1993,7 +1993,7 @@ function App() {
           <div className="dashboard-layout">
             {!showMinimalSwapLayout && (
               <aside className="dashboard-sidebar">
-                {!onboarding.dismissed && activeTab === "swap" && (
+                {!onboarding.dismissed && (
                   <SetupPanel
                     onboardingSteps={onboardingSteps}
                     onboardingCompletedCount={onboardingCompletedCount}
