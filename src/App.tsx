@@ -20,7 +20,6 @@ const LiquidityCard = lazy(() => import("./components/LiquidityCard"));
 const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel"));
 import PortfolioPanel from "./components/PortfolioPanel";
 import OnboardingModal from "./components/OnboardingModal";
-import SetupPanel from "./components/SetupPanel";
 import ApprovalManager from "./components/ApprovalManager";
 import type {
   AppTab,
@@ -1466,15 +1465,6 @@ function App() {
   const onboardingProgressPercent =
     (onboardingCompletedCount / onboardingSteps.length) * 100;
 
-  const openOnboarding = useCallback(() => {
-    setShowOnboarding(true);
-    setOnboarding((prev) => ({
-      ...prev,
-      seenModal: true,
-      dismissed: false,
-    }));
-  }, []);
-
   const closeOnboarding = useCallback((dismissed: boolean) => {
     setShowOnboarding(false);
     setOnboarding((prev) => ({
@@ -1890,37 +1880,33 @@ function App() {
               </div>
             </div>
 
-            {activeTab === "swap" && (
-              <div className="drawer-section">
-                <h3 className="drawer-section-title">Activity</h3>
-                <ul className="drawer-activity-list">
-                  {activityItems.length === 0 ? (
-                    <li className="drawer-activity-empty">
-                      No recent activity
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">Activity</h3>
+              <ul className="drawer-activity-list">
+                {activityItems.length === 0 ? (
+                  <li className="drawer-activity-empty">No recent activity</li>
+                ) : (
+                  activityItems.slice(0, 5).map((item) => (
+                    <li key={item.id} className="drawer-activity-item">
+                      <span className="drawer-activity-time">
+                        {new Date(item.ts).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      <span className="drawer-activity-message">
+                        {item.message}
+                      </span>
+                      <span
+                        className={`drawer-activity-status drawer-activity-status-${item.status}`}
+                      >
+                        {item.status}
+                      </span>
                     </li>
-                  ) : (
-                    activityItems.slice(0, 5).map((item) => (
-                      <li key={item.id} className="drawer-activity-item">
-                        <span className="drawer-activity-time">
-                          {new Date(item.ts).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <span className="drawer-activity-message">
-                          {item.message}
-                        </span>
-                        <span
-                          className={`drawer-activity-status drawer-activity-status-${item.status}`}
-                        >
-                          {item.status}
-                        </span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-            )}
+                  ))
+                )}
+              </ul>
+            </div>
 
             <nav className="nav-drawer-links">
               <button
@@ -1998,19 +1984,6 @@ function App() {
             )}
 
             <div className="dashboard-main">
-              {showMinimalSwapLayout && !onboarding.dismissed && (
-                <SetupPanel
-                  onboardingSteps={onboardingSteps}
-                  onboardingCompletedCount={onboardingCompletedCount}
-                  onboardingProgressPercent={onboardingProgressPercent}
-                  activeTab={activeTab}
-                  onboardingDismissed={onboarding.dismissed}
-                  faucetPending={faucetPending}
-                  openOnboarding={openOnboarding}
-                  closeOnboarding={closeOnboarding}
-                />
-              )}
-
               {!showMinimalSwapLayout && (
                 <div className="panel-head">
                   <div className="panel-subtitle">
