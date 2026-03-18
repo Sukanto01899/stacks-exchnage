@@ -282,9 +282,16 @@ function App() {
   const [metadataByPrincipal, setMetadataByPrincipal] = useState<
     Record<
       string,
-      { name?: string; symbol?: string; loading?: boolean; error?: string }
+      {
+        name?: string;
+        symbol?: string;
+        loading?: boolean;
+        error?: string;
+        fetchedAt?: number;
+      }
     >
   >({});
+  const metadataTtlMs = 24 * 60 * 60 * 1000;
   const metadataCacheKey = useMemo(
     () => `token-metadata-cache-${RESOLVED_STACKS_NETWORK}`,
     [RESOLVED_STACKS_NETWORK],
@@ -315,14 +322,21 @@ function App() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as Record<
         string,
-        { name?: string; symbol?: string }
+        { name?: string; symbol?: string; fetchedAt?: number }
       >;
       if (!parsed || typeof parsed !== "object") return;
-      setMetadataByPrincipal((prev) => ({ ...parsed, ...prev }));
+      const now = Date.now();
+      const fresh: typeof parsed = {};
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!value) return;
+        if (value.fetchedAt && now - value.fetchedAt > metadataTtlMs) return;
+        fresh[key] = value;
+      });
+      setMetadataByPrincipal((prev) => ({ ...fresh, ...prev }));
     } catch {
       // ignore storage errors
     }
-  }, [metadataCacheKey]);
+  }, [metadataCacheKey, metadataTtlMs]);
 
   const applyTokenSelection = () => {
     if (tokenDraft.xIsStx && tokenDraft.yIsStx) {
@@ -389,6 +403,7 @@ function App() {
             symbol: data?.symbol,
             loading: false,
             error: undefined,
+            fetchedAt: Date.now(),
           },
         }));
       } catch (error) {
@@ -408,10 +423,17 @@ function App() {
 
   useEffect(() => {
     try {
-      const cache: Record<string, { name?: string; symbol?: string }> = {};
+      const cache: Record<
+        string,
+        { name?: string; symbol?: string; fetchedAt?: number }
+      > = {};
       Object.entries(metadataByPrincipal).forEach(([key, value]) => {
         if (value?.symbol || value?.name) {
-          cache[key] = { name: value.name, symbol: value.symbol };
+          cache[key] = {
+            name: value.name,
+            symbol: value.symbol,
+            fetchedAt: value.fetchedAt,
+          };
         }
       });
       localStorage.setItem(metadataCacheKey, JSON.stringify(cache));
@@ -428,13 +450,23 @@ function App() {
     if (principals.length === 0) return;
     const timeout = window.setTimeout(() => {
       principals.forEach((principal) => {
-        if (!metadataByPrincipal[principal]) {
+        const cached = metadataByPrincipal[principal];
+        const isStale =
+          cached?.fetchedAt &&
+          Date.now() - cached.fetchedAt > metadataTtlMs;
+        if (!cached || isStale) {
           void fetchTokenMetadata(principal);
         }
       });
     }, 350);
     return () => window.clearTimeout(timeout);
-  }, [fetchTokenMetadata, getTokenPrincipal, metadataByPrincipal, tokenDraft]);
+  }, [
+    fetchTokenMetadata,
+    getTokenPrincipal,
+    metadataByPrincipal,
+    metadataTtlMs,
+    tokenDraft,
+  ]);
 
   const tokenContracts = useMemo(
     () => ({
@@ -2330,6 +2362,19 @@ function App() {
                       }}
                     >
                       Reset
+                    </button>
+                    <button
+                      className="tiny ghost"
+                      onClick={() => {
+                        setMetadataByPrincipal({});
+                        try {
+                          localStorage.removeItem(metadataCacheKey);
+                        } catch {
+                          // ignore storage errors
+                        }
+                      }}
+                    >
+                      Clear token cache
                     </button>
                     <button className="tiny" onClick={applyTokenSelection}>
                       Apply
