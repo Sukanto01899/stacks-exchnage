@@ -7,6 +7,7 @@ export default function LiquidityCard(props: any) {
     handleFaucet,
     faucetPending,
     tokenLabels,
+    poolTokenLabels,
     tokenInfo,
     liqX,
     setLiqX,
@@ -29,6 +30,8 @@ export default function LiquidityCard(props: any) {
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
+  const poolTokenXLabel = poolTokenLabels?.x || tokenXLabel;
+  const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
 
   const ratio =
     pool && pool.reserveX > 0 && pool.reserveY > 0
@@ -58,15 +61,15 @@ export default function LiquidityCard(props: any) {
         <div className="pool-stat">
           <span className="muted small">Reserves</span>
           <strong>
-            {formatNumber(pool.reserveX)} {tokenXLabel} /{" "}
-            {formatNumber(pool.reserveY)} {tokenYLabel}
+            {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
+            {formatNumber(pool.reserveY)} {poolTokenYLabel}
           </strong>
         </div>
         <div className="pool-stat">
           <span className="muted small">Current ratio</span>
           <strong>
             {ratio
-              ? `1 ${tokenXLabel} ~ ${formatNumber(ratio)} ${tokenYLabel}`
+              ? `1 ${poolTokenXLabel} ~ ${formatNumber(ratio)} ${poolTokenYLabel}`
               : "No liquidity yet"}
           </strong>
         </div>
@@ -74,7 +77,7 @@ export default function LiquidityCard(props: any) {
           <div className="pool-stat">
             <span className="muted small">Pool tokens</span>
             <strong>
-              {tokenXLabel} / {tokenYLabel}
+              {poolTokenXLabel} / {poolTokenYLabel}
             </strong>
           </div>
         )}

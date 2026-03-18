@@ -5,6 +5,7 @@ export default function SwapCard(props: any) {
     poolContract,
     FEE_BPS,
     tokenLabels,
+    poolTokenLabels,
     tokenInfo,
     swapInput,
     setSwapInput,
@@ -65,6 +66,8 @@ export default function SwapCard(props: any) {
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
+  const poolTokenXLabel = poolTokenLabels?.x || tokenXLabel;
+  const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
 
   return (
     <div className="swap-card">
@@ -80,7 +83,7 @@ export default function SwapCard(props: any) {
         <div className="note subtle">
           <p className="muted small">Pool tokens</p>
           <strong>
-            {tokenXLabel} / {tokenYLabel}
+            {poolTokenXLabel} / {poolTokenYLabel}
           </strong>
         </div>
       )}
@@ -188,14 +191,14 @@ export default function SwapCard(props: any) {
         <div className="simple-quote-line">
           <span className="simple-quote-pill muted small">
             {pool.reserveX > 0 && pool.reserveY > 0
-              ? `1 X = ${formatNumber(currentPrice || 0)} Y`
+              ? `1 ${poolTokenXLabel} = ${formatNumber(currentPrice || 0)} ${poolTokenYLabel}`
               : "No liquidity yet"}
           </span>
           <span className="simple-quote-pill muted small">
             {quoteLoading
               ? "Refreshing pool..."
               : liveSwapOutput !== null
-                ? `Est. ${formatNumber(liveSwapOutput)} ${swapDirection === "x-to-y" ? "Y" : "X"}`
+                ? `Est. ${formatNumber(liveSwapOutput)} ${swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}`
                 : "Enter amount"}
           </span>
         </div>
@@ -221,9 +224,11 @@ export default function SwapCard(props: any) {
 
       <div className="inline-stats">
         <div>
-          <p className="muted small">Price (X-&gt;Y)</p>
+          <p className="muted small">Price</p>
           <strong>
-            {currentPrice ? `1 X ~ ${formatNumber(currentPrice)} Y` : "N/A"}
+            {currentPrice
+              ? `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`
+              : "N/A"}
           </strong>
         </div>
         <div>
@@ -233,7 +238,8 @@ export default function SwapCard(props: any) {
         <div>
           <p className="muted small">Pool reserves</p>
           <strong>
-            {formatNumber(pool.reserveX)} X / {formatNumber(pool.reserveY)} Y
+            {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
+            {formatNumber(pool.reserveY)} {poolTokenYLabel}
           </strong>
         </div>
       </div>
@@ -248,7 +254,7 @@ export default function SwapCard(props: any) {
             {liveSwapOutput
               ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))} `
               : "N/A"}
-            {swapDirection === "x-to-y" ? "Y" : "X"}
+            {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
           </strong>
         </div>
       </div>

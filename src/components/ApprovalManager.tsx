@@ -14,6 +14,7 @@ type ApprovalManagerProps = {
   swapAmount: number;
   liqAmountX: number;
   liqAmountY: number;
+  tokenLabels: { x: string; y: string };
   approvalSupport: ApprovalSupport;
   approveUnlimited: boolean;
   setApproveUnlimited: (value: boolean) => void;
@@ -32,6 +33,7 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
     swapAmount,
     liqAmountX,
     liqAmountY,
+    tokenLabels,
     approvalSupport,
     approveUnlimited,
     setApproveUnlimited,
@@ -78,9 +80,11 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
       ) : (
         <div className="approval-grid">
           <div>
-            <p className="muted small">Token X allowance</p>
+            <p className="muted small">{tokenLabels.x} allowance</p>
             <strong>
-              {allowances.x === null ? "N/A" : `${formatNumber(allowances.x)} X`}
+              {allowances.x === null
+                ? "N/A"
+                : `${formatNumber(allowances.x)} ${tokenLabels.x}`}
             </strong>
             <button
               className="tiny ghost"
@@ -89,13 +93,17 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                 !approvalSupport.x || !stacksAddress || approvePending !== null
               }
             >
-              {approvePending === "x" ? "Approving X..." : "Approve X"}
+              {approvePending === "x"
+                ? `Approving ${tokenLabels.x}...`
+                : `Approve ${tokenLabels.x}`}
             </button>
           </div>
           <div>
-            <p className="muted small">Token Y allowance</p>
+            <p className="muted small">{tokenLabels.y} allowance</p>
             <strong>
-              {allowances.y === null ? "N/A" : `${formatNumber(allowances.y)} Y`}
+              {allowances.y === null
+                ? "N/A"
+                : `${formatNumber(allowances.y)} ${tokenLabels.y}`}
             </strong>
             <button
               className="tiny ghost"
@@ -104,7 +112,9 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                 !approvalSupport.y || !stacksAddress || approvePending !== null
               }
             >
-              {approvePending === "y" ? "Approving Y..." : "Approve Y"}
+              {approvePending === "y"
+                ? `Approving ${tokenLabels.y}...`
+                : `Approve ${tokenLabels.y}`}
             </button>
           </div>
         </div>

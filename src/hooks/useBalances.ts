@@ -10,8 +10,9 @@ type TokenId = {
 
 type UseBalancesParams = {
   stacksApi: string;
-  tokenIds: Record<TokenKey, TokenId>;
-  tokenContracts: Record<TokenKey, string>;
+  tokenIds: Record<TokenKey, TokenId | null>;
+  tokenContracts: Record<TokenKey, string | null>;
+  tokenIsStx: Record<TokenKey, boolean>;
   tokenDecimals: number;
   fetchPoolState: (address?: string | null) => Promise<number | null>;
 };
@@ -20,6 +21,7 @@ export const useBalances = ({
   stacksApi,
   tokenIds,
   tokenContracts,
+  tokenIsStx,
   tokenDecimals,
   fetchPoolState,
 }: UseBalancesParams) => {
@@ -42,6 +44,7 @@ export const useBalances = ({
         );
       }
       const data = await response.json();
+      const stxBalanceRaw = data?.stx?.balance;
       const fungible = data?.fungible_tokens || {};
 
       const findTokenEntry = (target: TokenId) => {
@@ -52,23 +55,37 @@ export const useBalances = ({
         return key ? fungible[key] : undefined;
       };
 
-      const tokenX = findTokenEntry(tokenIds.x);
-      const tokenY = findTokenEntry(tokenIds.y);
+      const tokenX = tokenIds.x ? findTokenEntry(tokenIds.x) : undefined;
+      const tokenY = tokenIds.y ? findTokenEntry(tokenIds.y) : undefined;
       const normalize = (balance?: { balance?: string }) =>
         balance?.balance ? Number(balance.balance) / tokenDecimals : 0;
+      const stxNormalize = (balance?: string) =>
+        balance ? Number(balance) / tokenDecimals : 0;
 
       const missing = [];
-      if (!tokenX) missing.push(tokenContracts.x);
-      if (!tokenY) missing.push(tokenContracts.y);
+      if (!tokenIsStx.x && tokenContracts.x && !tokenX) {
+        missing.push(tokenContracts.x);
+      }
+      if (!tokenIsStx.y && tokenContracts.y && !tokenY) {
+        missing.push(tokenContracts.y);
+      }
 
       return {
-        tokenX: normalize(tokenX),
-        tokenY: normalize(tokenY),
+        tokenX: tokenIsStx.x ? stxNormalize(stxBalanceRaw) : normalize(tokenX),
+        tokenY: tokenIsStx.y ? stxNormalize(stxBalanceRaw) : normalize(tokenY),
         missing,
         found: Object.keys(fungible || {}),
       };
     },
-    [stacksApi, tokenContracts.x, tokenContracts.y, tokenDecimals, tokenIds],
+    [
+      stacksApi,
+      tokenContracts.x,
+      tokenContracts.y,
+      tokenDecimals,
+      tokenIds,
+      tokenIsStx.x,
+      tokenIsStx.y,
+    ],
   );
 
   const syncBalances = useCallback(

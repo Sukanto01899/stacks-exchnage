@@ -4,8 +4,11 @@ import { connect, openContractCall } from "@stacks/connect";
 import {
   AnchorMode,
   PostConditionMode,
+  boolCV,
   contractPrincipalCV,
   fetchCallReadOnlyFunction,
+  noneCV,
+  someCV,
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
@@ -256,19 +259,92 @@ function App() {
 
   // TODO: Update these memoized values if your contract has different function names, argument structures, or if you want to support multiple pools or token pairs in the same UI
   const poolContract = useMemo(() => parseContractId(POOL_CONTRACT_ID), []);
-  const tokenContracts = useMemo(
+
+  const defaultTokenSelection = useMemo(
     () => ({
-      x: parseContractId(TOKEN_CONTRACTS.x),
-      y: parseContractId(TOKEN_CONTRACTS.y),
+      xId: TOKEN_CONTRACTS.x,
+      yId: TOKEN_CONTRACTS.y,
+      xIsStx: false,
+      yIsStx: false,
     }),
     [],
   );
+  const tokenSelectionKey = useMemo(
+    () => `token-selection-${RESOLVED_STACKS_NETWORK}`,
+    [RESOLVED_STACKS_NETWORK],
+  );
+  const [tokenSelection, setTokenSelection] = useState(defaultTokenSelection);
+  const [tokenDraft, setTokenDraft] = useState(defaultTokenSelection);
+  const [tokenSelectMessage, setTokenSelectMessage] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(tokenSelectionKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<typeof defaultTokenSelection>;
+      if (!parsed || typeof parsed !== "object") return;
+      const next = {
+        xId: typeof parsed.xId === "string" ? parsed.xId : TOKEN_CONTRACTS.x,
+        yId: typeof parsed.yId === "string" ? parsed.yId : TOKEN_CONTRACTS.y,
+        xIsStx: !!parsed.xIsStx,
+        yIsStx: !!parsed.yIsStx,
+      };
+      setTokenSelection(next);
+      setTokenDraft(next);
+    } catch {
+      // ignore storage parse errors
+    }
+  }, [tokenSelectionKey]);
+
+  const applyTokenSelection = () => {
+    if (tokenDraft.xIsStx && tokenDraft.yIsStx) {
+      setTokenSelectMessage("Both sides cannot be STX. Choose one side only.");
+      return;
+    }
+    if (!tokenDraft.xIsStx && !tokenDraft.xId.includes("::")) {
+      setTokenSelectMessage("Token X must be in `contract::asset` format.");
+      return;
+    }
+    if (!tokenDraft.yIsStx && !tokenDraft.yId.includes("::")) {
+      setTokenSelectMessage("Token Y must be in `contract::asset` format.");
+      return;
+    }
+    setTokenSelection(tokenDraft);
+    setTokenSelectMessage("Token selection updated.");
+    try {
+      localStorage.setItem(tokenSelectionKey, JSON.stringify(tokenDraft));
+    } catch {
+      // ignore storage errors
+    }
+    if (stacksAddress) {
+      void syncBalances(stacksAddress, { silent: true });
+    } else {
+      void fetchPoolState(null);
+    }
+  };
+
+  const tokenContracts = useMemo(
+    () => ({
+      x: tokenSelection.xIsStx ? null : parseContractId(tokenSelection.xId),
+      y: tokenSelection.yIsStx ? null : parseContractId(tokenSelection.yId),
+    }),
+    [tokenSelection],
+  );
   const tokenIds = useMemo(
     () => ({
-      x: parseTokenAssetId(TOKEN_CONTRACTS.x),
-      y: parseTokenAssetId(TOKEN_CONTRACTS.y),
+      x: tokenSelection.xIsStx ? null : parseTokenAssetId(tokenSelection.xId),
+      y: tokenSelection.yIsStx ? null : parseTokenAssetId(tokenSelection.yId),
     }),
-    [],
+    [tokenSelection],
+  );
+  const tokenIsStx = useMemo(
+    () => ({
+      x: tokenSelection.xIsStx,
+      y: tokenSelection.yIsStx,
+    }),
+    [tokenSelection],
   );
 
   // TODO: Update the spender contract ID if your contract uses a different approval mechanism
@@ -304,7 +380,11 @@ function App() {
   } = useBalances({
     stacksApi: STACKS_API,
     tokenIds,
-    tokenContracts: TOKEN_CONTRACTS,
+    tokenContracts: {
+      x: tokenSelection.xIsStx ? null : tokenSelection.xId,
+      y: tokenSelection.yIsStx ? null : tokenSelection.yId,
+    },
+    tokenIsStx,
     tokenDecimals: TOKEN_DECIMALS,
     fetchPoolState,
   });
@@ -325,7 +405,7 @@ function App() {
     return balances.lpShares / pool.totalShares;
   }, [balances.lpShares, pool.totalShares]);
 
-  const tokenLabels = useMemo(() => {
+  const poolTokenLabels = useMemo(() => {
     const fallback = { x: "Token X", y: "Token Y" };
     if (!tokenInfo) return fallback;
     const format = (isStx: boolean, principal: string | null, fallbackLabel: string) => {
@@ -338,6 +418,43 @@ function App() {
       y: format(tokenInfo.tokenYIsStx, tokenInfo.tokenY, "Token Y"),
     };
   }, [tokenInfo]);
+
+  const selectionLabels = useMemo(() => {
+    const format = (isStx: boolean, id: string, fallback: string) => {
+      if (isStx) return "STX";
+      const contractId = id.split("::")[0] || "";
+      return contractId ? shortAddress(contractId) : fallback;
+    };
+    return {
+      x: format(tokenSelection.xIsStx, tokenSelection.xId, "Token X"),
+      y: format(tokenSelection.yIsStx, tokenSelection.yId, "Token Y"),
+    };
+  }, [tokenSelection]);
+
+  const toOptionalTokenCv = useCallback(
+    (token: TokenKey) => {
+      if (tokenIsStx[token]) return noneCV();
+      const t = tokenContracts[token];
+      if (!t?.address || !t?.contractName) {
+        throw new Error("Token contract is missing or invalid.");
+      }
+      return someCV(contractPrincipalCV(t.address, t.contractName));
+    },
+    [tokenContracts, tokenIsStx],
+  );
+
+  const validateTokenConfig = useCallback(() => {
+    if (!tokenIsStx.x && (!tokenContracts.x?.address || !tokenContracts.x?.contractName)) {
+      return "Token X contract is missing or invalid.";
+    }
+    if (!tokenIsStx.y && (!tokenContracts.y?.address || !tokenContracts.y?.contractName)) {
+      return "Token Y contract is missing or invalid.";
+    }
+    if (tokenIsStx.x && tokenIsStx.y) {
+      return "Both sides cannot be STX. Choose one side only.";
+    }
+    return null;
+  }, [tokenContracts, tokenIsStx]);
 
   const currentPrice = useMemo(() => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
@@ -440,7 +557,9 @@ function App() {
   // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const detectApprovalSupport = useCallback(
     async (token: TokenKey) => {
+      if (tokenIsStx[token]) return false;
       const t = tokenContracts[token];
+      if (!t?.address || !t?.contractName) return false;
       const url = `${STACKS_API}/v2/contracts/interface/${t.address}/${t.contractName}`;
       const response = await fetch(url).catch(() => null);
       if (!response?.ok) return false;
@@ -454,14 +573,16 @@ function App() {
       );
       return hasApprove && hasAllowance;
     },
-    [tokenContracts],
+    [STACKS_API, tokenContracts, tokenIsStx],
   );
 
   // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const fetchAllowance = useCallback(
     async (token: TokenKey, owner: string) => {
+      if (tokenIsStx[token]) return null;
       if (!approvalSupport[token]) return null;
       const t = tokenContracts[token];
+      if (!t?.address || !t?.contractName) return null;
       const result = await fetchCallReadOnlyFunction({
         contractAddress: t.address,
         contractName: t.contractName,
@@ -483,6 +604,8 @@ function App() {
       poolContract.address,
       poolContract.contractName,
       tokenContracts,
+      tokenIsStx.x,
+      tokenIsStx.y,
     ],
   );
 
@@ -509,10 +632,10 @@ function App() {
     };
   }, [
     detectApprovalSupport,
-    tokenContracts.x.address,
-    tokenContracts.x.contractName,
-    tokenContracts.y.address,
-    tokenContracts.y.contractName,
+    tokenSelection.xId,
+    tokenSelection.yId,
+    tokenSelection.xIsStx,
+    tokenSelection.yIsStx,
   ]);
 
   // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
@@ -541,10 +664,10 @@ function App() {
     approvalSupport.y,
     poolContract.address,
     poolContract.contractName,
-    tokenContracts.x.address,
-    tokenContracts.x.contractName,
-    tokenContracts.y.address,
-    tokenContracts.y.contractName,
+    tokenSelection.xId,
+    tokenSelection.yId,
+    tokenSelection.xIsStx,
+    tokenSelection.yIsStx,
   ]);
 
   useEffect(() => {
@@ -858,6 +981,11 @@ function App() {
   const prepareSwapDraft = async (addressOverride?: string | null) => {
     const activeAddress = addressOverride || stacksAddress;
     setSwapMessage(null);
+    const tokenConfigError = validateTokenConfig();
+    if (tokenConfigError) {
+      setSwapMessage(tokenConfigError);
+      return null;
+    }
     const amount = Number(swapInput);
     if (!amount || amount <= 0) {
       setSwapMessage("Enter an amount greater than 0.");
@@ -882,7 +1010,7 @@ function App() {
       const allowance = allowances[inputToken] || 0;
       if (allowance + Number.EPSILON < amount) {
         setSwapMessage(
-          `Approve ${fromX ? "Token X" : "Token Y"} first. Required: ${formatNumber(amount)}, current allowance: ${formatNumber(allowance)}.`,
+          `Approve ${fromX ? selectionLabels.x : selectionLabels.y} first. Required: ${formatNumber(amount)}, current allowance: ${formatNumber(allowance)}.`,
         );
         return null;
       }
@@ -1012,35 +1140,14 @@ function App() {
     }
 
     const functionName = fromX ? "swap-x-for-y" : "swap-y-for-x";
-    const functionArgs = fromX
-      ? [
-          contractPrincipalCV(
-            tokenContracts.x.address,
-            tokenContracts.x.contractName,
-          ),
-          contractPrincipalCV(
-            tokenContracts.y.address,
-            tokenContracts.y.contractName,
-          ),
-          uintCV(amountMicro),
-          uintCV(minOutMicro),
-          standardPrincipalCV(activeAddress),
-          uintCV(deadline),
-        ]
-      : [
-          contractPrincipalCV(
-            tokenContracts.x.address,
-            tokenContracts.x.contractName,
-          ),
-          contractPrincipalCV(
-            tokenContracts.y.address,
-            tokenContracts.y.contractName,
-          ),
-          uintCV(amountMicro),
-          uintCV(minOutMicro),
-          standardPrincipalCV(activeAddress),
-          uintCV(deadline),
-        ];
+    const functionArgs = [
+      toOptionalTokenCv("x"),
+      toOptionalTokenCv("y"),
+      uintCV(amountMicro),
+      uintCV(minOutMicro),
+      standardPrincipalCV(activeAddress),
+      uintCV(deadline),
+    ];
 
     return {
       amount,
@@ -1137,9 +1244,13 @@ function App() {
       setApprovalMessage("Connect a Stacks wallet first.");
       return;
     }
+    if (tokenIsStx[token]) {
+      setApprovalMessage("STX does not require approvals.");
+      return;
+    }
     if (!approvalSupport[token]) {
       setApprovalMessage(
-        `${token === "x" ? "Token X" : "Token Y"} does not require approvals with the current contract.`,
+        `${selectionLabels[token]} does not require approvals with the current contract.`,
       );
       return;
     }
@@ -1149,8 +1260,12 @@ function App() {
     );
     const unlimitedMicro = 9_999_999_999_999_999n;
     const amountMicro = approveUnlimited ? unlimitedMicro : requiredMicro;
-    const tokenLabel = token === "x" ? "Token X" : "Token Y";
+    const tokenLabel = selectionLabels[token];
     const tokenContract = tokenContracts[token];
+    if (!tokenContract?.address || !tokenContract?.contractName) {
+      setApprovalMessage("Token contract is missing or invalid.");
+      return;
+    }
 
     try {
       setApprovePending(token);
@@ -1209,6 +1324,11 @@ function App() {
 
   const handleAddLiquidity = async () => {
     setLiqMessage(null);
+    const tokenConfigError = validateTokenConfig();
+    if (tokenConfigError) {
+      setLiqMessage(tokenConfigError);
+      return;
+    }
     const amountX = Number(liqX);
     const amountY = Number(liqY);
     if (amountX <= 0 || amountY <= 0) {
@@ -1223,7 +1343,7 @@ function App() {
       const allowanceX = allowances.x || 0;
       if (allowanceX + Number.EPSILON < amountX) {
         setLiqMessage(
-          `Approve Token X first. Required: ${formatNumber(amountX)}, current allowance: ${formatNumber(allowanceX)}.`,
+          `Approve ${selectionLabels.x} first. Required: ${formatNumber(amountX)}, current allowance: ${formatNumber(allowanceX)}.`,
         );
         return;
       }
@@ -1232,7 +1352,7 @@ function App() {
       const allowanceY = allowances.y || 0;
       if (allowanceY + Number.EPSILON < amountY) {
         setLiqMessage(
-          `Approve Token Y first. Required: ${formatNumber(amountY)}, current allowance: ${formatNumber(allowanceY)}.`,
+          `Approve ${selectionLabels.y} first. Required: ${formatNumber(amountY)}, current allowance: ${formatNumber(allowanceY)}.`,
         );
         return;
       }
@@ -1255,26 +1375,16 @@ function App() {
     const functionName = initializing ? "initialize-pool" : "add-liquidity";
     const functionArgs = initializing
       ? [
-          contractPrincipalCV(
-            tokenContracts.x.address,
-            tokenContracts.x.contractName,
-          ),
-          contractPrincipalCV(
-            tokenContracts.y.address,
-            tokenContracts.y.contractName,
-          ),
+          toOptionalTokenCv("x"),
+          toOptionalTokenCv("y"),
+          boolCV(tokenIsStx.x),
+          boolCV(tokenIsStx.y),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
         ]
       : [
-          contractPrincipalCV(
-            tokenContracts.x.address,
-            tokenContracts.x.contractName,
-          ),
-          contractPrincipalCV(
-            tokenContracts.y.address,
-            tokenContracts.y.contractName,
-          ),
+          toOptionalTokenCv("x"),
+          toOptionalTokenCv("y"),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
           uintCV(minShares),
@@ -1324,6 +1434,11 @@ function App() {
 
   const handleRemoveLiquidity = async () => {
     setBurnMessage(null);
+    const tokenConfigError = validateTokenConfig();
+    if (tokenConfigError) {
+      setBurnMessage(tokenConfigError);
+      return;
+    }
     const shares = Number(burnShares);
     if (shares <= 0) {
       setBurnMessage("Enter a share amount greater than 0.");
@@ -1346,14 +1461,8 @@ function App() {
         contractName: poolContract.contractName,
         functionName: "remove-liquidity",
         functionArgs: [
-          contractPrincipalCV(
-            tokenContracts.x.address,
-            tokenContracts.x.contractName,
-          ),
-          contractPrincipalCV(
-            tokenContracts.y.address,
-            tokenContracts.y.contractName,
-          ),
+          toOptionalTokenCv("x"),
+          toOptionalTokenCv("y"),
           uintCV(sharesUint),
           uintCV(minX),
           uintCV(minY),
@@ -1852,6 +1961,7 @@ function App() {
       swapAmount={swapAmount}
       liqAmountX={liqAmountX}
       liqAmountY={liqAmountY}
+      tokenLabels={selectionLabels}
       approvalSupport={approvalSupport}
       approveUnlimited={approveUnlimited}
       setApproveUnlimited={setApproveUnlimited}
@@ -1955,11 +2065,11 @@ function App() {
             <div className="drawer-section">
               <h3 className="drawer-section-title">Wallet</h3>
               <div className="drawer-balance-row">
-                <span>Token X</span>
+                <span>{selectionLabels.x}</span>
                 <span>{formatNumber(balances.tokenX)}</span>
               </div>
               <div className="drawer-balance-row">
-                <span>Token Y</span>
+                <span>{selectionLabels.y}</span>
                 <span>{formatNumber(balances.tokenY)}</span>
               </div>
               <div className="drawer-balance-row">
@@ -2092,6 +2202,94 @@ function App() {
                 </div>
               )}
 
+              <div className="token-card">
+                <div className="token-card-head">
+                  <div>
+                    <span className="muted small">Token selection</span>
+                    <strong>Choose SIP-010 tokens or STX</strong>
+                  </div>
+                  <div className="mini-actions">
+                    <button
+                      className="tiny ghost"
+                      onClick={() => {
+                        setTokenDraft(tokenSelection);
+                        setTokenSelectMessage(null);
+                      }}
+                    >
+                      Reset
+                    </button>
+                    <button className="tiny" onClick={applyTokenSelection}>
+                      Apply
+                    </button>
+                  </div>
+                </div>
+                <div className="dual-input">
+                  <div>
+                    <label>Token X (contract::asset)</label>
+                    <input
+                      type="text"
+                      value={tokenDraft.xId}
+                      onChange={(e) =>
+                        setTokenDraft((prev) => ({
+                          ...prev,
+                          xId: e.target.value,
+                        }))
+                      }
+                      disabled={tokenDraft.xIsStx}
+                      placeholder="SP...contract::asset"
+                    />
+                    <label className="target-toggle">
+                      <input
+                        type="checkbox"
+                        checked={tokenDraft.xIsStx}
+                        onChange={(e) =>
+                          setTokenDraft((prev) => ({
+                            ...prev,
+                            xIsStx: e.target.checked,
+                          }))
+                        }
+                      />
+                      Use STX
+                    </label>
+                  </div>
+                  <div>
+                    <label>Token Y (contract::asset)</label>
+                    <input
+                      type="text"
+                      value={tokenDraft.yId}
+                      onChange={(e) =>
+                        setTokenDraft((prev) => ({
+                          ...prev,
+                          yId: e.target.value,
+                        }))
+                      }
+                      disabled={tokenDraft.yIsStx}
+                      placeholder="SP...contract::asset"
+                    />
+                    <label className="target-toggle">
+                      <input
+                        type="checkbox"
+                        checked={tokenDraft.yIsStx}
+                        onChange={(e) =>
+                          setTokenDraft((prev) => ({
+                            ...prev,
+                            yIsStx: e.target.checked,
+                          }))
+                        }
+                      />
+                      Use STX
+                    </label>
+                  </div>
+                </div>
+                <p className="muted small">
+                  For SIP-010 tokens, use the full asset id format
+                  `contract::asset`. STX uses your native balance.
+                </p>
+                {tokenSelectMessage && (
+                  <p className="muted small">{tokenSelectMessage}</p>
+                )}
+              </div>
+
               {pendingTxs.length > 0 && (
                 <div className="note subtle">
                   <div className="activity-head">
@@ -2134,7 +2332,8 @@ function App() {
                   showMinimalSwapLayout={showMinimalSwapLayout}
                   poolContract={poolContract}
                   FEE_BPS={FEE_BPS}
-                  tokenLabels={tokenLabels}
+                  tokenLabels={selectionLabels}
+                  poolTokenLabels={poolTokenLabels}
                   tokenInfo={tokenInfo}
                   swapInput={swapInput}
                   setSwapInput={setSwapInput}
@@ -2202,7 +2401,8 @@ function App() {
                     setMaxLiquidity={setMaxLiquidity}
                     handleFaucet={handleFaucet}
                     faucetPending={faucetPending}
-                    tokenLabels={tokenLabels}
+                    tokenLabels={selectionLabels}
+                    poolTokenLabels={poolTokenLabels}
                     tokenInfo={tokenInfo}
                     liqX={liqX}
                     setLiqX={setLiqX}
