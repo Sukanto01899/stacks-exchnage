@@ -279,6 +279,12 @@ function App() {
   const [tokenSelectMessage, setTokenSelectMessage] = useState<string | null>(
     null,
   );
+  const [metadataByPrincipal, setMetadataByPrincipal] = useState<
+    Record<
+      string,
+      { name?: string; symbol?: string; loading?: boolean; error?: string }
+    >
+  >({});
 
   useEffect(() => {
     try {
@@ -325,6 +331,77 @@ function App() {
       void fetchPoolState(null);
     }
   };
+
+  const metadataApiBase = useMemo(
+    () =>
+      RESOLVED_STACKS_NETWORK === "mainnet"
+        ? "https://api.hiro.so"
+        : "https://api.testnet.hiro.so",
+    [RESOLVED_STACKS_NETWORK],
+  );
+
+  const getTokenPrincipal = useCallback((id: string) => {
+    if (!id) return "";
+    return id.split("::")[0] || "";
+  }, []);
+
+  const fetchTokenMetadata = useCallback(
+    async (principal: string) => {
+      if (!principal) return;
+      setMetadataByPrincipal((prev) => ({
+        ...prev,
+        [principal]: { ...prev[principal], loading: true, error: undefined },
+      }));
+      try {
+        const response = await fetch(
+          `${metadataApiBase}/metadata/v1/ft/${principal}`,
+        );
+        if (!response.ok) {
+          throw new Error(`Metadata not found (${response.status})`);
+        }
+        const data = (await response.json().catch(() => ({}))) as {
+          name?: string;
+          symbol?: string;
+        };
+        setMetadataByPrincipal((prev) => ({
+          ...prev,
+          [principal]: {
+            name: data?.name,
+            symbol: data?.symbol,
+            loading: false,
+            error: undefined,
+          },
+        }));
+      } catch (error) {
+        setMetadataByPrincipal((prev) => ({
+          ...prev,
+          [principal]: {
+            ...prev[principal],
+            loading: false,
+            error:
+              error instanceof Error ? error.message : "Metadata fetch failed",
+          },
+        }));
+      }
+    },
+    [metadataApiBase],
+  );
+
+  useEffect(() => {
+    const principals = [
+      tokenDraft.xIsStx ? "" : getTokenPrincipal(tokenDraft.xId),
+      tokenDraft.yIsStx ? "" : getTokenPrincipal(tokenDraft.yId),
+    ].filter(Boolean);
+    if (principals.length === 0) return;
+    const timeout = window.setTimeout(() => {
+      principals.forEach((principal) => {
+        if (!metadataByPrincipal[principal]) {
+          void fetchTokenMetadata(principal);
+        }
+      });
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [fetchTokenMetadata, getTokenPrincipal, metadataByPrincipal, tokenDraft]);
 
   const tokenContracts = useMemo(
     () => ({
@@ -424,13 +501,15 @@ function App() {
     const format = (isStx: boolean, id: string, fallback: string) => {
       if (isStx) return "STX";
       const contractId = id.split("::")[0] || "";
+      const meta = contractId ? metadataByPrincipal[contractId] : undefined;
+      if (meta?.symbol) return meta.symbol;
       return contractId ? shortAddress(contractId) : fallback;
     };
     return {
       x: format(tokenSelection.xIsStx, tokenSelection.xId, "Token X"),
       y: format(tokenSelection.yIsStx, tokenSelection.yId, "Token Y"),
     };
-  }, [tokenSelection]);
+  }, [metadataByPrincipal, tokenSelection]);
 
   const toOptionalTokenCv = useCallback(
     (token: TokenKey) => {
@@ -2263,6 +2342,33 @@ function App() {
                       disabled={tokenDraft.xIsStx}
                       placeholder="SP...contract::asset"
                     />
+                    {!tokenDraft.xIsStx && tokenDraft.xId && (
+                      <p className="muted small">
+                        {metadataByPrincipal[getTokenPrincipal(tokenDraft.xId)]
+                          ?.loading
+                          ? "Loading metadata..."
+                          : metadataByPrincipal[getTokenPrincipal(tokenDraft.xId)]
+                              ?.symbol
+                            ? `Detected: ${
+                                metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.xId)
+                                ]?.symbol
+                              }${
+                                metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.xId)
+                                ]?.name
+                                  ? ` — ${
+                                      metadataByPrincipal[
+                                        getTokenPrincipal(tokenDraft.xId)
+                                      ]?.name
+                                    }`
+                                  : ""
+                              }`
+                            : metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.xId)
+                                ]?.error || "Metadata unavailable"}
+                      </p>
+                    )}
                     <label className="target-toggle">
                       <input
                         type="checkbox"
@@ -2315,6 +2421,33 @@ function App() {
                       disabled={tokenDraft.yIsStx}
                       placeholder="SP...contract::asset"
                     />
+                    {!tokenDraft.yIsStx && tokenDraft.yId && (
+                      <p className="muted small">
+                        {metadataByPrincipal[getTokenPrincipal(tokenDraft.yId)]
+                          ?.loading
+                          ? "Loading metadata..."
+                          : metadataByPrincipal[getTokenPrincipal(tokenDraft.yId)]
+                              ?.symbol
+                            ? `Detected: ${
+                                metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.yId)
+                                ]?.symbol
+                              }${
+                                metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.yId)
+                                ]?.name
+                                  ? ` — ${
+                                      metadataByPrincipal[
+                                        getTokenPrincipal(tokenDraft.yId)
+                                      ]?.name
+                                    }`
+                                  : ""
+                              }`
+                            : metadataByPrincipal[
+                                  getTokenPrincipal(tokenDraft.yId)
+                                ]?.error || "Metadata unavailable"}
+                      </p>
+                    )}
                     <label className="target-toggle">
                       <input
                         type="checkbox"
