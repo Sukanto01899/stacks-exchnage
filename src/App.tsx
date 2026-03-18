@@ -285,6 +285,10 @@ function App() {
       { name?: string; symbol?: string; loading?: boolean; error?: string }
     >
   >({});
+  const metadataCacheKey = useMemo(
+    () => `token-metadata-cache-${RESOLVED_STACKS_NETWORK}`,
+    [RESOLVED_STACKS_NETWORK],
+  );
 
   useEffect(() => {
     try {
@@ -304,6 +308,21 @@ function App() {
       // ignore storage parse errors
     }
   }, [tokenSelectionKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(metadataCacheKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<
+        string,
+        { name?: string; symbol?: string }
+      >;
+      if (!parsed || typeof parsed !== "object") return;
+      setMetadataByPrincipal((prev) => ({ ...parsed, ...prev }));
+    } catch {
+      // ignore storage errors
+    }
+  }, [metadataCacheKey]);
 
   const applyTokenSelection = () => {
     if (tokenDraft.xIsStx && tokenDraft.yIsStx) {
@@ -386,6 +405,20 @@ function App() {
     },
     [metadataApiBase],
   );
+
+  useEffect(() => {
+    try {
+      const cache: Record<string, { name?: string; symbol?: string }> = {};
+      Object.entries(metadataByPrincipal).forEach(([key, value]) => {
+        if (value?.symbol || value?.name) {
+          cache[key] = { name: value.name, symbol: value.symbol };
+        }
+      });
+      localStorage.setItem(metadataCacheKey, JSON.stringify(cache));
+    } catch {
+      // ignore storage errors
+    }
+  }, [metadataByPrincipal, metadataCacheKey]);
 
   useEffect(() => {
     const principals = [
