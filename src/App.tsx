@@ -316,6 +316,10 @@ function App() {
     fetchPoolState,
     explainPoolError,
   });
+  const pendingTxs = useMemo(
+    () => activityItems.filter((item) => item.status === "submitted"),
+    [activityItems],
+  );
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
@@ -1986,6 +1990,16 @@ function App() {
                       >
                         {item.status}
                       </span>
+                      {item.txid ? (
+                        <a
+                          className="chip ghost"
+                          href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                        </a>
+                      ) : null}
                     </li>
                   ))
                 )}
@@ -2075,6 +2089,43 @@ function App() {
                       ? "Add or remove liquidity from the pool."
                       : "Inspect price movement, reserves, and local activity trends."}
                   </div>
+                </div>
+              )}
+
+              {pendingTxs.length > 0 && (
+                <div className="note subtle">
+                  <div className="activity-head">
+                    <div>
+                      <p className="eyebrow">Pending</p>
+                      <h3>
+                        {pendingTxs.length} transaction
+                        {pendingTxs.length === 1 ? "" : "s"} in flight
+                      </h3>
+                    </div>
+                    <div className="mini-actions">
+                      <button
+                        className="tiny ghost"
+                        onClick={() => void handleManualRefresh()}
+                        disabled={poolPending}
+                      >
+                        Refresh now
+                      </button>
+                      {pendingTxs[0]?.txid ? (
+                        <a
+                          className="tiny ghost"
+                          href={`https://explorer.hiro.so/txid/${pendingTxs[0].txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View latest
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="muted small">
+                    We are polling the chain and will refresh balances on
+                    confirmation.
+                  </p>
                 </div>
               )}
 
