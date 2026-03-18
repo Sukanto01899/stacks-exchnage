@@ -1,8 +1,15 @@
 import { useCallback, useState } from "react";
 import { fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions";
 import type { StacksNetwork } from "@stacks/network";
-import type { PoolState } from "../type";
-import { parseClarityNumber, parsePoolReserves, unwrapReadOnlyOk } from "../lib/clarity";
+import type { PoolState, PoolTokenInfo } from "../type";
+import {
+  parseClarityBool,
+  parseClarityNumber,
+  parseOptionalPrincipal,
+  parsePoolReserves,
+  readClarityField,
+  unwrapReadOnlyOk,
+} from "../lib/clarity";
 
 type PoolContract = {
   address: string;
@@ -27,6 +34,7 @@ export const usePool = ({
     reserveY: 0,
     totalShares: 0,
   });
+  const [tokenInfo, setTokenInfo] = useState<PoolTokenInfo | null>(null);
   const [poolPending, setPoolPending] = useState(false);
   const [lastPoolRefreshAt, setLastPoolRefreshAt] = useState<number | null>(
     null,
@@ -53,6 +61,14 @@ export const usePool = ({
           senderAddress,
           network,
         });
+        const tokenInfoResult = await fetchCallReadOnlyFunction({
+          contractAddress: poolContract.address,
+          contractName: poolContract.contractName,
+          functionName: "get-token-info",
+          functionArgs: [],
+          senderAddress,
+          network,
+        });
         const lpBalance =
           address &&
           (await fetchCallReadOnlyFunction({
@@ -65,18 +81,27 @@ export const usePool = ({
           }));
 
         const reserveValue = unwrapReadOnlyOk(reserves);
-        const totalSupplyValue = parseClarityNumber(
-          unwrapReadOnlyOk(totalSupply),
-        );
+        const totalSupplyValue = parseClarityNumber(unwrapReadOnlyOk(totalSupply));
         const lpBalanceValue = lpBalance
           ? parseClarityNumber(unwrapReadOnlyOk(lpBalance))
           : 0;
+        const tokenInfoValue = unwrapReadOnlyOk(tokenInfoResult);
+        const tokenXRaw = readClarityField(tokenInfoValue, "token-x");
+        const tokenYRaw = readClarityField(tokenInfoValue, "token-y");
+        const tokenXIsStxRaw = readClarityField(tokenInfoValue, "token-x-is-stx");
+        const tokenYIsStxRaw = readClarityField(tokenInfoValue, "token-y-is-stx");
         const parsedReserves = parsePoolReserves(reserveValue, tokenDecimals);
 
         setPool({
           reserveX: parsedReserves.reserveX,
           reserveY: parsedReserves.reserveY,
           totalShares: totalSupplyValue,
+        });
+        setTokenInfo({
+          tokenX: parseOptionalPrincipal(tokenXRaw),
+          tokenY: parseOptionalPrincipal(tokenYRaw),
+          tokenXIsStx: parseClarityBool(tokenXIsStxRaw),
+          tokenYIsStx: parseClarityBool(tokenYIsStxRaw),
         });
         setLastPoolRefreshAt(Date.now());
         return address ? lpBalanceValue : null;
@@ -98,6 +123,7 @@ export const usePool = ({
 
   return {
     pool,
+    tokenInfo,
     poolPending,
     lastPoolRefreshAt,
     fetchPoolState,

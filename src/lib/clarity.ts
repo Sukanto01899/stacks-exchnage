@@ -1,6 +1,6 @@
 import { cvToValue } from "@stacks/transactions";
 
-const readClarityField = (raw: unknown, key: string): unknown => {
+export const readClarityField = (raw: unknown, key: string): unknown => {
   if (!raw || typeof raw !== "object") return undefined;
   const record = raw as Record<string, unknown>;
   if (key in record) return record[key];
@@ -40,6 +40,36 @@ export const parseClarityNumber = (value: unknown): number => {
     }
   }
   return 0;
+};
+
+export const parseClarityBool = (value: unknown): boolean => {
+  if (typeof value === "boolean") return value;
+  if (value && typeof value === "object") {
+    const record = value as { value?: unknown };
+    if ("value" in record) {
+      return Boolean(record.value);
+    }
+  }
+  return false;
+};
+
+export const parseOptionalPrincipal = (value: unknown): string | null => {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return null;
+  const record = value as { type?: string; value?: unknown };
+  if (record.type === "none") return null;
+  if (record.type === "some") {
+    const inner = record.value as unknown;
+    if (typeof inner === "string") return inner;
+    if (inner && typeof inner === "object") {
+      const nested = inner as { value?: unknown; address?: string; contractName?: string };
+      if (typeof nested.value === "string") return nested.value;
+      if (nested.address && nested.contractName) {
+        return `${nested.address}.${nested.contractName}`;
+      }
+    }
+  }
+  return null;
 };
 
 export const parsePoolReserves = (raw: unknown, tokenDecimals: number) => ({

@@ -4,6 +4,8 @@ export default function SwapCard(props: any) {
     showMinimalSwapLayout,
     poolContract,
     FEE_BPS,
+    tokenLabels,
+    tokenInfo,
     swapInput,
     setSwapInput,
     swapDirection,
@@ -61,6 +63,9 @@ export default function SwapCard(props: any) {
     preflightPending
   } = props;
 
+  const tokenXLabel = tokenLabels?.x || "Token X";
+  const tokenYLabel = tokenLabels?.y || "Token Y";
+
   return (
     <div className="swap-card">
       {showMinimalSwapLayout && (
@@ -68,6 +73,15 @@ export default function SwapCard(props: any) {
           <span className="chip success">Instant route</span>
           <span className="chip ghost">{poolContract.contractName}</span>
           <span className="chip ghost">{(FEE_BPS / 100).toFixed(2)}% fee</span>
+        </div>
+      )}
+
+      {tokenInfo && (
+        <div className="note subtle">
+          <p className="muted small">Pool tokens</p>
+          <strong>
+            {tokenXLabel} / {tokenYLabel}
+          </strong>
         </div>
       )}
 
@@ -110,8 +124,8 @@ export default function SwapCard(props: any) {
               setSwapDirection(e.target.value === "x" ? "x-to-y" : "y-to-x")
             }
           >
-            <option value="x">Token X</option>
-            <option value="y">Token Y</option>
+            <option value="x">{tokenXLabel}</option>
+            <option value="y">{tokenYLabel}</option>
           </select>
         </div>
         <p className="muted small">
@@ -152,8 +166,8 @@ export default function SwapCard(props: any) {
             value={swapDirection === "x-to-y" ? "y" : "x"}
             disabled
           >
-            <option value="x">Token X</option>
-            <option value="y">Token Y</option>
+            <option value="x">{tokenXLabel}</option>
+            <option value="y">{tokenYLabel}</option>
           </select>
         </div>
         <div className="token-output">

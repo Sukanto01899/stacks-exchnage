@@ -4,6 +4,8 @@ export default function LiquidityCard(props: any) {
     handleSyncToPoolRatio,
     handleFaucet,
     faucetPending,
+    tokenLabels,
+    tokenInfo,
     liqX,
     setLiqX,
     formatNumber,
@@ -21,6 +23,9 @@ export default function LiquidityCard(props: any) {
     pool,
     handleRemoveLiquidity
   } = props;
+
+  const tokenXLabel = tokenLabels?.x || "Token X";
+  const tokenYLabel = tokenLabels?.y || "Token Y";
 
   const ratio =
     pool && pool.reserveX > 0 && pool.reserveY > 0
@@ -50,15 +55,26 @@ export default function LiquidityCard(props: any) {
         <div className="pool-stat">
           <span className="muted small">Reserves</span>
           <strong>
-            {formatNumber(pool.reserveX)} X / {formatNumber(pool.reserveY)} Y
+            {formatNumber(pool.reserveX)} {tokenXLabel} /{" "}
+            {formatNumber(pool.reserveY)} {tokenYLabel}
           </strong>
         </div>
         <div className="pool-stat">
           <span className="muted small">Current ratio</span>
           <strong>
-            {ratio ? `1 X ~ ${formatNumber(ratio)} Y` : "No liquidity yet"}
+            {ratio
+              ? `1 ${tokenXLabel} ~ ${formatNumber(ratio)} ${tokenYLabel}`
+              : "No liquidity yet"}
           </strong>
         </div>
+        {tokenInfo && (
+          <div className="pool-stat">
+            <span className="muted small">Pool tokens</span>
+            <strong>
+              {tokenXLabel} / {tokenYLabel}
+            </strong>
+          </div>
+        )}
       </div>
 
       <div className="token-card pool-card">
@@ -82,7 +98,7 @@ export default function LiquidityCard(props: any) {
         </div>
         <div className="dual-input">
           <div>
-            <label>Token X</label>
+            <label>{tokenXLabel}</label>
             <input
               type="number"
               value={liqX}
@@ -98,12 +114,12 @@ export default function LiquidityCard(props: any) {
                 className="tiny ghost"
                 onClick={() => fillLiquidityInput("x")}
               >
-                Use X balance
+                Use {tokenXLabel} balance
               </button>
             </div>
           </div>
           <div>
-            <label>Token Y</label>
+            <label>{tokenYLabel}</label>
             <input
               type="number"
               value={liqY}
@@ -119,7 +135,7 @@ export default function LiquidityCard(props: any) {
                 className="tiny ghost"
                 onClick={() => fillLiquidityInput("y")}
               >
-                Use Y balance
+                Use {tokenYLabel} balance
               </button>
             </div>
           </div>

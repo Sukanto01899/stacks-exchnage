@@ -289,7 +289,7 @@ function App() {
     () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
-  const { pool, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
+  const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
     network,
     poolContract,
     contractAddress: CONTRACT_ADDRESS,
@@ -320,6 +320,20 @@ function App() {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
   }, [balances.lpShares, pool.totalShares]);
+
+  const tokenLabels = useMemo(() => {
+    const fallback = { x: "Token X", y: "Token Y" };
+    if (!tokenInfo) return fallback;
+    const format = (isStx: boolean, principal: string | null, fallbackLabel: string) => {
+      if (isStx) return "STX";
+      if (principal) return shortAddress(principal);
+      return fallbackLabel;
+    };
+    return {
+      x: format(tokenInfo.tokenXIsStx, tokenInfo.tokenX, "Token X"),
+      y: format(tokenInfo.tokenYIsStx, tokenInfo.tokenY, "Token Y"),
+    };
+  }, [tokenInfo]);
 
   const currentPrice = useMemo(() => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
@@ -1999,6 +2013,8 @@ function App() {
                   showMinimalSwapLayout={showMinimalSwapLayout}
                   poolContract={poolContract}
                   FEE_BPS={FEE_BPS}
+                  tokenLabels={tokenLabels}
+                  tokenInfo={tokenInfo}
                   swapInput={swapInput}
                   setSwapInput={setSwapInput}
                   swapDirection={swapDirection}
@@ -2063,6 +2079,8 @@ function App() {
                     handleSyncToPoolRatio={handleSyncToPoolRatio}
                     handleFaucet={handleFaucet}
                     faucetPending={faucetPending}
+                    tokenLabels={tokenLabels}
+                    tokenInfo={tokenInfo}
                     liqX={liqX}
                     setLiqX={setLiqX}
                     formatNumber={formatNumber}

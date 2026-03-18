@@ -7,6 +7,13 @@ export type PoolState = {
   totalShares: number;
 };
 
+export type PoolTokenInfo = {
+  tokenX: string | null;
+  tokenY: string | null;
+  tokenXIsStx: boolean;
+  tokenYIsStx: boolean;
+};
+
 // Update types and logic to match your contract's state and functions
 export type Balances = {
   tokenX: number;
