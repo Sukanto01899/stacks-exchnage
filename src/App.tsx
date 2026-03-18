@@ -359,6 +359,48 @@ function App() {
     };
   }, [pool.reserveX, pool.reserveY, poolShare]);
 
+  const liquidityPreview = useMemo(() => {
+    const amountX = Number(liqX);
+    const amountY = Number(liqY);
+    if (!Number.isFinite(amountX) || !Number.isFinite(amountY)) return null;
+    if (amountX <= 0 || amountY <= 0) return null;
+    const amountXMicro = Math.floor(amountX * TOKEN_DECIMALS);
+    const amountYMicro = Math.floor(amountY * TOKEN_DECIMALS);
+    if (amountXMicro <= 0 || amountYMicro <= 0) return null;
+
+    if (pool.totalShares === 0 || pool.reserveX === 0 || pool.reserveY === 0) {
+      const shares = Math.floor(
+        Number(bigintSqrt(BigInt(amountXMicro) * BigInt(amountYMicro))),
+      );
+      return {
+        shares,
+        actualX: amountX,
+        actualY: amountY,
+        initializing: true,
+      };
+    }
+
+    const reserveXMicro = Math.floor(pool.reserveX * TOKEN_DECIMALS);
+    const reserveYMicro = Math.floor(pool.reserveY * TOKEN_DECIMALS);
+    if (reserveXMicro <= 0 || reserveYMicro <= 0) return null;
+    const sharesFromX = Math.floor(
+      (amountXMicro * pool.totalShares) / reserveXMicro,
+    );
+    const sharesFromY = Math.floor(
+      (amountYMicro * pool.totalShares) / reserveYMicro,
+    );
+    const shares = Math.max(0, Math.min(sharesFromX, sharesFromY));
+    if (shares <= 0) return null;
+    const actualXMicro = Math.floor((shares * reserveXMicro) / pool.totalShares);
+    const actualYMicro = Math.floor((shares * reserveYMicro) / pool.totalShares);
+    return {
+      shares,
+      actualX: actualXMicro / TOKEN_DECIMALS,
+      actualY: actualYMicro / TOKEN_DECIMALS,
+      initializing: false,
+    };
+  }, [liqX, liqY, pool.reserveX, pool.reserveY, pool.totalShares]);
+
   const portfolioTotals = useMemo(() => {
     const totalX = balances.tokenX + lpPosition.x;
     const totalY = balances.tokenY + lpPosition.y;
@@ -1496,12 +1538,40 @@ function App() {
     setLiqY(y.toFixed(4));
   };
 
+  const handleSyncToPoolRatioFromY = () => {
+    if (pool.reserveX === 0 || pool.reserveY === 0) return;
+    const ratio = pool.reserveY / pool.reserveX;
+    const y = Number(liqY) || 0;
+    const x = ratio > 0 ? y / ratio : 0;
+    setLiqX(x.toFixed(4));
+  };
+
   const fillLiquidityInput = (token: "x" | "y") => {
     if (token === "x") {
       setLiqX(String(Number(balances.tokenX.toFixed(4))));
       return;
     }
     setLiqY(String(Number(balances.tokenY.toFixed(4))));
+  };
+
+  const setMaxLiquidity = () => {
+    const maxX = balances.tokenX || 0;
+    const maxY = balances.tokenY || 0;
+    if (pool.reserveX > 0 && pool.reserveY > 0) {
+      const ratio = pool.reserveY / pool.reserveX;
+      const yFromX = maxX * ratio;
+      if (yFromX <= maxY) {
+        setLiqX(String(Number(maxX.toFixed(4))));
+        setLiqY(String(Number(yFromX.toFixed(4))));
+      } else {
+        const xFromY = ratio > 0 ? maxY / ratio : 0;
+        setLiqX(String(Number(xFromY.toFixed(4))));
+        setLiqY(String(Number(maxY.toFixed(4))));
+      }
+      return;
+    }
+    setLiqX(String(Number(maxX.toFixed(4))));
+    setLiqY(String(Number(maxY.toFixed(4))));
   };
 
   const setMaxSwap = () => {
@@ -2077,6 +2147,8 @@ function App() {
                 >
                   <LiquidityCard
                     handleSyncToPoolRatio={handleSyncToPoolRatio}
+                    handleSyncToPoolRatioFromY={handleSyncToPoolRatioFromY}
+                    setMaxLiquidity={setMaxLiquidity}
                     handleFaucet={handleFaucet}
                     faucetPending={faucetPending}
                     tokenLabels={tokenLabels}
@@ -2096,6 +2168,7 @@ function App() {
                     setBurnShares={setBurnShares}
                     poolShare={poolShare}
                     pool={pool}
+                    liquidityPreview={liquidityPreview}
                     handleRemoveLiquidity={handleRemoveLiquidity}
                   />
                 </Suspense>

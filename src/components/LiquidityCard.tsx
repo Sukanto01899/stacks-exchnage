@@ -2,6 +2,8 @@
 export default function LiquidityCard(props: any) {
   const {
     handleSyncToPoolRatio,
+    handleSyncToPoolRatioFromY,
+    setMaxLiquidity,
     handleFaucet,
     faucetPending,
     tokenLabels,
@@ -21,6 +23,7 @@ export default function LiquidityCard(props: any) {
     setBurnShares,
     poolShare,
     pool,
+    liquidityPreview,
     handleRemoveLiquidity
   } = props;
 
@@ -85,7 +88,13 @@ export default function LiquidityCard(props: any) {
           </div>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
-              Match ratio
+              Match from X
+            </button>
+            <button className="tiny ghost" onClick={handleSyncToPoolRatioFromY}>
+              Match from Y
+            </button>
+            <button className="tiny ghost" onClick={setMaxLiquidity}>
+              Max LP
             </button>
             <button
               className="tiny ghost"
@@ -140,6 +149,18 @@ export default function LiquidityCard(props: any) {
             </div>
           </div>
         </div>
+        {liquidityPreview && (
+          <div className="pool-helper">
+            <span className="muted small">
+              Est. shares: {formatNumber(liquidityPreview.shares)}
+            </span>
+            <span className="muted small">
+              Actual deposit: {formatNumber(liquidityPreview.actualX)}{" "}
+              {tokenXLabel} / {formatNumber(liquidityPreview.actualY)}{" "}
+              {tokenYLabel}
+            </span>
+          </div>
+        )}
         {renderApprovalManager("liquidity")}
         <div className="pool-actions">
           <button className="primary" onClick={handleAddLiquidity}>
