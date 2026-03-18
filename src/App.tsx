@@ -43,6 +43,7 @@ import {
   MINIMUM_LIQUIDITY,
   ONBOARDING_STORAGE_KEY,
   POOL_CONTRACT_ID,
+  PRESET_TOKENS,
   PRICE_IMPACT_BLOCK_PCT,
   PRICE_IMPACT_CONFIRM_PCT,
   PRICE_IMPACT_TARGET_PCT,
@@ -2225,6 +2226,30 @@ function App() {
                 </div>
                 <div className="dual-input">
                   <div>
+                    <label>Preset</label>
+                    <select
+                      className="token-select"
+                      value={
+                        PRESET_TOKENS.find((token) => token.id === tokenDraft.xId)
+                          ?.id || "custom"
+                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "custom") return;
+                        setTokenDraft((prev) => ({
+                          ...prev,
+                          xId: value,
+                          xIsStx: false,
+                        }));
+                      }}
+                    >
+                      <option value="custom">Custom</option>
+                      {PRESET_TOKENS.map((token) => (
+                        <option key={`x-${token.id}`} value={token.id}>
+                          {token.label}
+                        </option>
+                      ))}
+                    </select>
                     <label>Token X (contract::asset)</label>
                     <input
                       type="text"
@@ -2253,6 +2278,30 @@ function App() {
                     </label>
                   </div>
                   <div>
+                    <label>Preset</label>
+                    <select
+                      className="token-select"
+                      value={
+                        PRESET_TOKENS.find((token) => token.id === tokenDraft.yId)
+                          ?.id || "custom"
+                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "custom") return;
+                        setTokenDraft((prev) => ({
+                          ...prev,
+                          yId: value,
+                          yIsStx: false,
+                        }));
+                      }}
+                    >
+                      <option value="custom">Custom</option>
+                      {PRESET_TOKENS.map((token) => (
+                        <option key={`y-${token.id}`} value={token.id}>
+                          {token.label}
+                        </option>
+                      ))}
+                    </select>
                     <label>Token Y (contract::asset)</label>
                     <input
                       type="text"

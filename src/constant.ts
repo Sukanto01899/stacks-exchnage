@@ -48,6 +48,17 @@ export const TOKEN_CONTRACTS = {
     ) || `${CONTRACT_ADDRESS}.dex-token-y::token-y`,
 };
 
+export const PRESET_TOKENS = [
+  {
+    label: "Token X (default)",
+    id: TOKEN_CONTRACTS.x,
+  },
+  {
+    label: "Token Y (default)",
+    id: TOKEN_CONTRACTS.y,
+  },
+];
+
 export const TOKEN_DECIMALS = 1_000_000;
 export const MINIMUM_LIQUIDITY = 1_000n;
 export const POOL_CONTRACT_ID =
