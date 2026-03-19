@@ -2887,8 +2887,13 @@ function App() {
                   FEE_BPS={FEE_BPS}
                   tokenLabels={selectionLabels}
                   tokenIcons={selectionIcons}
+                  tokenIsStx={tokenIsStx}
                   poolTokenLabels={poolTokenLabels}
                   poolTokenIcons={poolTokenIcons}
+                  poolTokenIsStx={{
+                    x: !!tokenInfo?.tokenXIsStx,
+                    y: !!tokenInfo?.tokenYIsStx,
+                  }}
                   tokenInfo={tokenInfo}
                   tokenMismatch={!!tokenMismatchWarning}
                   swapInput={swapInput}
@@ -2959,8 +2964,13 @@ function App() {
                     faucetPending={faucetPending}
                     tokenLabels={selectionLabels}
                     tokenIcons={selectionIcons}
+                    tokenIsStx={tokenIsStx}
                     poolTokenLabels={poolTokenLabels}
                     poolTokenIcons={poolTokenIcons}
+                    poolTokenIsStx={{
+                      x: !!tokenInfo?.tokenXIsStx,
+                      y: !!tokenInfo?.tokenYIsStx,
+                    }}
                     tokenInfo={tokenInfo}
                     tokenMismatch={!!tokenMismatchWarning}
                     liqX={liqX}

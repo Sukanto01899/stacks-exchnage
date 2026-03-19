@@ -8,8 +8,10 @@ export default function LiquidityCard(props: any) {
     faucetPending,
     tokenLabels,
     tokenIcons,
+    tokenIsStx,
     poolTokenLabels,
     poolTokenIcons,
+    poolTokenIsStx,
     tokenInfo,
     tokenMismatch,
     liqX,
@@ -40,6 +42,22 @@ export default function LiquidityCard(props: any) {
   const tokenYIcon = tokenIcons?.y || null;
   const poolTokenXIcon = poolTokenIcons?.x || null;
   const poolTokenYIcon = poolTokenIcons?.y || null;
+  const tokenXIsStx = tokenIsStx?.x || false;
+  const tokenYIsStx = tokenIsStx?.y || false;
+  const poolTokenXIsStx = poolTokenIsStx?.x || false;
+  const poolTokenYIsStx = poolTokenIsStx?.y || false;
+
+  const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
+    if (iconUrl) {
+      return <img className="token-icon" src={iconUrl} alt="" />;
+    }
+    const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
+    return (
+      <span className="token-icon token-icon-fallback">
+        <span className="token-icon-text">{text}</span>
+      </span>
+    );
+  };
 
   const ratio =
     pool && pool.reserveX > 0 && pool.reserveY > 0
@@ -85,14 +103,10 @@ export default function LiquidityCard(props: any) {
           <div className="pool-stat">
             <span className="muted small">Pool tokens</span>
             <strong className="token-inline">
-              {poolTokenXIcon ? (
-                <img className="token-icon" src={poolTokenXIcon} alt="" />
-              ) : null}
+              {renderIcon(poolTokenXIcon, poolTokenXLabel, poolTokenXIsStx)}
               {poolTokenXLabel}
               <span className="muted small"> / </span>
-              {poolTokenYIcon ? (
-                <img className="token-icon" src={poolTokenYIcon} alt="" />
-              ) : null}
+              {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
               {poolTokenYLabel}
             </strong>
           </div>
@@ -127,9 +141,7 @@ export default function LiquidityCard(props: any) {
         <div className="dual-input">
           <div>
             <label className="token-inline">
-              {tokenXIcon ? (
-                <img className="token-icon" src={tokenXIcon} alt="" />
-              ) : null}
+              {renderIcon(tokenXIcon, tokenXLabel, tokenXIsStx)}
               {tokenXLabel}
             </label>
             <input
@@ -153,9 +165,7 @@ export default function LiquidityCard(props: any) {
           </div>
           <div>
             <label className="token-inline">
-              {tokenYIcon ? (
-                <img className="token-icon" src={tokenYIcon} alt="" />
-              ) : null}
+              {renderIcon(tokenYIcon, tokenYLabel, tokenYIsStx)}
               {tokenYLabel}
             </label>
             <input

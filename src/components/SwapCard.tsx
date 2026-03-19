@@ -6,8 +6,10 @@ export default function SwapCard(props: any) {
     FEE_BPS,
     tokenLabels,
     tokenIcons,
+    tokenIsStx,
     poolTokenLabels,
     poolTokenIcons,
+    poolTokenIsStx,
     tokenInfo,
     tokenMismatch,
     swapInput,
@@ -73,12 +75,30 @@ export default function SwapCard(props: any) {
   const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
   const poolTokenXIcon = poolTokenIcons?.x || null;
   const poolTokenYIcon = poolTokenIcons?.y || null;
+  const poolTokenXIsStx = poolTokenIsStx?.x || false;
+  const poolTokenYIsStx = poolTokenIsStx?.y || false;
   const fromLabel = swapDirection === "x-to-y" ? tokenXLabel : tokenYLabel;
   const toLabel = swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel;
   const fromIcon =
     swapDirection === "x-to-y" ? tokenIcons?.x || null : tokenIcons?.y || null;
   const toIcon =
     swapDirection === "x-to-y" ? tokenIcons?.y || null : tokenIcons?.x || null;
+  const fromIsStx =
+    swapDirection === "x-to-y" ? tokenIsStx?.x || false : tokenIsStx?.y || false;
+  const toIsStx =
+    swapDirection === "x-to-y" ? tokenIsStx?.y || false : tokenIsStx?.x || false;
+
+  const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
+    if (iconUrl) {
+      return <img className="token-icon" src={iconUrl} alt="" />;
+    }
+    const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
+    return (
+      <span className="token-icon token-icon-fallback">
+        <span className="token-icon-text">{text}</span>
+      </span>
+    );
+  };
 
   return (
     <div className="swap-card">
@@ -94,14 +114,10 @@ export default function SwapCard(props: any) {
         <div className="note subtle">
           <p className="muted small">Pool tokens</p>
           <strong className="token-inline">
-            {poolTokenXIcon ? (
-              <img className="token-icon" src={poolTokenXIcon} alt="" />
-            ) : null}
+            {renderIcon(poolTokenXIcon, poolTokenXLabel, poolTokenXIsStx)}
             {poolTokenXLabel}
             <span className="muted small"> / </span>
-            {poolTokenYIcon ? (
-              <img className="token-icon" src={poolTokenYIcon} alt="" />
-            ) : null}
+            {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
             {poolTokenYLabel}
           </strong>
         </div>
@@ -111,7 +127,7 @@ export default function SwapCard(props: any) {
         <div className="token-card-head">
           <span className="muted">From</span>
           <span className="token-inline muted small">
-            {fromIcon ? <img className="token-icon" src={fromIcon} alt="" /> : null}
+            {renderIcon(fromIcon, fromLabel, fromIsStx)}
             {fromLabel}
           </span>
           <div className="mini-actions">
@@ -188,7 +204,7 @@ export default function SwapCard(props: any) {
         <div className="token-card-head">
           <span className="muted">To</span>
           <span className="token-inline muted small">
-            {toIcon ? <img className="token-icon" src={toIcon} alt="" /> : null}
+            {renderIcon(toIcon, toLabel, toIsStx)}
             {toLabel}
           </span>
           <select

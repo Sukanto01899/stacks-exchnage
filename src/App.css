@@ -1296,6 +1296,21 @@ h3 {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
+.token-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.token-icon-text {
+  line-height: 1;
+}
+
 .swap-drawer-backdrop {
   position: sticky;
   inset: 0;
