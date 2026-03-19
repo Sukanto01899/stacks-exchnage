@@ -26,6 +26,7 @@ export default function LiquidityCard(props: any) {
     poolShare,
     pool,
     liquidityPreview,
+    initialLiquidityTooSmall,
     handleRemoveLiquidity
   } = props;
 
@@ -165,12 +166,18 @@ export default function LiquidityCard(props: any) {
             </span>
           </div>
         )}
+        {initialLiquidityTooSmall && (
+          <p className="muted small">
+            Initial liquidity too small. Increase amounts to meet minimum
+            shares.
+          </p>
+        )}
         {renderApprovalManager("liquidity")}
         <div className="pool-actions">
           <button
             className="primary"
             onClick={handleAddLiquidity}
-            disabled={tokenMismatch}
+            disabled={tokenMismatch || initialLiquidityTooSmall}
           >
             Add liquidity
           </button>

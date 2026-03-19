@@ -830,6 +830,11 @@ function App() {
     };
   }, [liqX, liqY, pool.reserveX, pool.reserveY, pool.totalShares]);
 
+  const initialLiquidityTooSmall = useMemo(() => {
+    if (!liquidityPreview?.initializing) return false;
+    return liquidityPreview.shares <= Number(MINIMUM_LIQUIDITY);
+  }, [liquidityPreview]);
+
   const portfolioTotals = useMemo(() => {
     const totalX = balances.tokenX + lpPosition.x;
     const totalY = balances.tokenY + lpPosition.y;
@@ -2894,6 +2899,7 @@ function App() {
                     poolShare={poolShare}
                     pool={pool}
                     liquidityPreview={liquidityPreview}
+                    initialLiquidityTooSmall={initialLiquidityTooSmall}
                     handleRemoveLiquidity={handleRemoveLiquidity}
                   />
                 </Suspense>
