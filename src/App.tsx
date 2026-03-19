@@ -2150,6 +2150,7 @@ function App() {
       liqAmountX={liqAmountX}
       liqAmountY={liqAmountY}
       tokenLabels={selectionLabels}
+      tokenMismatch={!!tokenMismatchWarning}
       approvalSupport={approvalSupport}
       approveUnlimited={approveUnlimited}
       setApproveUnlimited={setApproveUnlimited}

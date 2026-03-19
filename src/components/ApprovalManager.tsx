@@ -15,6 +15,7 @@ type ApprovalManagerProps = {
   liqAmountX: number;
   liqAmountY: number;
   tokenLabels: { x: string; y: string };
+  tokenMismatch: boolean;
   approvalSupport: ApprovalSupport;
   approveUnlimited: boolean;
   setApproveUnlimited: (value: boolean) => void;
@@ -34,6 +35,7 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
     liqAmountX,
     liqAmountY,
     tokenLabels,
+    tokenMismatch,
     approvalSupport,
     approveUnlimited,
     setApproveUnlimited,
@@ -90,7 +92,10 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
               className="tiny ghost"
               onClick={() => handleApprove("x", requiredX)}
               disabled={
-                !approvalSupport.x || !stacksAddress || approvePending !== null
+                tokenMismatch ||
+                !approvalSupport.x ||
+                !stacksAddress ||
+                approvePending !== null
               }
             >
               {approvePending === "x"
@@ -109,7 +114,10 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
               className="tiny ghost"
               onClick={() => handleApprove("y", requiredY)}
               disabled={
-                !approvalSupport.y || !stacksAddress || approvePending !== null
+                tokenMismatch ||
+                !approvalSupport.y ||
+                !stacksAddress ||
+                approvePending !== null
               }
             >
               {approvePending === "y"
@@ -118,6 +126,9 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
             </button>
           </div>
         </div>
+      )}
+      {tokenMismatch && (
+        <p className="muted small">Fix token selection to continue.</p>
       )}
       <p className="muted small">Spender: {spenderContractId}</p>
     </div>
