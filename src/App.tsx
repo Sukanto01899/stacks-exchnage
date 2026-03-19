@@ -360,7 +360,9 @@ function App() {
   }, [metadataCacheKey, metadataTtlMs]);
 
   const validateSip10Token = useCallback(
-    async (tokenId: string) => {
+    async (
+      tokenId: string,
+    ): Promise<{ ok: true } | { ok: false; message: string }> => {
       if (!tokenId.includes("::")) {
         return { ok: false, message: "Token must be in contract::asset format." };
       }
@@ -425,7 +427,7 @@ function App() {
             ...prev,
             x: result.ok
               ? { status: "ok" }
-              : { status: "error", message: result.message },
+              : { status: "error", message: result.message ?? "Invalid token." },
           }));
         });
       }
@@ -436,7 +438,7 @@ function App() {
             ...prev,
             y: result.ok
               ? { status: "ok" }
-              : { status: "error", message: result.message },
+              : { status: "error", message: result.message ?? "Invalid token." },
           }));
         });
       }
@@ -465,17 +467,21 @@ function App() {
     }));
 
     const [xResult, yResult] = await Promise.all([
-      tokenDraft.xIsStx ? Promise.resolve({ ok: true }) : validateSip10Token(tokenDraft.xId),
-      tokenDraft.yIsStx ? Promise.resolve({ ok: true }) : validateSip10Token(tokenDraft.yId),
+      tokenDraft.xIsStx
+        ? Promise.resolve({ ok: true } as const)
+        : validateSip10Token(tokenDraft.xId),
+      tokenDraft.yIsStx
+        ? Promise.resolve({ ok: true } as const)
+        : validateSip10Token(tokenDraft.yId),
     ]);
 
     setTokenValidation({
       x: xResult.ok
         ? { status: "ok" }
-        : { status: "error", message: xResult.message },
+        : { status: "error", message: xResult.message ?? "Invalid token." },
       y: yResult.ok
         ? { status: "ok" }
-        : { status: "error", message: yResult.message },
+        : { status: "error", message: yResult.message ?? "Invalid token." },
     });
 
     if (!xResult.ok || !yResult.ok) {
