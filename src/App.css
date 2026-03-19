@@ -1282,6 +1282,20 @@ h3 {
   font-size: 12px;
 }
 
+.token-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.token-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
 .swap-drawer-backdrop {
   position: sticky;
   inset: 0;

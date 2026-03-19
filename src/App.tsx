@@ -294,6 +294,10 @@ function App() {
       {
         name?: string;
         symbol?: string;
+        imageUri?: string;
+        imageThumbnailUri?: string;
+        cachedImage?: string;
+        cachedThumbnailImage?: string;
         loading?: boolean;
         error?: string;
         fetchedAt?: number;
@@ -331,7 +335,15 @@ function App() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as Record<
         string,
-        { name?: string; symbol?: string; fetchedAt?: number }
+        {
+          name?: string;
+          symbol?: string;
+          imageUri?: string;
+          imageThumbnailUri?: string;
+          cachedImage?: string;
+          cachedThumbnailImage?: string;
+          fetchedAt?: number;
+        }
       >;
       if (!parsed || typeof parsed !== "object") return;
       const now = Date.now();
@@ -498,6 +510,21 @@ function App() {
     return id.split("::")[0] || "";
   }, []);
 
+  const getTokenIcon = useCallback(
+    (principal: string | null) => {
+      if (!principal) return null;
+      const meta = metadataByPrincipal[principal];
+      return (
+        meta?.imageThumbnailUri ||
+        meta?.imageUri ||
+        meta?.cachedThumbnailImage ||
+        meta?.cachedImage ||
+        null
+      );
+    },
+    [metadataByPrincipal],
+  );
+
   const fetchTokenMetadata = useCallback(
     async (principal: string) => {
       if (!principal) return;
@@ -512,20 +539,30 @@ function App() {
         if (!response.ok) {
           throw new Error(`Metadata not found (${response.status})`);
         }
-        const data = (await response.json().catch(() => ({}))) as {
-          name?: string;
-          symbol?: string;
+      const data = (await response.json().catch(() => ({}))) as {
+        name?: string;
+        symbol?: string;
+        image_uri?: string;
+        image_thumbnail_uri?: string;
+        metadata?: {
+          cached_image?: string;
+          cached_thumbnail_image?: string;
         };
-        setMetadataByPrincipal((prev) => ({
-          ...prev,
-          [principal]: {
-            name: data?.name,
-            symbol: data?.symbol,
-            loading: false,
-            error: undefined,
-            fetchedAt: Date.now(),
-          },
-        }));
+      };
+      setMetadataByPrincipal((prev) => ({
+        ...prev,
+        [principal]: {
+          name: data?.name,
+          symbol: data?.symbol,
+          imageUri: data?.image_uri,
+          imageThumbnailUri: data?.image_thumbnail_uri,
+          cachedImage: data?.metadata?.cached_image,
+          cachedThumbnailImage: data?.metadata?.cached_thumbnail_image,
+          loading: false,
+          error: undefined,
+          fetchedAt: Date.now(),
+        },
+      }));
       } catch (error) {
         setMetadataByPrincipal((prev) => ({
           ...prev,
@@ -545,13 +582,32 @@ function App() {
     try {
       const cache: Record<
         string,
-        { name?: string; symbol?: string; fetchedAt?: number }
+        {
+          name?: string;
+          symbol?: string;
+          imageUri?: string;
+          imageThumbnailUri?: string;
+          cachedImage?: string;
+          cachedThumbnailImage?: string;
+          fetchedAt?: number;
+        }
       > = {};
       Object.entries(metadataByPrincipal).forEach(([key, value]) => {
-        if (value?.symbol || value?.name) {
+        if (
+          value?.symbol ||
+          value?.name ||
+          value?.imageUri ||
+          value?.imageThumbnailUri ||
+          value?.cachedImage ||
+          value?.cachedThumbnailImage
+        ) {
           cache[key] = {
             name: value.name,
             symbol: value.symbol,
+            imageUri: value.imageUri,
+            imageThumbnailUri: value.imageThumbnailUri,
+            cachedImage: value.cachedImage,
+            cachedThumbnailImage: value.cachedThumbnailImage,
             fetchedAt: value.fetchedAt,
           };
         }
@@ -695,6 +751,26 @@ function App() {
       y: format(tokenSelection.yIsStx, tokenSelection.yId, "Token Y"),
     };
   }, [metadataByPrincipal, tokenSelection]);
+
+  const selectionIcons = useMemo(
+    () => ({
+      x: tokenSelection.xIsStx
+        ? null
+        : getTokenIcon(getTokenPrincipal(tokenSelection.xId)),
+      y: tokenSelection.yIsStx
+        ? null
+        : getTokenIcon(getTokenPrincipal(tokenSelection.yId)),
+    }),
+    [getTokenIcon, getTokenPrincipal, tokenSelection],
+  );
+
+  const poolTokenIcons = useMemo(
+    () => ({
+      x: tokenInfo?.tokenXIsStx ? null : getTokenIcon(tokenInfo?.tokenX || null),
+      y: tokenInfo?.tokenYIsStx ? null : getTokenIcon(tokenInfo?.tokenY || null),
+    }),
+    [getTokenIcon, tokenInfo],
+  );
 
   const tokenMismatchWarning = useMemo(() => {
     if (!tokenInfo) return null;
@@ -2810,7 +2886,9 @@ function App() {
                   poolContract={poolContract}
                   FEE_BPS={FEE_BPS}
                   tokenLabels={selectionLabels}
+                  tokenIcons={selectionIcons}
                   poolTokenLabels={poolTokenLabels}
+                  poolTokenIcons={poolTokenIcons}
                   tokenInfo={tokenInfo}
                   tokenMismatch={!!tokenMismatchWarning}
                   swapInput={swapInput}
@@ -2880,7 +2958,9 @@ function App() {
                     handleFaucet={handleFaucet}
                     faucetPending={faucetPending}
                     tokenLabels={selectionLabels}
+                    tokenIcons={selectionIcons}
                     poolTokenLabels={poolTokenLabels}
+                    poolTokenIcons={poolTokenIcons}
                     tokenInfo={tokenInfo}
                     tokenMismatch={!!tokenMismatchWarning}
                     liqX={liqX}

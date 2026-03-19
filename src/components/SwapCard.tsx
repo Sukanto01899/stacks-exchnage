@@ -5,7 +5,9 @@ export default function SwapCard(props: any) {
     poolContract,
     FEE_BPS,
     tokenLabels,
+    tokenIcons,
     poolTokenLabels,
+    poolTokenIcons,
     tokenInfo,
     tokenMismatch,
     swapInput,
@@ -69,6 +71,14 @@ export default function SwapCard(props: any) {
   const tokenYLabel = tokenLabels?.y || "Token Y";
   const poolTokenXLabel = poolTokenLabels?.x || tokenXLabel;
   const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
+  const poolTokenXIcon = poolTokenIcons?.x || null;
+  const poolTokenYIcon = poolTokenIcons?.y || null;
+  const fromLabel = swapDirection === "x-to-y" ? tokenXLabel : tokenYLabel;
+  const toLabel = swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel;
+  const fromIcon =
+    swapDirection === "x-to-y" ? tokenIcons?.x || null : tokenIcons?.y || null;
+  const toIcon =
+    swapDirection === "x-to-y" ? tokenIcons?.y || null : tokenIcons?.x || null;
 
   return (
     <div className="swap-card">
@@ -83,8 +93,16 @@ export default function SwapCard(props: any) {
       {tokenInfo && (
         <div className="note subtle">
           <p className="muted small">Pool tokens</p>
-          <strong>
-            {poolTokenXLabel} / {poolTokenYLabel}
+          <strong className="token-inline">
+            {poolTokenXIcon ? (
+              <img className="token-icon" src={poolTokenXIcon} alt="" />
+            ) : null}
+            {poolTokenXLabel}
+            <span className="muted small"> / </span>
+            {poolTokenYIcon ? (
+              <img className="token-icon" src={poolTokenYIcon} alt="" />
+            ) : null}
+            {poolTokenYLabel}
           </strong>
         </div>
       )}
@@ -92,6 +110,10 @@ export default function SwapCard(props: any) {
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">From</span>
+          <span className="token-inline muted small">
+            {fromIcon ? <img className="token-icon" src={fromIcon} alt="" /> : null}
+            {fromLabel}
+          </span>
           <div className="mini-actions">
             <button
               className="tiny ghost"
@@ -165,6 +187,10 @@ export default function SwapCard(props: any) {
       <div className="token-card">
         <div className="token-card-head">
           <span className="muted">To</span>
+          <span className="token-inline muted small">
+            {toIcon ? <img className="token-icon" src={toIcon} alt="" /> : null}
+            {toLabel}
+          </span>
           <select
             className="token-select"
             value={swapDirection === "x-to-y" ? "y" : "x"}

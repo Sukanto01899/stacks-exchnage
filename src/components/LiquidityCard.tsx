@@ -7,7 +7,9 @@ export default function LiquidityCard(props: any) {
     handleFaucet,
     faucetPending,
     tokenLabels,
+    tokenIcons,
     poolTokenLabels,
+    poolTokenIcons,
     tokenInfo,
     tokenMismatch,
     liqX,
@@ -34,6 +36,10 @@ export default function LiquidityCard(props: any) {
   const tokenYLabel = tokenLabels?.y || "Token Y";
   const poolTokenXLabel = poolTokenLabels?.x || tokenXLabel;
   const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
+  const tokenXIcon = tokenIcons?.x || null;
+  const tokenYIcon = tokenIcons?.y || null;
+  const poolTokenXIcon = poolTokenIcons?.x || null;
+  const poolTokenYIcon = poolTokenIcons?.y || null;
 
   const ratio =
     pool && pool.reserveX > 0 && pool.reserveY > 0
@@ -78,8 +84,16 @@ export default function LiquidityCard(props: any) {
         {tokenInfo && (
           <div className="pool-stat">
             <span className="muted small">Pool tokens</span>
-            <strong>
-              {poolTokenXLabel} / {poolTokenYLabel}
+            <strong className="token-inline">
+              {poolTokenXIcon ? (
+                <img className="token-icon" src={poolTokenXIcon} alt="" />
+              ) : null}
+              {poolTokenXLabel}
+              <span className="muted small"> / </span>
+              {poolTokenYIcon ? (
+                <img className="token-icon" src={poolTokenYIcon} alt="" />
+              ) : null}
+              {poolTokenYLabel}
             </strong>
           </div>
         )}
@@ -112,7 +126,12 @@ export default function LiquidityCard(props: any) {
         </div>
         <div className="dual-input">
           <div>
-            <label>{tokenXLabel}</label>
+            <label className="token-inline">
+              {tokenXIcon ? (
+                <img className="token-icon" src={tokenXIcon} alt="" />
+              ) : null}
+              {tokenXLabel}
+            </label>
             <input
               type="number"
               value={liqX}
@@ -133,7 +152,12 @@ export default function LiquidityCard(props: any) {
             </div>
           </div>
           <div>
-            <label>{tokenYLabel}</label>
+            <label className="token-inline">
+              {tokenYIcon ? (
+                <img className="token-icon" src={tokenYIcon} alt="" />
+              ) : null}
+              {tokenYLabel}
+            </label>
             <input
               type="number"
               value={liqY}
