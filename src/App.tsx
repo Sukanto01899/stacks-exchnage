@@ -576,6 +576,46 @@ function App() {
     };
   }, [metadataByPrincipal, tokenSelection]);
 
+  const tokenMismatchWarning = useMemo(() => {
+    if (!tokenInfo) return null;
+    const poolInitialized =
+      pool.totalShares > 0 || pool.reserveX > 0 || pool.reserveY > 0;
+    if (!poolInitialized) return null;
+
+    const selectedXPrincipal = tokenIsStx.x
+      ? null
+      : tokenSelection.xId.split("::")[0] || null;
+    const selectedYPrincipal = tokenIsStx.y
+      ? null
+      : tokenSelection.yId.split("::")[0] || null;
+
+    const xMismatch =
+      tokenInfo.tokenXIsStx !== tokenIsStx.x ||
+      (!tokenIsStx.x && tokenInfo.tokenX !== selectedXPrincipal);
+    const yMismatch =
+      tokenInfo.tokenYIsStx !== tokenIsStx.y ||
+      (!tokenIsStx.y && tokenInfo.tokenY !== selectedYPrincipal);
+
+    if (!xMismatch && !yMismatch) return null;
+    return {
+      pool: `${poolTokenLabels.x} / ${poolTokenLabels.y}`,
+      selected: `${selectionLabels.x} / ${selectionLabels.y}`,
+    };
+  }, [
+    pool.reserveX,
+    pool.reserveY,
+    pool.totalShares,
+    poolTokenLabels.x,
+    poolTokenLabels.y,
+    selectionLabels.x,
+    selectionLabels.y,
+    tokenInfo,
+    tokenIsStx.x,
+    tokenIsStx.y,
+    tokenSelection.xId,
+    tokenSelection.yId,
+  ]);
+
   const toOptionalTokenCv = useCallback(
     (token: TokenKey) => {
       if (tokenIsStx[token]) return noneCV();
@@ -2545,6 +2585,19 @@ function App() {
                   For SIP-010 tokens, use the full asset id format
                   `contract::asset`. STX uses your native balance.
                 </p>
+                {tokenMismatchWarning && (
+                  <div className="note subtle">
+                    <p className="muted small">Pool token mismatch</p>
+                    <strong>
+                      Pool: {tokenMismatchWarning.pool} · Selected:{" "}
+                      {tokenMismatchWarning.selected}
+                    </strong>
+                    <p className="muted small">
+                      Swaps and liquidity will fail unless you select the same
+                      tokens as the initialized pool.
+                    </p>
+                  </div>
+                )}
                 {tokenSelectMessage && (
                   <p className="muted small">{tokenSelectMessage}</p>
                 )}
