@@ -279,6 +279,15 @@ function App() {
   const [tokenSelectMessage, setTokenSelectMessage] = useState<string | null>(
     null,
   );
+  const [tokenValidation, setTokenValidation] = useState<
+    Record<
+      TokenKey,
+      { status: "idle" | "checking" | "ok" | "error"; message?: string }
+    >
+  >({
+    x: { status: "idle" },
+    y: { status: "idle" },
+  });
   const [metadataByPrincipal, setMetadataByPrincipal] = useState<
     Record<
       string,
@@ -338,7 +347,64 @@ function App() {
     }
   }, [metadataCacheKey, metadataTtlMs]);
 
-  const applyTokenSelection = () => {
+  const validateSip10Token = useCallback(
+    async (tokenId: string) => {
+      if (!tokenId.includes("::")) {
+        return { ok: false, message: "Token must be in contract::asset format." };
+      }
+      const [contractId, assetName] = tokenId.split("::");
+      if (!contractId || !assetName) {
+        return { ok: false, message: "Invalid token identifier." };
+      }
+      const contract = parseContractId(contractId);
+      if (!contract.address || !contract.contractName) {
+        return { ok: false, message: "Invalid contract identifier." };
+      }
+      const response = await fetch(
+        `${STACKS_API}/v2/contracts/interface/${contract.address}/${contract.contractName}`,
+      ).catch(() => null);
+      if (!response?.ok) {
+        return { ok: false, message: "Contract interface not found." };
+      }
+      const data = await response.json().catch(() => ({}));
+      const functions = Array.isArray(data?.functions) ? data.functions : [];
+      const requiredFns = ["transfer", "get-balance", "get-total-supply"];
+      const hasAll = requiredFns.every((fn) =>
+        functions.some((item: { name?: string }) => item?.name === fn),
+      );
+      if (!hasAll) {
+        return { ok: false, message: "Missing SIP-010 functions." };
+      }
+      const fts = Array.isArray(data?.fungible_tokens)
+        ? data.fungible_tokens
+        : [];
+      if (fts.length > 0) {
+        const matches = fts.some((token: Record<string, unknown>) => {
+          const name = token?.name;
+          const symbol = token?.symbol;
+          const tokenField = token?.token;
+          const assetId = token?.asset_identifier;
+          if (typeof name === "string" && name === assetName) return true;
+          if (typeof symbol === "string" && symbol === assetName) return true;
+          if (typeof tokenField === "string" && tokenField === assetName)
+            return true;
+          if (
+            typeof assetId === "string" &&
+            assetId.endsWith(`::${assetName}`)
+          )
+            return true;
+          return false;
+        });
+        if (!matches) {
+          return { ok: false, message: "Asset not found in contract." };
+        }
+      }
+      return { ok: true };
+    },
+    [STACKS_API],
+  );
+
+  const applyTokenSelection = async () => {
     if (tokenDraft.xIsStx && tokenDraft.yIsStx) {
       setTokenSelectMessage("Both sides cannot be STX. Choose one side only.");
       return;
@@ -351,6 +417,32 @@ function App() {
       setTokenSelectMessage("Token Y must be in `contract::asset` format.");
       return;
     }
+    setTokenSelectMessage(null);
+    setTokenValidation((prev) => ({
+      ...prev,
+      x: { status: tokenDraft.xIsStx ? "ok" : "checking" },
+      y: { status: tokenDraft.yIsStx ? "ok" : "checking" },
+    }));
+
+    const [xResult, yResult] = await Promise.all([
+      tokenDraft.xIsStx ? Promise.resolve({ ok: true }) : validateSip10Token(tokenDraft.xId),
+      tokenDraft.yIsStx ? Promise.resolve({ ok: true }) : validateSip10Token(tokenDraft.yId),
+    ]);
+
+    setTokenValidation({
+      x: xResult.ok
+        ? { status: "ok" }
+        : { status: "error", message: xResult.message },
+      y: yResult.ok
+        ? { status: "ok" }
+        : { status: "error", message: yResult.message },
+    });
+
+    if (!xResult.ok || !yResult.ok) {
+      setTokenSelectMessage("Fix token validation errors before applying.");
+      return;
+    }
+
     setTokenSelection(tokenDraft);
     setTokenSelectMessage("Token selection updated.");
     try {
@@ -2403,6 +2495,7 @@ function App() {
                       onClick={() => {
                         setTokenDraft(tokenSelection);
                         setTokenSelectMessage(null);
+                        setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
                       }}
                     >
                       Reset
@@ -2420,7 +2513,7 @@ function App() {
                     >
                       Clear token cache
                     </button>
-                    <button className="tiny" onClick={applyTokenSelection}>
+                    <button className="tiny" onClick={() => void applyTokenSelection()}>
                       Apply
                     </button>
                   </div>
@@ -2441,6 +2534,10 @@ function App() {
                           ...prev,
                           xId: value,
                           xIsStx: false,
+                        }));
+                        setTokenValidation((prev) => ({
+                          ...prev,
+                          x: { status: "idle" },
                         }));
                       }}
                     >
@@ -2464,6 +2561,15 @@ function App() {
                       disabled={tokenDraft.xIsStx}
                       placeholder="SP...contract::asset"
                     />
+                    {tokenValidation.x.status === "checking" && (
+                      <p className="muted small">Validating token...</p>
+                    )}
+                    {tokenValidation.x.status === "ok" && !tokenDraft.xIsStx && (
+                      <p className="muted small">SIP-010 token verified.</p>
+                    )}
+                    {tokenValidation.x.status === "error" && (
+                      <p className="muted small">{tokenValidation.x.message}</p>
+                    )}
                     {!tokenDraft.xIsStx && tokenDraft.xId && (
                       <p className="muted small">
                         {metadataByPrincipal[getTokenPrincipal(tokenDraft.xId)]
@@ -2495,12 +2601,16 @@ function App() {
                       <input
                         type="checkbox"
                         checked={tokenDraft.xIsStx}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setTokenDraft((prev) => ({
                             ...prev,
                             xIsStx: e.target.checked,
-                          }))
-                        }
+                          }));
+                          setTokenValidation((prev) => ({
+                            ...prev,
+                            x: { status: "idle" },
+                          }));
+                        }}
                       />
                       Use STX
                     </label>
@@ -2520,6 +2630,10 @@ function App() {
                           ...prev,
                           yId: value,
                           yIsStx: false,
+                        }));
+                        setTokenValidation((prev) => ({
+                          ...prev,
+                          y: { status: "idle" },
                         }));
                       }}
                     >
@@ -2543,6 +2657,15 @@ function App() {
                       disabled={tokenDraft.yIsStx}
                       placeholder="SP...contract::asset"
                     />
+                    {tokenValidation.y.status === "checking" && (
+                      <p className="muted small">Validating token...</p>
+                    )}
+                    {tokenValidation.y.status === "ok" && !tokenDraft.yIsStx && (
+                      <p className="muted small">SIP-010 token verified.</p>
+                    )}
+                    {tokenValidation.y.status === "error" && (
+                      <p className="muted small">{tokenValidation.y.message}</p>
+                    )}
                     {!tokenDraft.yIsStx && tokenDraft.yId && (
                       <p className="muted small">
                         {metadataByPrincipal[getTokenPrincipal(tokenDraft.yId)]
@@ -2574,12 +2697,16 @@ function App() {
                       <input
                         type="checkbox"
                         checked={tokenDraft.yIsStx}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setTokenDraft((prev) => ({
                             ...prev,
                             yIsStx: e.target.checked,
-                          }))
-                        }
+                          }));
+                          setTokenValidation((prev) => ({
+                            ...prev,
+                            y: { status: "idle" },
+                          }));
+                        }}
                       />
                       Use STX
                     </label>
