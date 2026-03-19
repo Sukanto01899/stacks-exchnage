@@ -638,8 +638,11 @@ function App() {
     if (tokenIsStx.x && tokenIsStx.y) {
       return "Both sides cannot be STX. Choose one side only.";
     }
+    if (tokenMismatchWarning) {
+      return "Selected tokens do not match the initialized pool.";
+    }
     return null;
-  }, [tokenContracts, tokenIsStx]);
+  }, [tokenContracts, tokenIsStx, tokenMismatchWarning]);
 
   const currentPrice = useMemo(() => {
     if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
@@ -2648,6 +2651,7 @@ function App() {
                   tokenLabels={selectionLabels}
                   poolTokenLabels={poolTokenLabels}
                   tokenInfo={tokenInfo}
+                  tokenMismatch={!!tokenMismatchWarning}
                   swapInput={swapInput}
                   setSwapInput={setSwapInput}
                   swapDirection={swapDirection}
@@ -2717,6 +2721,7 @@ function App() {
                     tokenLabels={selectionLabels}
                     poolTokenLabels={poolTokenLabels}
                     tokenInfo={tokenInfo}
+                    tokenMismatch={!!tokenMismatchWarning}
                     liqX={liqX}
                     setLiqX={setLiqX}
                     formatNumber={formatNumber}

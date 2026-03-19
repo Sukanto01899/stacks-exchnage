@@ -9,6 +9,7 @@ export default function LiquidityCard(props: any) {
     tokenLabels,
     poolTokenLabels,
     tokenInfo,
+    tokenMismatch,
     liqX,
     setLiqX,
     formatNumber,
@@ -166,7 +167,11 @@ export default function LiquidityCard(props: any) {
         )}
         {renderApprovalManager("liquidity")}
         <div className="pool-actions">
-          <button className="primary" onClick={handleAddLiquidity}>
+          <button
+            className="primary"
+            onClick={handleAddLiquidity}
+            disabled={tokenMismatch}
+          >
             Add liquidity
           </button>
         </div>
@@ -212,7 +217,11 @@ export default function LiquidityCard(props: any) {
           </span>
         </div>
         <div className="pool-actions">
-          <button className="primary" onClick={handleRemoveLiquidity}>
+          <button
+            className="primary"
+            onClick={handleRemoveLiquidity}
+            disabled={tokenMismatch}
+          >
             Remove liquidity
           </button>
         </div>

@@ -7,6 +7,7 @@ export default function SwapCard(props: any) {
     tokenLabels,
     poolTokenLabels,
     tokenInfo,
+    tokenMismatch,
     swapInput,
     setSwapInput,
     swapDirection,
@@ -591,7 +592,8 @@ export default function SwapCard(props: any) {
         disabled={
           quoteLoading ||
           swapPending ||
-          preflightPending
+          preflightPending ||
+          tokenMismatch
         }
       >
         {quoteLoading
