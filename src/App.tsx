@@ -404,6 +404,34 @@ function App() {
     [STACKS_API],
   );
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (!tokenDraft.xIsStx && tokenDraft.xId) {
+        setTokenValidation((prev) => ({ ...prev, x: { status: "checking" } }));
+        void validateSip10Token(tokenDraft.xId).then((result) => {
+          setTokenValidation((prev) => ({
+            ...prev,
+            x: result.ok
+              ? { status: "ok" }
+              : { status: "error", message: result.message },
+          }));
+        });
+      }
+      if (!tokenDraft.yIsStx && tokenDraft.yId) {
+        setTokenValidation((prev) => ({ ...prev, y: { status: "checking" } }));
+        void validateSip10Token(tokenDraft.yId).then((result) => {
+          setTokenValidation((prev) => ({
+            ...prev,
+            y: result.ok
+              ? { status: "ok" }
+              : { status: "error", message: result.message },
+          }));
+        });
+      }
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [tokenDraft, validateSip10Token]);
+
   const applyTokenSelection = async () => {
     if (tokenDraft.xIsStx && tokenDraft.yIsStx) {
       setTokenSelectMessage("Both sides cannot be STX. Choose one side only.");
