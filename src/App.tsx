@@ -3201,6 +3201,7 @@ function App() {
                     recentSwaps={recentSwaps}
                     resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                     onViewAllActivity={() => setActivityDrawerOpen(true)}
+                    activityCount={activityItems.length}
                   />
                 </Suspense>
               ) : (

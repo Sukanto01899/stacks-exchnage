@@ -35,8 +35,13 @@ export default function LiquidityCard(props: any) {
     recentSwaps,
     resolvedStacksNetwork,
     onViewAllActivity,
+    activityCount,
   } = props;
   const safeRecentSwaps = Array.isArray(recentSwaps) ? recentSwaps : [];
+  const safeActivityCount =
+    typeof activityCount === "number" && Number.isFinite(activityCount)
+      ? activityCount
+      : 0;
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
@@ -164,7 +169,7 @@ export default function LiquidityCard(props: any) {
             <span className="chip ghost">
               {safeRecentSwaps.length} in activity log
             </span>
-            {safeRecentSwaps.length > 0 && (
+            {safeActivityCount > 0 && (
               <button
                 className="tiny ghost"
                 type="button"
