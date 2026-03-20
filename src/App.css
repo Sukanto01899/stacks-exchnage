@@ -1138,6 +1138,16 @@ h3 {
   display: none;
 }
 
+.swap-breakdown-compact {
+  display: none;
+}
+
+.simple-mode .swap-breakdown-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .simple-mode .token-output h3 {
   font-size: 44px;
   font-weight: 500;
