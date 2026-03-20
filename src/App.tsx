@@ -3200,6 +3200,7 @@ function App() {
                     handleRemoveLiquidity={handleRemoveLiquidity}
                     recentSwaps={recentSwaps}
                     resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+                    onViewAllActivity={() => setActivityDrawerOpen(true)}
                   />
                 </Suspense>
               ) : (

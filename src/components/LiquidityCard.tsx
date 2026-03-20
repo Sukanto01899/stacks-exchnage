@@ -34,6 +34,7 @@ export default function LiquidityCard(props: any) {
     handleRemoveLiquidity,
     recentSwaps,
     resolvedStacksNetwork,
+    onViewAllActivity,
   } = props;
   const safeRecentSwaps = Array.isArray(recentSwaps) ? recentSwaps : [];
 
@@ -159,9 +160,18 @@ export default function LiquidityCard(props: any) {
             <p className="eyebrow">Pool activity</p>
             <h3>Recent swaps</h3>
           </div>
-          <span className="chip ghost">
-            {safeRecentSwaps.length} in activity log
-          </span>
+          <div className="pool-recent-actions">
+            <span className="chip ghost">
+              {safeRecentSwaps.length} in activity log
+            </span>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onViewAllActivity}
+            >
+              View all activity
+            </button>
+          </div>
         </div>
         {safeRecentSwaps.length === 0 ? (
           <p className="muted small pool-recent-empty">
