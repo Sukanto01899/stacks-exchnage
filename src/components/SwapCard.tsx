@@ -286,19 +286,48 @@ export default function SwapCard(props: any) {
           </strong>
         </div>
       </div>
-      <div className="breakdown">
-        <div>
-          <span className="muted small">Price impact</span>
-          <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}</strong>
+      <div className="swap-breakdown">
+        <div className="swap-breakdown-head">
+          <div>
+            <p className="eyebrow">Route</p>
+            <h3>Single pool path</h3>
+          </div>
+          <span className="chip ghost">{poolContract.contractName}</span>
         </div>
-        <div>
-          <span className="muted small">Minimum received</span>
-          <strong>
-            {liveSwapOutput
-              ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))} `
-              : "N/A"}
-            {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
-          </strong>
+        <div className="swap-breakdown-grid">
+          <div className="swap-breakdown-item">
+            <span className="muted small">Route</span>
+            <strong>
+              {fromLabel} → {toLabel} (1 hop)
+            </strong>
+          </div>
+          <div className="swap-breakdown-item">
+            <span className="muted small">Pool fee</span>
+            <strong>{(FEE_BPS / 100).toFixed(2)}%</strong>
+          </div>
+          <div className="swap-breakdown-item">
+            <span className="muted small">Price impact</span>
+            <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}</strong>
+          </div>
+          <div className="swap-breakdown-item">
+            <span className="muted small">Slippage tolerance</span>
+            <strong>{slippageInput ? `${slippageInput}%` : "N/A"}</strong>
+          </div>
+          <div className="swap-breakdown-item">
+            <span className="muted small">Minimum received</span>
+            <strong>
+              {liveSwapOutput
+                ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))} `
+                : "N/A"}
+              {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
+            </strong>
+          </div>
+          <div className="swap-breakdown-item">
+            <span className="muted small">Estimated fee</span>
+            <strong>
+              {formatNumber(simulator.fee)} {fromLabel}
+            </strong>
+          </div>
         </div>
       </div>
 
