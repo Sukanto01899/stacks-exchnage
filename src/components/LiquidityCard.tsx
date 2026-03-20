@@ -164,13 +164,15 @@ export default function LiquidityCard(props: any) {
             <span className="chip ghost">
               {safeRecentSwaps.length} in activity log
             </span>
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={onViewAllActivity}
-            >
-              View all activity
-            </button>
+            {safeRecentSwaps.length > 0 && (
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={onViewAllActivity}
+              >
+                View all activity
+              </button>
+            )}
           </div>
         </div>
         {safeRecentSwaps.length === 0 ? (
