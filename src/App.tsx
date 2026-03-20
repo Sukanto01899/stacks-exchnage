@@ -3212,6 +3212,7 @@ function App() {
                 >
                   <AnalyticsPanel
                     analytics={analytics}
+                    portfolioMetrics={portfolioMetrics}
                     currentPrice={currentPrice}
                     formatNumber={formatNumber}
                     formatSignedPercent={formatSignedPercent}

@@ -67,30 +67,11 @@ export default function OnboardingModal(props: OnboardingModalProps) {
                 ? nextStep.description
                 : "You are ready to trade, provide liquidity, or review analytics."}
             </p>
-            {nextStep ? (
-              <button
-                className="tiny"
-                onClick={() => {
-                  nextStep.action();
-                  if (nextStep.id !== "connect" && nextStep.id !== "fund") {
-                    closeOnboarding(false);
-                  }
-                }}
-                disabled={
-                  nextStep.complete ||
-                  (nextStep.id === "fund" && faucetPending)
-                }
-              >
-                {nextStep.actionLabel}
-              </button>
-            ) : (
-              <button
-                className="tiny ghost"
-                onClick={() => closeOnboarding(false)}
-              >
-                Close
-              </button>
-            )}
+            <p className="muted small">
+              {nextStep
+                ? "Use the footer action to continue."
+                : "You can close the guide below."}
+            </p>
           </div>
         </div>
         <div className="onboarding-list">
@@ -128,9 +109,24 @@ export default function OnboardingModal(props: OnboardingModalProps) {
             <button className="secondary" onClick={() => closeOnboarding(true)}>
               Dismiss
             </button>
-            <button className="primary" onClick={() => closeOnboarding(false)}>
-              Continue exploring
-            </button>
+            {nextStep ? (
+              <button
+                className="primary"
+                onClick={() => {
+                  nextStep.action();
+                  if (nextStep.id !== "connect" && nextStep.id !== "fund") {
+                    closeOnboarding(false);
+                  }
+                }}
+                disabled={nextStep.id === "fund" && faucetPending}
+              >
+                {nextStep.actionLabel}
+              </button>
+            ) : (
+              <button className="primary" onClick={() => closeOnboarding(false)}>
+                Continue exploring
+              </button>
+            )}
           </div>
         </div>
       </div>

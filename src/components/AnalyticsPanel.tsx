@@ -18,6 +18,12 @@ type AnalyticsPanelProps = {
     latest?: { ts: number } | null;
     baseline24?: { ts: number } | null;
   };
+  portfolioMetrics: {
+    pnl24X: number | null;
+    pnl24Y: number | null;
+    ilPercent: number | null;
+    has24h: boolean;
+  };
   currentPrice: number | null;
   formatNumber: (value: number) => string;
   formatSignedPercent: (value: number | null) => string;
@@ -27,6 +33,7 @@ type AnalyticsPanelProps = {
 export default function AnalyticsPanel(props: AnalyticsPanelProps) {
   const {
     analytics,
+    portfolioMetrics,
     currentPrice,
     formatNumber,
     formatSignedPercent,
@@ -71,6 +78,36 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
           <p className="muted small">24h activity</p>
           <strong>{analytics.swaps24h} swaps</strong>
           <p className="muted small">{analytics.liquidity24h} LP actions</p>
+        </div>
+      </div>
+
+      <div className="analytics-grid">
+        <div className="analytics-stat">
+          <p className="muted small">LP PnL 24h (X)</p>
+          <strong>
+            {portfolioMetrics.has24h
+              ? formatSignedPercent(portfolioMetrics.pnl24X)
+              : "No 24h baseline"}
+          </strong>
+          <p className="muted small">Your holdings vs yesterday</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">LP PnL 24h (Y)</p>
+          <strong>
+            {portfolioMetrics.has24h
+              ? formatSignedPercent(portfolioMetrics.pnl24Y)
+              : "No 24h baseline"}
+          </strong>
+          <p className="muted small">Your holdings vs yesterday</p>
+        </div>
+        <div className="analytics-stat">
+          <p className="muted small">IL estimate 24h</p>
+          <strong>
+            {portfolioMetrics.has24h
+              ? formatSignedPercent(portfolioMetrics.ilPercent)
+              : "No 24h baseline"}
+          </strong>
+          <p className="muted small">Vs HODL over 24h</p>
         </div>
       </div>
 
