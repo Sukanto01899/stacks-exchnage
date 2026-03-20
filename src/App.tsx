@@ -177,6 +177,18 @@ const inferToastTone = (
   return "warning";
 };
 
+type ActivityFilter =
+  | "swap"
+  | "confirmed"
+  | "submitted"
+  | "add-liquidity"
+  | "remove-liquidity"
+  | "approve"
+  | "faucet"
+  | "failed"
+  | "cancelled"
+  | "all";
+
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
@@ -194,6 +206,9 @@ function App() {
   const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
+  const [activityFilter, setActivityFilter] =
+    useState<ActivityFilter>("all");
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
@@ -713,7 +728,7 @@ function App() {
     tokenDecimals: TOKEN_DECIMALS,
     fetchPoolState,
   });
-  const { activityItems, pushActivity } = useActivity({
+  const { activityItems, pushActivity, setActivityItems } = useActivity({
     activityKey,
     stacksApi: STACKS_API,
     stacksAddress,
@@ -725,6 +740,18 @@ function App() {
     () => activityItems.filter((item) => item.status === "submitted"),
     [activityItems],
   );
+  const filteredActivityItems = useMemo(() => {
+    if (activityFilter === "all") return activityItems;
+    if (
+      activityFilter === "confirmed" ||
+      activityFilter === "submitted" ||
+      activityFilter === "failed" ||
+      activityFilter === "cancelled"
+    ) {
+      return activityItems.filter((item) => item.status === activityFilter);
+    }
+    return activityItems.filter((item) => item.kind === activityFilter);
+  }, [activityFilter, activityItems]);
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
@@ -2415,6 +2442,17 @@ function App() {
           </div>
           <div className="nav-actions">
             <button
+              className="activity-pill"
+              type="button"
+              onClick={() => setActivityDrawerOpen(true)}
+              aria-label="Open activity drawer"
+            >
+              Activity
+              {pendingTxs.length > 0 && (
+                <span className="activity-badge">{pendingTxs.length}</span>
+              )}
+            </button>
+            <button
               className="nav-burger"
               type="button"
               aria-label="Open menu"
@@ -2437,6 +2475,165 @@ function App() {
           </div>
         </div>
       </header>
+
+      {activityDrawerOpen && (
+        <div
+          className="activity-drawer-backdrop"
+          onClick={() => setActivityDrawerOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="activity-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="nav-drawer-head">
+              <div>
+                <p className="eyebrow">Activity</p>
+                <h2>Transactions</h2>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Close activity drawer"
+                onClick={() => setActivityDrawerOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="activity-drawer-controls">
+              <div className="activity-filter-row">
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "all" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("all")}
+                >
+                  All
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "submitted" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("submitted")}
+                >
+                  Pending
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "failed" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("failed")}
+                >
+                  Failed
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "swap" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("swap")}
+                >
+                  Swaps
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "add-liquidity" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("add-liquidity")}
+                >
+                  Add LP
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "remove-liquidity" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("remove-liquidity")}
+                >
+                  Remove LP
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "approve" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("approve")}
+                >
+                  Approvals
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "faucet" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("faucet")}
+                >
+                  Faucet
+                </button>
+              </div>
+              <div className="mini-actions">
+                <button
+                  className="tiny ghost"
+                  onClick={() => {
+                    setActivityItems([]);
+                    setActivityFilter("all");
+                    try {
+                      localStorage.removeItem(activityKey);
+                    } catch (error) {
+                      console.warn("Activity history clear failed", error);
+                    }
+                  }}
+                  disabled={activityItems.length === 0}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            {activityItems.length > 0 && (
+              <p className="muted small activity-drawer-summary">
+                Showing {Math.min(filteredActivityItems.length, 10)} of{" "}
+                {filteredActivityItems.length} matching entries.
+              </p>
+            )}
+            {filteredActivityItems.length === 0 ? (
+              <p className="muted small">
+                {activityItems.length === 0
+                  ? "No activity yet."
+                  : "No activity matches the current filter."}
+              </p>
+            ) : (
+              <div className="activity-drawer-list">
+                {filteredActivityItems.slice(0, 10).map((item) => (
+                  <div className="activity-drawer-item" key={item.id}>
+                    <div className="activity-drawer-main">
+                      <span className={`chip ghost status-${item.status}`}>
+                        {item.status}
+                      </span>
+                      <strong>{item.message}</strong>
+                    </div>
+                    <div className="activity-drawer-meta">
+                      <span className="muted small">
+                        {new Date(item.ts).toLocaleString()}
+                      </span>
+                      {item.txid ? (
+                        <a
+                          className="chip ghost"
+                          href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                        </a>
+                      ) : null}
+                    </div>
+                    {item.detail ? (
+                      <p className="muted small">{item.detail}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {drawerOpen && (
         <div
