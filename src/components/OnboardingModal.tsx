@@ -23,6 +23,7 @@ export default function OnboardingModal(props: OnboardingModalProps) {
     closeOnboarding,
     faucetPending,
   } = props;
+  const nextStep = onboardingSteps.find((step) => !step.complete) || null;
 
   return (
     <div className="onboarding-backdrop" onClick={() => closeOnboarding(false)}>
@@ -57,6 +58,39 @@ export default function OnboardingModal(props: OnboardingModalProps) {
               approvals, liquidity actions, and faucet mints use the connected
               wallet and configured contracts.
             </p>
+          </div>
+          <div className="onboarding-card">
+            <p className="eyebrow">Recommended next</p>
+            <h4>{nextStep ? nextStep.title : "All steps complete"}</h4>
+            <p className="muted small">
+              {nextStep
+                ? nextStep.description
+                : "You are ready to trade, provide liquidity, or review analytics."}
+            </p>
+            {nextStep ? (
+              <button
+                className="tiny"
+                onClick={() => {
+                  nextStep.action();
+                  if (nextStep.id !== "connect" && nextStep.id !== "fund") {
+                    closeOnboarding(false);
+                  }
+                }}
+                disabled={
+                  nextStep.complete ||
+                  (nextStep.id === "fund" && faucetPending)
+                }
+              >
+                {nextStep.actionLabel}
+              </button>
+            ) : (
+              <button
+                className="tiny ghost"
+                onClick={() => closeOnboarding(false)}
+              >
+                Close
+              </button>
+            )}
           </div>
         </div>
         <div className="onboarding-list">
