@@ -63,6 +63,10 @@ export default function LiquidityCard(props: any) {
     pool && pool.reserveX > 0 && pool.reserveY > 0
       ? pool.reserveY / pool.reserveX
       : null;
+  const hasLiquidity = pool && pool.totalShares > 0;
+  const hasPosition = balances.lpShares > 0;
+  const positionX = hasLiquidity ? pool.reserveX * poolShare : 0;
+  const positionY = hasLiquidity ? pool.reserveY * poolShare : 0;
 
   return (
     <div className="lp-stack pool-page">
@@ -71,46 +75,79 @@ export default function LiquidityCard(props: any) {
           <p className="eyebrow">Pool</p>
           <h3>Liquidity control</h3>
         </div>
-        <div className="pool-meta">
-          <div className="pool-stat">
-            <span className="muted small">Your LP</span>
-            <strong>{formatNumber(balances.lpShares)} shares</strong>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">Pool share</span>
-            <strong>{(poolShare * 100).toFixed(2)}%</strong>
-          </div>
-        </div>
       </div>
 
-      <div className="pool-snapshot">
-        <div className="pool-stat">
-          <span className="muted small">Reserves</span>
-          <strong>
-            {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
-            {formatNumber(pool.reserveY)} {poolTokenYLabel}
-          </strong>
-        </div>
-        <div className="pool-stat">
-          <span className="muted small">Current ratio</span>
-          <strong>
-            {ratio
-              ? `1 ${poolTokenXLabel} ~ ${formatNumber(ratio)} ${poolTokenYLabel}`
-              : "No liquidity yet"}
-          </strong>
-        </div>
-        {tokenInfo && (
-          <div className="pool-stat">
-            <span className="muted small">Pool tokens</span>
-            <strong className="token-inline">
-              {renderIcon(poolTokenXIcon, poolTokenXLabel, poolTokenXIsStx)}
-              {poolTokenXLabel}
-              <span className="muted small"> / </span>
-              {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
-              {poolTokenYLabel}
-            </strong>
+      <div className="pool-overview">
+        <div className="pool-overview-card">
+          <div className="pool-overview-head">
+            <div>
+              <p className="eyebrow">Pool stats</p>
+              <h3>Pool snapshot</h3>
+            </div>
+            {tokenInfo && (
+              <strong className="token-inline">
+                {renderIcon(poolTokenXIcon, poolTokenXLabel, poolTokenXIsStx)}
+                {poolTokenXLabel}
+                <span className="muted small"> / </span>
+                {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
+                {poolTokenYLabel}
+              </strong>
+            )}
           </div>
-        )}
+          <div className="pool-stats-grid">
+            <div className="pool-stat">
+              <span className="muted small">Reserves</span>
+              <strong>
+                {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
+                {formatNumber(pool.reserveY)} {poolTokenYLabel}
+              </strong>
+            </div>
+            <div className="pool-stat">
+              <span className="muted small">Current ratio</span>
+              <strong>
+                {ratio
+                  ? `1 ${poolTokenXLabel} ~ ${formatNumber(ratio)} ${poolTokenYLabel}`
+                  : "No liquidity yet"}
+              </strong>
+            </div>
+            <div className="pool-stat">
+              <span className="muted small">Total LP shares</span>
+              <strong>{formatNumber(pool.totalShares)} shares</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="pool-overview-card">
+          <div className="pool-overview-head">
+            <div>
+              <p className="eyebrow">Your position</p>
+              <h3>Liquidity footprint</h3>
+            </div>
+            <span className={`chip ${hasPosition ? "success" : "ghost"}`}>
+              {hasPosition ? "Active" : "No position"}
+            </span>
+          </div>
+          <div className="pool-stats-grid">
+            <div className="pool-stat">
+              <span className="muted small">Your LP</span>
+              <strong>{formatNumber(balances.lpShares)} shares</strong>
+            </div>
+            <div className="pool-stat">
+              <span className="muted small">Pool share</span>
+              <strong>{(poolShare * 100).toFixed(2)}%</strong>
+            </div>
+            <div className="pool-stat wide">
+              <span className="muted small">Underlying in pool</span>
+              <strong>
+                {hasPosition
+                  ? `${formatNumber(positionX)} ${poolTokenXLabel} / ${formatNumber(
+                      positionY,
+                    )} ${poolTokenYLabel}`
+                  : "No position yet"}
+              </strong>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="token-card pool-card">

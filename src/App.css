@@ -417,7 +417,9 @@ h3 {
   }
 
   .pool-meta,
-  .pool-snapshot {
+  .pool-snapshot,
+  .pool-overview,
+  .pool-stats-grid {
     grid-template-columns: 1fr;
   }
 
@@ -810,12 +812,46 @@ h3 {
   gap: 10px;
 }
 
+.pool-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pool-overview-card {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card-soft);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pool-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pool-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .pool-stat {
   border: 1px solid var(--stroke);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.18);
   min-width: 0;
+}
+
+.pool-stat.wide {
+  grid-column: 1 / -1;
 }
 
 .pool-stat strong {
