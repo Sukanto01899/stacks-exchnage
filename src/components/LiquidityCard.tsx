@@ -31,8 +31,11 @@ export default function LiquidityCard(props: any) {
     pool,
     liquidityPreview,
     initialLiquidityTooSmall,
-    handleRemoveLiquidity
+    handleRemoveLiquidity,
+    recentSwaps,
+    resolvedStacksNetwork,
   } = props;
+  const safeRecentSwaps = Array.isArray(recentSwaps) ? recentSwaps : [];
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
@@ -148,6 +151,51 @@ export default function LiquidityCard(props: any) {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="pool-recent">
+        <div className="pool-recent-head">
+          <div>
+            <p className="eyebrow">Pool activity</p>
+            <h3>Recent swaps</h3>
+          </div>
+          <span className="chip ghost">
+            {safeRecentSwaps.length} in activity log
+          </span>
+        </div>
+        {safeRecentSwaps.length === 0 ? (
+          <p className="muted small pool-recent-empty">
+            No swaps recorded yet.
+          </p>
+        ) : (
+          <div className="pool-recent-list">
+            {safeRecentSwaps.slice(0, 5).map((item: any) => (
+              <div className="pool-recent-item" key={item.id}>
+                <div className="pool-recent-main">
+                  <span className={`chip ghost status-${item.status}`}>
+                    {item.status}
+                  </span>
+                  <strong>{item.message}</strong>
+                </div>
+                <div className="pool-recent-meta">
+                  <span className="muted small">
+                    {new Date(item.ts).toLocaleString()}
+                  </span>
+                  {item.txid ? (
+                    <a
+                      className="chip ghost"
+                      href={`https://explorer.hiro.so/txid/${item.txid}?chain=${resolvedStacksNetwork}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="token-card pool-card">
@@ -303,6 +351,23 @@ export default function LiquidityCard(props: any) {
             Remove liquidity
           </button>
         </div>
+      </div>
+
+      <div className="pool-action-bar" aria-label="Pool quick actions">
+        <button
+          className="secondary"
+          onClick={handleRemoveLiquidity}
+          disabled={tokenMismatch}
+        >
+          Remove liquidity
+        </button>
+        <button
+          className="primary"
+          onClick={handleAddLiquidity}
+          disabled={tokenMismatch || initialLiquidityTooSmall}
+        >
+          Add liquidity
+        </button>
       </div>
     </div>
   );

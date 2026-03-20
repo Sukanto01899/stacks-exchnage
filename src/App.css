@@ -430,6 +430,30 @@ h3 {
   .pool-actions .primary {
     width: 100%;
   }
+
+  .pool-page {
+    padding-bottom: 84px;
+  }
+
+  .pool-action-bar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 900;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+    border-radius: 16px;
+    border: 1px solid var(--stroke);
+    background: rgba(12, 16, 26, 0.92);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+  }
+
+  .pool-action-bar .primary,
+  .pool-action-bar .secondary {
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
@@ -877,6 +901,55 @@ h3 {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
+}
+
+.pool-recent {
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 12px;
+}
+
+.pool-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.pool-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pool-recent-item {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pool-recent-main,
+.pool-recent-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pool-recent-empty {
+  margin: 0;
+}
+
+.pool-action-bar {
+  display: none;
 }
 
 .simple-mode .swap-card {
