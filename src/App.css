@@ -1272,6 +1272,50 @@ h3 {
   font-size: 13px;
 }
 
+.info-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: default;
+  position: relative;
+}
+
+.info-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 160px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: rgba(12, 16, 26, 0.96);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  white-space: normal;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.info-icon:hover::after,
+.info-icon:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
 .swap-settings {
   border-radius: var(--radius-md);
   border: 1px solid var(--stroke);

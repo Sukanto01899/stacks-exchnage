@@ -317,49 +317,69 @@ export default function SwapCard(props: any) {
         </div>
         <div className="swap-breakdown-grid">
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Swap path for this trade"
-            >
+            <span className="muted small">
               Route
+              <span
+                className="info-icon"
+                aria-label="Swap path for this trade"
+                data-tooltip="Swap path for this trade"
+              >
+                i
+              </span>
             </span>
             <strong>
               {fromLabel} → {toLabel} (1 hop)
             </strong>
           </div>
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Fee charged by the pool"
-            >
+            <span className="muted small">
               Pool fee
+              <span
+                className="info-icon"
+                aria-label="Fee charged by the pool"
+                data-tooltip="Fee charged by the pool"
+              >
+                i
+              </span>
             </span>
             <strong>{(FEE_BPS / 100).toFixed(2)}%</strong>
           </div>
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Estimated price movement from this trade"
-            >
+            <span className="muted small">
               Price impact
+              <span
+                className="info-icon"
+                aria-label="Estimated price movement from this trade"
+                data-tooltip="Estimated price movement from this trade"
+              >
+                i
+              </span>
             </span>
             <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}</strong>
           </div>
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Maximum price movement you will accept"
-            >
+            <span className="muted small">
               Slippage tolerance
+              <span
+                className="info-icon"
+                aria-label="Maximum price movement you will accept"
+                data-tooltip="Maximum price movement you will accept"
+              >
+                i
+              </span>
             </span>
             <strong>{slippageInput ? `${slippageInput}%` : "N/A"}</strong>
           </div>
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Minimum output after slippage"
-            >
+            <span className="muted small">
               Minimum received
+              <span
+                className="info-icon"
+                aria-label="Minimum output after slippage"
+                data-tooltip="Minimum output after slippage"
+              >
+                i
+              </span>
             </span>
             <strong>
               {liveSwapOutput
@@ -369,11 +389,15 @@ export default function SwapCard(props: any) {
             </strong>
           </div>
           <div className="swap-breakdown-item">
-            <span
-              className="muted small"
-              title="Estimated fee charged in the input token"
-            >
+            <span className="muted small">
               Estimated fee
+              <span
+                className="info-icon"
+                aria-label="Estimated fee charged in the input token"
+                data-tooltip="Estimated fee charged in the input token"
+              >
+                i
+              </span>
             </span>
             <strong>
               {formatNumber(simulator.fee)} {fromLabel}
