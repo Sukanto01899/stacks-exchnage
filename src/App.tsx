@@ -206,7 +206,9 @@ function App() {
   const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
+  const [activityDrawerClosing, setActivityDrawerClosing] = useState(false);
   const [activityFilter, setActivityFilter] =
     useState<ActivityFilter>("all");
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
@@ -252,6 +254,8 @@ function App() {
   });
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
   const lastToastMessages = useRef<Record<string, string | null>>({});
+  const navDrawerTimer = useRef<number | null>(null);
+  const activityDrawerTimer = useRef<number | null>(null);
 
   const pushToast = useCallback((message: string, tone: ToastTone) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -530,6 +534,55 @@ function App() {
     if (!id) return "";
     return id.split("::")[0] || "";
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (navDrawerTimer.current) {
+        window.clearTimeout(navDrawerTimer.current);
+      }
+      if (activityDrawerTimer.current) {
+        window.clearTimeout(activityDrawerTimer.current);
+      }
+    };
+  }, []);
+
+  const openNavDrawer = useCallback(() => {
+    if (navDrawerTimer.current) {
+      window.clearTimeout(navDrawerTimer.current);
+      navDrawerTimer.current = null;
+    }
+    setDrawerClosing(false);
+    setDrawerOpen(true);
+  }, []);
+
+  const closeNavDrawer = useCallback(() => {
+    if (!drawerOpen || drawerClosing) return;
+    setDrawerClosing(true);
+    navDrawerTimer.current = window.setTimeout(() => {
+      setDrawerOpen(false);
+      setDrawerClosing(false);
+      navDrawerTimer.current = null;
+    }, 220);
+  }, [drawerClosing, drawerOpen]);
+
+  const openActivityDrawer = useCallback(() => {
+    if (activityDrawerTimer.current) {
+      window.clearTimeout(activityDrawerTimer.current);
+      activityDrawerTimer.current = null;
+    }
+    setActivityDrawerClosing(false);
+    setActivityDrawerOpen(true);
+  }, []);
+
+  const closeActivityDrawer = useCallback(() => {
+    if (!activityDrawerOpen || activityDrawerClosing) return;
+    setActivityDrawerClosing(true);
+    activityDrawerTimer.current = window.setTimeout(() => {
+      setActivityDrawerOpen(false);
+      setActivityDrawerClosing(false);
+      activityDrawerTimer.current = null;
+    }, 220);
+  }, [activityDrawerClosing, activityDrawerOpen]);
 
   const getTokenIcon = useCallback(
     (principal: string | null) => {
@@ -2448,7 +2501,7 @@ function App() {
             <button
               className="activity-pill"
               type="button"
-              onClick={() => setActivityDrawerOpen(true)}
+              onClick={openActivityDrawer}
               aria-label="Open activity drawer"
             >
               Activity
@@ -2460,7 +2513,7 @@ function App() {
               className="nav-burger"
               type="button"
               aria-label="Open menu"
-              onClick={() => setDrawerOpen(true)}
+              onClick={openNavDrawer}
             >
               <span />
               <span />
@@ -2480,15 +2533,15 @@ function App() {
         </div>
       </header>
 
-      {activityDrawerOpen && (
+      {(activityDrawerOpen || activityDrawerClosing) && (
         <div
-          className="activity-drawer-backdrop"
-          onClick={() => setActivityDrawerOpen(false)}
+          className={`activity-drawer-backdrop ${activityDrawerClosing ? "is-closing" : ""}`}
+          onClick={closeActivityDrawer}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="activity-drawer"
+            className={`activity-drawer ${activityDrawerClosing ? "is-closing" : ""}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="nav-drawer-head">
@@ -2500,7 +2553,7 @@ function App() {
                 className="icon-button"
                 type="button"
                 aria-label="Close activity drawer"
-                onClick={() => setActivityDrawerOpen(false)}
+                onClick={closeActivityDrawer}
               >
                 ×
               </button>
@@ -2639,21 +2692,24 @@ function App() {
         </div>
       )}
 
-      {drawerOpen && (
+      {(drawerOpen || drawerClosing) && (
         <div
-          className="nav-drawer-backdrop"
-          onClick={() => setDrawerOpen(false)}
+          className={`nav-drawer-backdrop ${drawerClosing ? "is-closing" : ""}`}
+          onClick={closeNavDrawer}
           role="dialog"
           aria-modal="true"
         >
-          <div className="nav-drawer" onClick={(e) => e.stopPropagation()}>
+          <div
+            className={`nav-drawer ${drawerClosing ? "is-closing" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="nav-drawer-head">
               <h2>Menu</h2>
               <button
                 className="icon-button"
                 type="button"
                 aria-label="Close menu"
-                onClick={() => setDrawerOpen(false)}
+                onClick={closeNavDrawer}
               >
                 ×
               </button>
