@@ -87,6 +87,12 @@ export default function SwapCard(props: any) {
     swapDirection === "x-to-y" ? tokenIsStx?.x || false : tokenIsStx?.y || false;
   const toIsStx =
     swapDirection === "x-to-y" ? tokenIsStx?.y || false : tokenIsStx?.x || false;
+  const swapAmount = Number(swapInput || 0);
+  const fromBalance =
+    swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
+  const insufficientBalance =
+    Number.isFinite(swapAmount) && swapAmount > 0 && swapAmount > fromBalance;
+  const noLiquidity = pool.reserveX <= 0 || pool.reserveY <= 0;
 
   const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
     if (iconUrl) {
@@ -119,6 +125,19 @@ export default function SwapCard(props: any) {
             <span className="muted small"> / </span>
             {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
             {poolTokenYLabel}
+          </strong>
+        </div>
+      )}
+
+      {(tokenMismatch || insufficientBalance || noLiquidity) && (
+        <div className="note">
+          <p className="muted small">Heads up</p>
+          <strong>
+            {tokenMismatch
+              ? "Selected tokens do not match the initialized pool."
+              : noLiquidity
+                ? "Pool has no liquidity yet. Swaps are disabled."
+                : "Insufficient balance for this swap amount."}
           </strong>
         </div>
       )}
