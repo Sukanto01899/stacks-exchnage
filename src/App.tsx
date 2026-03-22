@@ -1051,6 +1051,44 @@ function App() {
     snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
   });
 
+  const lpFeeEstimates = useMemo(() => {
+    const now = Date.now();
+    const share = Math.max(0, Math.min(1, poolShare));
+    let feeCount = 0;
+    let totalX = 0;
+    let totalY = 0;
+    let total24X = 0;
+    let total24Y = 0;
+
+    activityItems
+      .filter((item) => item.kind === "swap" && item.status === "confirmed")
+      .forEach((item) => {
+        const fee = item.meta?.fee;
+        const symbol = item.meta?.feeSymbol;
+        if (!isFiniteNumber(fee) || !symbol) return;
+        feeCount += 1;
+        if (symbol === "X") {
+          totalX += fee;
+          if (now - item.ts <= DAY_MS) total24X += fee;
+        } else {
+          totalY += fee;
+          if (now - item.ts <= DAY_MS) total24Y += fee;
+        }
+      });
+
+    return {
+      hasFeeData: feeCount > 0,
+      feeTotalX: totalX,
+      feeTotalY: totalY,
+      fee24hX: total24X,
+      fee24hY: total24Y,
+      earnedTotalX: totalX * share,
+      earnedTotalY: totalY * share,
+      earned24hX: total24X * share,
+      earned24hY: total24Y * share,
+    };
+  }, [activityItems, poolShare]);
+
   // TODO: Update this function if you want to implement more robust logic for fetching the current block height, such as using a WebSocket connection to listen for new blocks or implementing retry logic in case of network errors
   const fetchTipHeight = async () => {
     const res = await fetch(`${STACKS_API}/extended/v1/info`);
@@ -1580,6 +1618,7 @@ function App() {
     const blocksAhead = Math.max(1, Math.ceil(deadlineMinutes / 10));
     const deadline = tip > 0 ? BigInt(tip + blocksAhead) : 9_999_999_999n;
 
+    let preflightFee: number | null = null;
     const runPreflight = async () => {
       const senderAddress = activeAddress || CONTRACT_ADDRESS;
       const quoteFn = fromX ? "quote-x-for-y" : "quote-y-for-x";
@@ -1628,6 +1667,7 @@ function App() {
     try {
       setPreflightPending(true);
       const simulated = await runPreflight();
+      preflightFee = simulated.fee;
       setPreflightMessage(
         `Preview ok: output ~${formatNumber(simulated.out)} ${fromX ? "Y" : "X"}, fee ~${formatNumber(simulated.fee)} ${fromX ? "X" : "Y"}.`,
       );
@@ -1663,6 +1703,8 @@ function App() {
       priceImpact: impactPct,
       fromSymbol: fromX ? "X" : "Y",
       toSymbol: fromX ? "Y" : "X",
+      feeEstimate: preflightFee,
+      feeSymbol: fromX ? "X" : "Y",
       functionName,
       functionArgs,
     } satisfies SwapDraft;
@@ -1701,6 +1743,12 @@ function App() {
             txid: payload.txId,
             message: "Swap submitted",
             detail: "Waiting for on-chain confirmation",
+            meta: {
+              fee: draft.feeEstimate ?? null,
+              feeSymbol: draft.feeSymbol,
+              amountIn: draft.amount,
+              amountOut: draft.outputPreview,
+            },
           });
           setSwapPending(false);
         },
@@ -3285,6 +3333,11 @@ function App() {
                     burnShares={burnShares}
                     setBurnShares={setBurnShares}
                     poolShare={poolShare}
+                    lpPosition={lpPosition}
+                    portfolioTotals={portfolioTotals}
+                    portfolioMetrics={portfolioMetrics}
+                    feeEstimates={lpFeeEstimates}
+                    formatSignedPercent={formatSignedPercent}
                     pool={pool}
                     liquidityPreview={liquidityPreview}
                     initialLiquidityTooSmall={initialLiquidityTooSmall}

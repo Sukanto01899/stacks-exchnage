@@ -28,6 +28,11 @@ export default function LiquidityCard(props: any) {
     burnShares,
     setBurnShares,
     poolShare,
+    lpPosition,
+    portfolioTotals,
+    portfolioMetrics,
+    feeEstimates,
+    formatSignedPercent,
     pool,
     liquidityPreview,
     initialLiquidityTooSmall,
@@ -76,6 +81,37 @@ export default function LiquidityCard(props: any) {
   const hasPosition = balances.lpShares > 0;
   const positionX = hasLiquidity ? pool.reserveX * poolShare : 0;
   const positionY = hasLiquidity ? pool.reserveY * poolShare : 0;
+
+  const safeTotals = portfolioTotals || {
+    totalX: 0,
+    totalY: 0,
+    valueInX: 0,
+    valueInY: 0,
+  };
+  const safeMetrics = portfolioMetrics || {
+    pnl24X: null,
+    pnl24Y: null,
+    ilPercent: null,
+    has24h: false,
+  };
+  const safeLp = lpPosition || { x: 0, y: 0 };
+  const safeFees = feeEstimates || {
+    hasFeeData: false,
+    earned24hX: 0,
+    earned24hY: 0,
+    earnedTotalX: 0,
+    earnedTotalY: 0,
+  };
+  const formatSigned =
+    typeof formatSignedPercent === "function"
+      ? formatSignedPercent
+      : (value: number | null) => {
+          if (value === null || !Number.isFinite(value)) return "N/A";
+          const sign = value > 0 ? "+" : "";
+          return `${sign}${value.toFixed(2)}%`;
+        };
+  const formatFeeLine = (x: number, y: number) =>
+    `${formatNumber(x)} ${poolTokenXLabel} / ${formatNumber(y)} ${poolTokenYLabel}`;
 
   return (
     <div className="lp-stack pool-page">
@@ -157,6 +193,86 @@ export default function LiquidityCard(props: any) {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="pool-overview-card">
+        <div className="pool-overview-head">
+          <div>
+            <p className="eyebrow">LP dashboard</p>
+            <h3>Position performance</h3>
+          </div>
+          <span className="chip ghost">Local estimate</span>
+        </div>
+        <div className="pool-stats-grid">
+          <div className="pool-stat">
+            <span className="muted small">Position value</span>
+            <strong>
+              {formatNumber(safeTotals.valueInX)} {poolTokenXLabel}
+            </strong>
+            <span className="muted small">
+              {formatNumber(safeTotals.valueInY)} {poolTokenYLabel}
+            </span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">Wallet + LP</span>
+            <strong>
+              {formatNumber(safeTotals.totalX)} {poolTokenXLabel}
+            </strong>
+            <span className="muted small">
+              {formatNumber(safeTotals.totalY)} {poolTokenYLabel}
+            </span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">24h PnL</span>
+            <strong>
+              {safeMetrics.has24h
+                ? formatSigned(safeMetrics.pnl24X)
+                : "No 24h baseline"}
+            </strong>
+            <span className="muted small">
+              {safeMetrics.has24h
+                ? formatSigned(safeMetrics.pnl24Y)
+                : "No 24h baseline"}
+            </span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">IL estimate (24h)</span>
+            <strong>
+              {safeMetrics.has24h
+                ? formatSigned(safeMetrics.ilPercent)
+                : "No 24h baseline"}
+            </strong>
+            <span className="muted small">Vs hold over 24h</span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">Fees earned (24h)</span>
+            <strong>
+              {safeFees.hasFeeData
+                ? formatFeeLine(safeFees.earned24hX, safeFees.earned24hY)
+                : "No swap fee data yet"}
+            </strong>
+            <span className="muted small">Est. at current pool share</span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">Fees earned (total)</span>
+            <strong>
+              {safeFees.hasFeeData
+                ? formatFeeLine(safeFees.earnedTotalX, safeFees.earnedTotalY)
+                : "No swap fee data yet"}
+            </strong>
+            <span className="muted small">Local history only</span>
+          </div>
+          <div className="pool-stat wide">
+            <span className="muted small">LP exposure</span>
+            <strong>
+              {formatNumber(safeLp.x)} {poolTokenXLabel} /{" "}
+              {formatNumber(safeLp.y)} {poolTokenYLabel}
+            </strong>
+          </div>
+        </div>
+        <p className="muted small">
+          Fees estimate uses local swap previews and your current pool share.
+        </p>
       </div>
 
       <div className="pool-recent">

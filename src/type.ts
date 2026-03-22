@@ -31,6 +31,8 @@ export type SwapDraft = {
   priceImpact: number;
   fromSymbol: "X" | "Y";
   toSymbol: "X" | "Y";
+  feeEstimate?: number | null;
+  feeSymbol?: "X" | "Y";
   functionName: "swap-x-for-y" | "swap-y-for-x";
   functionArgs: ClarityValue[];
 };
@@ -55,6 +57,12 @@ export type ActivityItem = {
   txid?: string;
   message: string;
   detail?: string;
+  meta?: {
+    fee?: number | null;
+    feeSymbol?: "X" | "Y";
+    amountIn?: number | null;
+    amountOut?: number | null;
+  };
 };
 
 // Update price alert structure if you want to track additional alert types, include more detailed information, or implement a different status system based on your contract's specific functions and events
