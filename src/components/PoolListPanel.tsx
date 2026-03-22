@@ -19,6 +19,8 @@ type PoolListPanelProps = {
   setSort: (value: "tvl" | "volume" | "fees" | "apr") => void;
   sortDir: "asc" | "desc";
   setSortDir: (value: "asc" | "desc") => void;
+  favorites: string[];
+  toggleFavorite: (poolId: string) => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
@@ -33,6 +35,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     setSort,
     sortDir,
     setSortDir,
+    favorites,
+    toggleFavorite,
     onOpenPool,
     formatCompactNumber,
     formatNumber,
@@ -95,6 +99,18 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                     {pool.tokenXLabel} / {pool.tokenYLabel}
                   </strong>
                 </div>
+                <button
+                  className={`chip ghost ${favorites.includes(pool.id) ? "is-favorite" : ""}`}
+                  type="button"
+                  onClick={() => toggleFavorite(pool.id)}
+                  aria-label={
+                    favorites.includes(pool.id)
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
+                >
+                  {favorites.includes(pool.id) ? "★ Favorite" : "☆ Favorite"}
+                </button>
                 <span className="chip ghost">
                   {pool.tokenXIsStx || pool.tokenYIsStx ? "STX" : "SIP-010"}
                 </span>

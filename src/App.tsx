@@ -260,6 +260,7 @@ function App() {
     "tvl",
   );
   const [poolSortDir, setPoolSortDir] = useState<"asc" | "desc">("desc");
+  const [favoritePools, setFavoritePools] = useState<string[]>([]);
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
@@ -790,6 +791,10 @@ function App() {
     () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const favoritePoolsKey = useMemo(
+    () => `pool-favorites-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
   const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
     network,
     poolContract,
@@ -973,6 +978,7 @@ function App() {
 
   const poolList = useMemo(() => {
     const normalizedSearch = poolSearch.trim().toLowerCase();
+    const favoritesSet = new Set(favoritePools);
     const filtered = mockPools
       .map((pool) => {
         const tokenXLabel = resolveTokenLabel(
@@ -1006,6 +1012,9 @@ function App() {
       });
 
     const sorted = [...filtered].sort((a, b) => {
+      const favA = favoritesSet.has(a.id);
+      const favB = favoritesSet.has(b.id);
+      if (favA !== favB) return favA ? -1 : 1;
       const dir = poolSortDir === "asc" ? 1 : -1;
       const pick = (value: number | null) =>
         typeof value === "number" && Number.isFinite(value) ? value : -1;
@@ -1016,7 +1025,14 @@ function App() {
     });
 
     return sorted;
-  }, [mockPools, poolSearch, poolSort, poolSortDir, resolveTokenLabel]);
+  }, [
+    favoritePools,
+    mockPools,
+    poolSearch,
+    poolSort,
+    poolSortDir,
+    resolveTokenLabel,
+  ]);
 
   const tokenMismatchWarning = useMemo(() => {
     if (!tokenInfo) return null;
@@ -1351,6 +1367,23 @@ function App() {
   useEffect(() => {
     fetchPoolState(stacksAddress);
   }, [fetchPoolState, stacksAddress]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(favoritePoolsKey);
+      if (!raw) {
+        setFavoritePools([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      const next = Array.isArray(parsed)
+        ? parsed.filter((item) => typeof item === "string")
+        : [];
+      setFavoritePools(next);
+    } catch {
+      setFavoritePools([]);
+    }
+  }, [favoritePoolsKey]);
 
   useEffect(() => {
     try {
@@ -2412,6 +2445,19 @@ function App() {
     } else {
       void fetchPoolState(null);
     }
+  };
+
+  const toggleFavoritePool = (poolId: string) => {
+    setFavoritePools((prev) => {
+      const exists = prev.includes(poolId);
+      const next = exists ? prev.filter((id) => id !== poolId) : [...prev, poolId];
+      try {
+        localStorage.setItem(favoritePoolsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
   };
 
   const setSwapPreset = (percent: number) => {
@@ -3541,6 +3587,8 @@ function App() {
                   setSort={setPoolSort}
                   sortDir={poolSortDir}
                   setSortDir={setPoolSortDir}
+                  favorites={favoritePools}
+                  toggleFavorite={toggleFavoritePool}
                   onOpenPool={handleOpenPoolFromList}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}
