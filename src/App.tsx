@@ -2460,6 +2460,15 @@ function App() {
     });
   };
 
+  const clearFavoritePools = () => {
+    setFavoritePools([]);
+    try {
+      localStorage.setItem(favoritePoolsKey, JSON.stringify([]));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
   const setSwapPreset = (percent: number) => {
     const balance =
       swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
@@ -3589,6 +3598,7 @@ function App() {
                   setSortDir={setPoolSortDir}
                   favorites={favoritePools}
                   toggleFavorite={toggleFavoritePool}
+                  clearFavorites={clearFavoritePools}
                   onOpenPool={handleOpenPoolFromList}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}

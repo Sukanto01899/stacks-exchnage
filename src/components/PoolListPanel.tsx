@@ -21,6 +21,7 @@ type PoolListPanelProps = {
   setSortDir: (value: "asc" | "desc") => void;
   favorites: string[];
   toggleFavorite: (poolId: string) => void;
+  clearFavorites: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
@@ -37,6 +38,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     setSortDir,
     favorites,
     toggleFavorite,
+    clearFavorites,
     onOpenPool,
     formatCompactNumber,
     formatNumber,
@@ -82,6 +84,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
             onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
           >
             {sortDir === "desc" ? "High → Low" : "Low → High"}
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={clearFavorites}
+            disabled={favorites.length === 0}
+          >
+            Clear favorites
           </button>
         </div>
       </div>
