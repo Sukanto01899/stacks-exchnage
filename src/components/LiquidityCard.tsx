@@ -32,6 +32,7 @@ export default function LiquidityCard(props: any) {
     portfolioTotals,
     portfolioMetrics,
     feeEstimates,
+    claimableFees,
     formatSignedPercent,
     pool,
     liquidityPreview,
@@ -102,6 +103,7 @@ export default function LiquidityCard(props: any) {
     earnedTotalX: 0,
     earnedTotalY: 0,
   };
+  const safeClaimable = claimableFees || null;
   const formatSigned =
     typeof formatSignedPercent === "function"
       ? formatSignedPercent
@@ -261,6 +263,15 @@ export default function LiquidityCard(props: any) {
                 : "No swap fee data yet"}
             </strong>
             <span className="muted small">Local history only</span>
+          </div>
+          <div className="pool-stat">
+            <span className="muted small">Claimable fees</span>
+            <strong>
+              {safeClaimable
+                ? formatFeeLine(safeClaimable.x, safeClaimable.y)
+                : "Coming soon"}
+            </strong>
+            <span className="muted small">Requires on-chain support</span>
           </div>
           <div className="pool-stat wide">
             <span className="muted small">LP exposure</span>

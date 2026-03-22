@@ -1089,6 +1089,11 @@ function App() {
     };
   }, [activityItems, poolShare]);
 
+  // TODO: Replace with on-chain read once the contract exposes claimable fee data.
+  const claimableFees = null as
+    | { x: number; y: number; updatedAt?: number }
+    | null;
+
   // TODO: Update this function if you want to implement more robust logic for fetching the current block height, such as using a WebSocket connection to listen for new blocks or implementing retry logic in case of network errors
   const fetchTipHeight = async () => {
     const res = await fetch(`${STACKS_API}/extended/v1/info`);
@@ -3337,6 +3342,7 @@ function App() {
                     portfolioTotals={portfolioTotals}
                     portfolioMetrics={portfolioMetrics}
                     feeEstimates={lpFeeEstimates}
+                    claimableFees={claimableFees}
                     formatSignedPercent={formatSignedPercent}
                     pool={pool}
                     liquidityPreview={liquidityPreview}
