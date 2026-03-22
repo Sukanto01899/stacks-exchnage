@@ -84,7 +84,7 @@ export type ToastItem = {
   tone: ToastTone;
 };
 
-export type AppTab = "swap" | "liquidity" | "analytics";
+export type AppTab = "swap" | "liquidity" | "analytics" | "pools";
 export type OnboardingState = {
   seenModal: boolean;
   dismissed: boolean;

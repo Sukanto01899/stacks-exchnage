@@ -21,6 +21,7 @@ import { usePool } from "./hooks/usePool";
 import SwapCard from "./components/SwapCard";
 const LiquidityCard = lazy(() => import("./components/LiquidityCard"));
 const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel"));
+import PoolListPanel from "./components/PoolListPanel";
 import PortfolioPanel from "./components/PortfolioPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import ApprovalManager from "./components/ApprovalManager";
@@ -254,6 +255,11 @@ function App() {
   });
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
   const [tokenSelectHighlight, setTokenSelectHighlight] = useState(false);
+  const [poolSearch, setPoolSearch] = useState("");
+  const [poolSort, setPoolSort] = useState<"tvl" | "volume" | "fees" | "apr">(
+    "tvl",
+  );
+  const [poolSortDir, setPoolSortDir] = useState<"asc" | "desc">("desc");
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
@@ -887,6 +893,130 @@ function App() {
     }),
     [getTokenIcon, tokenInfo],
   );
+
+  const resolveTokenLabel = useCallback(
+    (id: string, isStx: boolean, fallback: string) => {
+      if (isStx) return "STX";
+      const principal = id.split("::")[0] || "";
+      const meta = principal ? metadataByPrincipal[principal] : undefined;
+      if (meta?.symbol) return meta.symbol;
+      return principal ? shortAddress(principal) : fallback;
+    },
+    [metadataByPrincipal],
+  );
+
+  const mockPools = useMemo(
+    () => [
+      {
+        id: "pool-stx-x",
+        label: "Core STX liquidity",
+        tokenXId: "STX",
+        tokenYId: TOKEN_CONTRACTS.x,
+        tokenXIsStx: true,
+        tokenYIsStx: false,
+        tvl: 1_250_000,
+        volume24h: 182_000,
+        fees24h: 546,
+        apr: 12.4,
+      },
+      {
+        id: "pool-stx-y",
+        label: "STX growth pool",
+        tokenXId: "STX",
+        tokenYId: TOKEN_CONTRACTS.y,
+        tokenXIsStx: true,
+        tokenYIsStx: false,
+        tvl: 980_000,
+        volume24h: 144_500,
+        fees24h: 433,
+        apr: 10.2,
+      },
+      {
+        id: "pool-x-y",
+        label: "Blue-chip pair",
+        tokenXId: TOKEN_CONTRACTS.x,
+        tokenYId: TOKEN_CONTRACTS.y,
+        tokenXIsStx: false,
+        tokenYIsStx: false,
+        tvl: 640_000,
+        volume24h: 92_400,
+        fees24h: 277,
+        apr: 8.9,
+      },
+      {
+        id: "pool-stx-eco",
+        label: "Ecosystem flow",
+        tokenXId: "STX",
+        tokenYId: `${CONTRACT_ADDRESS}.eco-token::eco-token`,
+        tokenXIsStx: true,
+        tokenYIsStx: false,
+        tvl: 420_000,
+        volume24h: 61_900,
+        fees24h: 186,
+        apr: 7.4,
+      },
+      {
+        id: "pool-x-gov",
+        label: "Governance basket",
+        tokenXId: TOKEN_CONTRACTS.x,
+        tokenYId: `${CONTRACT_ADDRESS}.gov-token::gov-token`,
+        tokenXIsStx: false,
+        tokenYIsStx: false,
+        tvl: 310_000,
+        volume24h: 34_800,
+        fees24h: 105,
+        apr: 6.1,
+      },
+    ],
+    [],
+  );
+
+  const poolList = useMemo(() => {
+    const normalizedSearch = poolSearch.trim().toLowerCase();
+    const filtered = mockPools
+      .map((pool) => {
+        const tokenXLabel = resolveTokenLabel(
+          pool.tokenXId,
+          pool.tokenXIsStx,
+          "Token X",
+        );
+        const tokenYLabel = resolveTokenLabel(
+          pool.tokenYId,
+          pool.tokenYIsStx,
+          "Token Y",
+        );
+        return {
+          ...pool,
+          tokenXLabel,
+          tokenYLabel,
+        };
+      })
+      .filter((pool) => {
+        if (!normalizedSearch) return true;
+        const haystack = [
+          pool.label,
+          pool.tokenXLabel,
+          pool.tokenYLabel,
+          pool.tokenXId,
+          pool.tokenYId,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedSearch);
+      });
+
+    const sorted = [...filtered].sort((a, b) => {
+      const dir = poolSortDir === "asc" ? 1 : -1;
+      const pick = (value: number | null) =>
+        typeof value === "number" && Number.isFinite(value) ? value : -1;
+      if (poolSort === "tvl") return (a.tvl - b.tvl) * dir;
+      if (poolSort === "volume") return (a.volume24h - b.volume24h) * dir;
+      if (poolSort === "fees") return (a.fees24h - b.fees24h) * dir;
+      return (pick(a.apr) - pick(b.apr)) * dir;
+    });
+
+    return sorted;
+  }, [mockPools, poolSearch, poolSort, poolSortDir, resolveTokenLabel]);
 
   const tokenMismatchWarning = useMemo(() => {
     if (!tokenInfo) return null;
@@ -2253,6 +2383,37 @@ function App() {
     setSwapInput(String(balances.tokenY || ""));
   };
 
+  const handleOpenPoolFromList = (
+    poolId: string,
+    target: "swap" | "liquidity",
+  ) => {
+    const selected = mockPools.find((pool) => pool.id === poolId);
+    if (!selected) return;
+    const next = {
+      xId: selected.tokenXId,
+      yId: selected.tokenYId,
+      xIsStx: selected.tokenXIsStx,
+      yIsStx: selected.tokenYIsStx,
+    };
+    setTokenSelection(next);
+    setTokenDraft(next);
+    setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
+    setTokenSelectMessage(`Loaded ${selected.label}.`);
+    try {
+      localStorage.setItem(tokenSelectionKey, JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+    setActiveTab(target);
+    setTokenSelectHighlight(true);
+    window.setTimeout(() => setTokenSelectHighlight(false), 1400);
+    if (stacksAddress) {
+      void syncBalances(stacksAddress, { silent: true });
+    } else {
+      void fetchPoolState(null);
+    }
+  };
+
   const setSwapPreset = (percent: number) => {
     const balance =
       swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
@@ -2559,6 +2720,12 @@ function App() {
                 Trade
               </button>
               <button
+                className={activeTab === "pools" ? "is-active" : ""}
+                onClick={() => setActiveTab("pools")}
+              >
+                Pools
+              </button>
+              <button
                 className={activeTab === "analytics" ? "is-active" : ""}
                 onClick={() => setActiveTab("analytics")}
               >
@@ -2859,6 +3026,15 @@ function App() {
                 Trade
               </button>
               <button
+                className={activeTab === "pools" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveTab("pools");
+                  setDrawerOpen(false);
+                }}
+              >
+                Pools
+              </button>
+              <button
                 className={activeTab === "analytics" ? "is-active" : ""}
                 onClick={() => {
                   setActiveTab("analytics");
@@ -2929,7 +3105,9 @@ function App() {
                   <div className="panel-subtitle">
                     {activeTab === "liquidity"
                       ? "Add or remove liquidity from the pool."
-                      : "Inspect price movement, reserves, and local activity trends."}
+                      : activeTab === "pools"
+                        ? "Browse pools and jump straight into trading or LP."
+                        : "Inspect price movement, reserves, and local activity trends."}
                   </div>
                 </div>
               )}
@@ -3354,6 +3532,19 @@ function App() {
                     activityCount={activityItems.length}
                   />
                 </Suspense>
+              ) : activeTab === "pools" ? (
+                <PoolListPanel
+                  pools={poolList}
+                  search={poolSearch}
+                  setSearch={setPoolSearch}
+                  sort={poolSort}
+                  setSort={setPoolSort}
+                  sortDir={poolSortDir}
+                  setSortDir={setPoolSortDir}
+                  onOpenPool={handleOpenPoolFromList}
+                  formatCompactNumber={formatCompactNumber}
+                  formatNumber={formatNumber}
+                />
               ) : (
                 <Suspense
                   fallback={
