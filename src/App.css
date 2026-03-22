@@ -1033,6 +1033,10 @@ h3 {
   padding: 14px;
 }
 
+.token-card.is-highlighted {
+  animation: tokenHighlight 1.4s ease;
+}
+
 .simple-mode .token-card {
   background: linear-gradient(
     180deg,
@@ -1570,6 +1574,21 @@ h3 {
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes tokenHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.0);
+    border-color: var(--stroke);
+  }
+  40% {
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
+    border-color: rgba(var(--accent-rgb), 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.0);
+    border-color: var(--stroke);
   }
 }
 .nav-drawer-head {
@@ -2241,6 +2260,22 @@ label {
   background: rgba(var(--accent-rgb), 0.1);
 }
 
+.note.warning {
+  border-color: rgba(255, 192, 92, 0.5);
+  background: rgba(255, 192, 92, 0.12);
+}
+
+.note.error {
+  border-color: rgba(255, 107, 107, 0.6);
+  background: rgba(255, 107, 107, 0.12);
+}
+
+.note-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .chip-row {
   display: flex;
   gap: 8px;

@@ -66,7 +66,11 @@ export default function SwapCard(props: any) {
     handleSimpleSwap,
     handleSwap,
     swapPending,
-    preflightPending
+    preflightPending,
+    onGoToPool,
+    onMintFaucet,
+    onOpenTokenSelector,
+    faucetPending
   } = props;
 
   const tokenXLabel = tokenLabels?.x || "Token X";
@@ -130,7 +134,11 @@ export default function SwapCard(props: any) {
       )}
 
       {(tokenMismatch || insufficientBalance || noLiquidity) && (
-        <div className="note">
+        <div
+          className={`note ${
+            noLiquidity ? "error" : tokenMismatch ? "warning" : "warning"
+          }`}
+        >
           <p className="muted small">Heads up</p>
           <strong>
             {tokenMismatch
@@ -139,6 +147,27 @@ export default function SwapCard(props: any) {
                 ? "Pool has no liquidity yet. Swaps are disabled."
                 : "Insufficient balance for this swap amount."}
           </strong>
+          <div className="note-actions">
+            {tokenMismatch && onOpenTokenSelector ? (
+              <button className="tiny ghost" onClick={onOpenTokenSelector}>
+                Open token selector
+              </button>
+            ) : null}
+            {!tokenMismatch && noLiquidity && onGoToPool ? (
+              <button className="tiny ghost" onClick={onGoToPool}>
+                Go to Pool
+              </button>
+            ) : null}
+            {insufficientBalance && onMintFaucet ? (
+              <button
+                className="tiny"
+                onClick={() => onMintFaucet()}
+                disabled={faucetPending}
+              >
+                {faucetPending ? "Minting..." : "Mint from Faucet"}
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 

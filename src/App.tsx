@@ -253,9 +253,12 @@ function App() {
     visitedTabs: ["swap"],
   });
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
+  const [tokenSelectHighlight, setTokenSelectHighlight] = useState(false);
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
+  const tokenSelectRef = useRef<HTMLDivElement | null>(null);
+  const tokenSelectHighlightTimer = useRef<number | null>(null);
 
   const pushToast = useCallback((message: string, tone: ToastTone) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -543,6 +546,9 @@ function App() {
       if (activityDrawerTimer.current) {
         window.clearTimeout(activityDrawerTimer.current);
       }
+      if (tokenSelectHighlightTimer.current) {
+        window.clearTimeout(tokenSelectHighlightTimer.current);
+      }
     };
   }, []);
 
@@ -583,6 +589,26 @@ function App() {
       activityDrawerTimer.current = null;
     }, 220);
   }, [activityDrawerClosing, activityDrawerOpen]);
+
+  const handleOpenTokenSelector = useCallback(() => {
+    if (activeTab !== "swap") {
+      setActiveTab("swap");
+    }
+    window.setTimeout(() => {
+      tokenSelectRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setTokenSelectHighlight(true);
+      if (tokenSelectHighlightTimer.current) {
+        window.clearTimeout(tokenSelectHighlightTimer.current);
+      }
+      tokenSelectHighlightTimer.current = window.setTimeout(() => {
+        setTokenSelectHighlight(false);
+        tokenSelectHighlightTimer.current = null;
+      }, 1400);
+    }, 0);
+  }, [activeTab]);
 
   const getTokenIcon = useCallback(
     (principal: string | null) => {
@@ -2855,7 +2881,12 @@ function App() {
                 </div>
               )}
 
-              <div className="token-card">
+              <div
+                className={`token-card ${
+                  tokenSelectHighlight ? "is-highlighted" : ""
+                }`}
+                ref={tokenSelectRef}
+              >
                 <div className="token-card-head">
                   <div>
                     <span className="muted small">Token selection</span>
@@ -3214,6 +3245,10 @@ function App() {
                   handleSwap={handleSwap}
                   swapPending={swapPending}
                   preflightPending={preflightPending}
+                  onGoToPool={() => setActiveTab("liquidity")}
+                  onMintFaucet={() => handleFaucet()}
+                  onOpenTokenSelector={handleOpenTokenSelector}
+                  faucetPending={faucetPending}
                 />
               ) : activeTab === "liquidity" ? (
                 <Suspense
