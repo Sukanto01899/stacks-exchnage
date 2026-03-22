@@ -606,7 +606,7 @@ function App() {
       tokenSelectHighlightTimer.current = window.setTimeout(() => {
         setTokenSelectHighlight(false);
         tokenSelectHighlightTimer.current = null;
-      }, 1400);
+      }, 2200);
     }, 0);
   }, [activeTab]);
 

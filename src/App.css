@@ -1034,7 +1034,7 @@ h3 {
 }
 
 .token-card.is-highlighted {
-  animation: tokenHighlight 1.4s ease;
+  animation: tokenHighlight 2.2s ease;
 }
 
 .simple-mode .token-card {
@@ -1583,8 +1583,8 @@ h3 {
     border-color: var(--stroke);
   }
   40% {
-    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.35);
-    border-color: rgba(var(--accent-rgb), 0.7);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.18);
+    border-color: rgba(var(--accent-rgb), 0.4);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.0);
