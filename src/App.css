@@ -870,6 +870,10 @@ h3 {
   height: 110px;
 }
 
+.market-chart-svg.volume {
+  height: 110px;
+}
+
 .market-chart-line {
   fill: none;
   stroke: var(--accent);
@@ -950,6 +954,18 @@ h3 {
 
 .market-chart-tooltip span {
   color: var(--text-muted);
+}
+
+.market-chart-volume {
+  margin-top: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+}
+
+.market-chart-volume-bar {
+  fill: rgba(148, 163, 184, 0.6);
 }
 
 .market-chart-legend {

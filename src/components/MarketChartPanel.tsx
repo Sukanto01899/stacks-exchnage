@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 
 type Timeframe = "1H" | "4H" | "1D" | "1W";
@@ -156,6 +156,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   } | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState<number | null>(null);
+  const [draggingCrosshair, setDraggingCrosshair] = useState(false);
 
   const points = useMemo(() => {
     if (timeframe === "1H") return 48;
@@ -173,6 +174,16 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     () => primaryCandles.map((candle) => candle.close),
     [primaryCandles],
   );
+
+  const volumes = useMemo(() => {
+    if (!primaryId) return [];
+    const seed = seedFrom(`${primaryId}-${timeframe}-volume`);
+    const rand = mulberry32(seed);
+    return primaryCandles.map((candle) => {
+      const range = Math.max(candle.high - candle.low, 0.0001);
+      return range * (9000 + rand() * 6000);
+    });
+  }, [primaryCandles, primaryId, timeframe]);
 
   const compare = useMemo(() => {
     if (!compareId) return [];
@@ -276,8 +287,10 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
         (primaryCandles.length - 1),
     );
     if (index < 0 || index >= primaryCandles.length) {
-      setHoverIndex(null);
-      setHoverX(null);
+      if (!draggingCrosshair) {
+        setHoverIndex(null);
+        setHoverX(null);
+      }
       return;
     }
     setHoverIndex(index);
@@ -285,9 +298,26 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   };
 
   const handleMouseLeave = () => {
+    if (draggingCrosshair) return;
     setHoverIndex(null);
     setHoverX(null);
   };
+
+  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
+    setDraggingCrosshair(true);
+    handleMouseMove(event);
+  };
+
+  const handleMouseUp = () => {
+    setDraggingCrosshair(false);
+  };
+
+  useEffect(() => {
+    if (!draggingCrosshair) return;
+    const handleWindowUp = () => setDraggingCrosshair(false);
+    window.addEventListener("mouseup", handleWindowUp);
+    return () => window.removeEventListener("mouseup", handleWindowUp);
+  }, [draggingCrosshair]);
 
   const valueToY = (value: number, values: number[], height: number, padding: number) => {
     const min = Math.min(...values);
@@ -408,6 +438,8 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
           onClick={handleChartClick}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
         >
           {primaryCandles.map((candle, idx) => {
             const innerW = chartDims.width - chartDims.padding * 2;
@@ -531,6 +563,40 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
             </span>
           )}
         </div>
+      </div>
+
+      <div className="market-chart-volume">
+        <div className="market-chart-rsi-head">
+          <span className="muted small">Volume</span>
+        </div>
+        <svg
+          className="market-chart-svg volume"
+          viewBox={`0 0 ${chartDims.width} ${rsiDims.height}`}
+          aria-label="Volume chart"
+        >
+          {volumes.map((value, idx) => {
+            const innerW = chartDims.width - chartDims.padding * 2;
+            const step = innerW / Math.max(volumes.length, 1);
+            const barWidth = step * 0.7;
+            const x =
+              chartDims.padding + idx * step + (step - barWidth) / 2;
+            const max = Math.max(...volumes, 1);
+            const height =
+              ((value / max) * (rsiDims.height - rsiDims.padding * 2)) || 1;
+            const y =
+              rsiDims.height - rsiDims.padding - Math.max(1, height);
+            return (
+              <rect
+                key={`v-${idx}`}
+                x={x}
+                y={y}
+                width={barWidth}
+                height={Math.max(1, height)}
+                className="market-chart-volume-bar"
+              />
+            );
+          })}
+        </svg>
       </div>
 
       {activeIndicators.includes("rsi") && (
