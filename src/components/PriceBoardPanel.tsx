@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 type FilterMode = "all" | "watchlist" | "gainers" | "losers" | "volume";
 type SortKey = "price" | "volume" | "change" | "change1h";
+type WatchlistItemMeta = { tag: string; preset: string };
+type Watchlist = { id: string; name: string; items: Record<string, WatchlistItemMeta> };
 
 type MarketInput = {
   id: string;
@@ -68,13 +70,40 @@ const PriceBoardPanel = ({
 }: Props) => {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
-  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
+  const [activeWatchlistId, setActiveWatchlistId] = useState("");
   const [rows, setRows] = useState<MarketRow[]>(() =>
     buildInitialRows(markets),
   );
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const [sortKey, setSortKey] = useState<SortKey>("volume");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const tagOptions = [
+    "Core",
+    "Momentum",
+    "Swing",
+    "Long-term",
+    "High risk",
+    "Arb",
+    "Watch",
+  ];
+  const presetOptions = [
+    "5% move",
+    "10% move",
+    "Breakout",
+    "Mean reversion",
+    "Volume spike",
+  ];
+
+  const activeWatchlist = useMemo(
+    () => watchlists.find((list) => list.id === activeWatchlistId) ?? null,
+    [activeWatchlistId, watchlists],
+  );
+  const watchlistItems = activeWatchlist?.items ?? {};
+  const watchlistIds = useMemo(
+    () => new Set(Object.keys(watchlistItems)),
+    [watchlistItems],
+  );
 
   useEffect(() => {
     setRows(buildInitialRows(markets));
@@ -83,10 +112,55 @@ const PriceBoardPanel = ({
   useEffect(() => {
     try {
       const stored = localStorage.getItem(storageKey);
-      if (!stored) return;
-      const parsed = JSON.parse(stored);
+      if (!stored) {
+        const defaults: Watchlist[] = [
+          { id: "wl-main", name: "Main", items: {} },
+          { id: "wl-swing", name: "Swing", items: {} },
+          { id: "wl-long", name: "Long-term", items: {} },
+        ];
+        setWatchlists(defaults);
+        setActiveWatchlistId(defaults[0]?.id ?? "");
+        return;
+      }
+      const parsed = JSON.parse(stored) as
+        | { version: number; activeId: string; lists: Watchlist[] }
+        | string[];
+
       if (Array.isArray(parsed)) {
-        setWatchlist(parsed.filter((item) => typeof item === "string"));
+        const migrated: Watchlist[] = [
+          {
+            id: "wl-main",
+            name: "Main",
+            items: parsed.reduce<Record<string, WatchlistItemMeta>>(
+              (acc, id) => {
+                if (typeof id === "string") {
+                  acc[id] = { tag: "Core", preset: "5% move" };
+                }
+                return acc;
+              },
+              {},
+            ),
+          },
+        ];
+        setWatchlists(migrated);
+        setActiveWatchlistId("wl-main");
+        return;
+      }
+
+      if (parsed?.lists && Array.isArray(parsed.lists)) {
+        const sanitized = parsed.lists
+          .filter((list) => list && typeof list.id === "string")
+          .map((list) => ({
+            id: list.id,
+            name: typeof list.name === "string" ? list.name : "Watchlist",
+            items: list.items && typeof list.items === "object" ? list.items : {},
+          }));
+        setWatchlists(sanitized);
+        setActiveWatchlistId(
+          typeof parsed.activeId === "string" && parsed.activeId
+            ? parsed.activeId
+            : sanitized[0]?.id ?? "",
+        );
       }
     } catch {
       // ignore storage errors
@@ -95,11 +169,19 @@ const PriceBoardPanel = ({
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(watchlist));
+      if (watchlists.length === 0) return;
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          version: 1,
+          activeId: activeWatchlistId,
+          lists: watchlists,
+        }),
+      );
     } catch {
       // ignore storage errors
     }
-  }, [storageKey, watchlist]);
+  }, [activeWatchlistId, storageKey, watchlists]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -141,7 +223,7 @@ const PriceBoardPanel = ({
   const visibleRows = useMemo(() => {
     const normalized = search.trim().toLowerCase();
     const filtered = rows.filter((row) => {
-      if (filterMode === "watchlist" && !watchlist.includes(row.id)) {
+      if (filterMode === "watchlist" && !watchlistIds.has(row.id)) {
         return false;
       }
       if (filterMode === "gainers" && row.change24h <= 0) return false;
@@ -163,12 +245,77 @@ const PriceBoardPanel = ({
     });
 
     return sorted;
-  }, [filterMode, rows, search, sortDir, sortKey, volumeThreshold, watchlist]);
+  }, [
+    filterMode,
+    rows,
+    search,
+    sortDir,
+    sortKey,
+    volumeThreshold,
+    watchlistIds,
+  ]);
 
   const toggleWatch = (id: string) => {
-    setWatchlist((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    setWatchlists((prev) =>
+      prev.map((list) => {
+        if (list.id !== activeWatchlistId) return list;
+        const nextItems = { ...list.items };
+        if (nextItems[id]) {
+          delete nextItems[id];
+        } else {
+          nextItems[id] = { tag: "Core", preset: "5% move" };
+        }
+        return { ...list, items: nextItems };
+      }),
     );
+  };
+
+  const updateWatchItem = (id: string, patch: Partial<WatchlistItemMeta>) => {
+    setWatchlists((prev) =>
+      prev.map((list) => {
+        if (list.id !== activeWatchlistId) return list;
+        const current = list.items[id];
+        if (!current) return list;
+        return {
+          ...list,
+          items: {
+            ...list.items,
+            [id]: { ...current, ...patch },
+          },
+        };
+      }),
+    );
+  };
+
+  const handleAddWatchlist = () => {
+    const name = window.prompt("Name the new watchlist", "New watchlist");
+    if (!name) return;
+    const id = `wl-${Date.now().toString(36)}`;
+    setWatchlists((prev) => [...prev, { id, name, items: {} }]);
+    setActiveWatchlistId(id);
+  };
+
+  const handleRenameWatchlist = () => {
+    const current = activeWatchlist;
+    if (!current) return;
+    const name = window.prompt("Rename watchlist", current.name);
+    if (!name) return;
+    setWatchlists((prev) =>
+      prev.map((list) => (list.id === current.id ? { ...list, name } : list)),
+    );
+  };
+
+  const handleDeleteWatchlist = () => {
+    if (watchlists.length <= 1) return;
+    const current = activeWatchlist;
+    if (!current) return;
+    const confirmed = window.confirm(
+      `Delete "${current.name}" watchlist? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setWatchlists((prev) => prev.filter((list) => list.id !== current.id));
+    const next = watchlists.find((list) => list.id !== current.id);
+    setActiveWatchlistId(next?.id ?? "");
   };
 
   return (
@@ -217,6 +364,43 @@ const PriceBoardPanel = ({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+        </div>
+      </div>
+
+      <div className="price-board-watchlists">
+        <div className="watchlist-select">
+          <span className="muted small">Watchlist</span>
+          <select
+            value={activeWatchlistId}
+            onChange={(event) => setActiveWatchlistId(event.target.value)}
+          >
+            {watchlists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="watchlist-actions">
+          <button className="tiny ghost" type="button" onClick={handleAddWatchlist}>
+            New
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={handleRenameWatchlist}
+            disabled={!activeWatchlist}
+          >
+            Rename
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={handleDeleteWatchlist}
+            disabled={watchlists.length <= 1}
+          >
+            Delete
+          </button>
         </div>
       </div>
 
@@ -288,10 +472,13 @@ const PriceBoardPanel = ({
             24h volume{" "}
             {sortKey === "volume" ? (sortDir === "asc" ? "↑" : "↓") : ""}
           </button>
+          <span>Tag</span>
+          <span>Alert preset</span>
           <span>Watch</span>
         </div>
         {visibleRows.map((row) => {
-          const isWatched = watchlist.includes(row.id);
+          const isWatched = watchlistIds.has(row.id);
+          const itemMeta = watchlistItems[row.id];
           const change24hClass =
             row.change24h > 0
               ? "positive"
@@ -325,6 +512,40 @@ const PriceBoardPanel = ({
               <span className="price-board-volume">
                 {formatCompactNumber(row.volume24hLive)}
               </span>
+              {isWatched ? (
+                <select
+                  className="price-board-select"
+                  value={itemMeta?.tag ?? tagOptions[0]}
+                  onChange={(event) =>
+                    updateWatchItem(row.id, { tag: event.target.value })
+                  }
+                >
+                  {tagOptions.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="muted small">—</span>
+              )}
+              {isWatched ? (
+                <select
+                  className="price-board-select"
+                  value={itemMeta?.preset ?? presetOptions[0]}
+                  onChange={(event) =>
+                    updateWatchItem(row.id, { preset: event.target.value })
+                  }
+                >
+                  {presetOptions.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="muted small">—</span>
+              )}
               <button
                 className={`tiny ghost ${isWatched ? "is-active" : ""}`}
                 type="button"
