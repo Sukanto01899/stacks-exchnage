@@ -592,6 +592,135 @@ h3 {
   padding: 12px;
 }
 
+.price-board-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.price-board-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.price-board-controls {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.price-board-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.price-board-search {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 8px 12px;
+  min-width: 220px;
+}
+
+.price-board-search input {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+  outline: 0;
+  font-size: 13px;
+}
+
+.price-board-search-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.price-board-table {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.price-board-row {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 1.3fr) repeat(3, minmax(80px, 0.7fr))
+    minmax(110px, 0.8fr) minmax(90px, 0.6fr);
+  gap: 10px;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 10px;
+  min-width: 720px;
+}
+
+.price-board-head {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.price-board-market {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.price-board-market-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-board-price.up,
+.price-board-change.positive {
+  color: var(--ok);
+}
+
+.price-board-price.down,
+.price-board-change.negative {
+  color: #ef4444;
+}
+
+.price-board-change.neutral {
+  color: var(--text-muted);
+}
+
+.price-board-volume {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.price-board-row .tiny.is-active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.18);
+  color: #fff2d8;
+}
+
+.price-board-empty {
+  margin-top: 10px;
+}
+
 .pool-list-head {
   display: flex;
   align-items: center;

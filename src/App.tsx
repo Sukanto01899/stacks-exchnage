@@ -25,6 +25,7 @@ import PoolListPanel from "./components/PoolListPanel";
 import PortfolioPanel from "./components/PortfolioPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import ApprovalManager from "./components/ApprovalManager";
+import PriceBoardPanel from "./components/PriceBoardPanel";
 import type {
   AppTab,
   OnboardingState,
@@ -1033,6 +1034,32 @@ function App() {
     poolSortDir,
     resolveTokenLabel,
   ]);
+
+  const priceBoardMarkets = useMemo(
+    () =>
+      mockPools.map((pool) => ({
+        id: pool.id,
+        label: pool.label,
+        tokenXLabel: resolveTokenLabel(
+          pool.tokenXId,
+          pool.tokenXIsStx,
+          "Token X",
+        ),
+        tokenYLabel: resolveTokenLabel(
+          pool.tokenYId,
+          pool.tokenYIsStx,
+          "Token Y",
+        ),
+        tvl: pool.tvl,
+        volume24h: pool.volume24h,
+      })),
+    [mockPools, resolveTokenLabel],
+  );
+
+  const priceBoardStorageKey = useMemo(
+    () => `price-board-watchlist-${RESOLVED_STACKS_NETWORK}`,
+    [RESOLVED_STACKS_NETWORK],
+  );
 
   const tokenMismatchWarning = useMemo(() => {
     if (!tokenInfo) return null;
@@ -2775,6 +2802,12 @@ function App() {
                 Trade
               </button>
               <button
+                className={activeTab === "prices" ? "is-active" : ""}
+                onClick={() => setActiveTab("prices")}
+              >
+                Prices
+              </button>
+              <button
                 className={activeTab === "pools" ? "is-active" : ""}
                 onClick={() => setActiveTab("pools")}
               >
@@ -3079,6 +3112,15 @@ function App() {
                 }}
               >
                 Trade
+              </button>
+              <button
+                className={activeTab === "prices" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveTab("prices");
+                  setDrawerOpen(false);
+                }}
+              >
+                Prices
               </button>
               <button
                 className={activeTab === "pools" ? "is-active" : ""}
@@ -3535,6 +3577,14 @@ function App() {
                   onMintFaucet={() => handleFaucet()}
                   onOpenTokenSelector={handleOpenTokenSelector}
                   faucetPending={faucetPending}
+                />
+              ) : activeTab === "prices" ? (
+                <PriceBoardPanel
+                  markets={priceBoardMarkets}
+                  formatNumber={formatNumber}
+                  formatCompactNumber={formatCompactNumber}
+                  formatSignedPercent={formatSignedPercent}
+                  storageKey={priceBoardStorageKey}
                 />
               ) : activeTab === "liquidity" ? (
                 <Suspense
