@@ -318,12 +318,16 @@ const PriceBoardPanel = ({
     setModal(null);
   };
 
-  const handleCreateSubmit = () => {
+  const handleCreateSubmit = (keepOpen = false) => {
     const name = modalName.trim();
     if (!name) return;
     const id = `wl-${Date.now().toString(36)}`;
     setWatchlists((prev) => [...prev, { id, name, items: {} }]);
     setActiveWatchlistId(id);
+    if (keepOpen) {
+      setModalName("New watchlist");
+      return;
+    }
     closeModal();
   };
 
@@ -384,7 +388,11 @@ const PriceBoardPanel = ({
           document.activeElement instanceof HTMLButtonElement
         ) {
           event.preventDefault();
-          modal.type === "create" ? handleCreateSubmit() : handleRenameSubmit();
+          if (modal.type === "create") {
+            handleCreateSubmit(event.shiftKey);
+          } else {
+            handleRenameSubmit();
+          }
         }
       }
 
@@ -657,7 +665,16 @@ const PriceBoardPanel = ({
       )}
 
       {modal && (
-        <div className="watchlist-modal-backdrop" role="dialog" aria-modal="true">
+        <div
+          className="watchlist-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closeModal();
+            }
+          }}
+        >
           <div
             className="watchlist-modal"
             ref={modalRef}
@@ -711,7 +728,9 @@ const PriceBoardPanel = ({
                     className="primary"
                     type="button"
                     onClick={
-                      modal.type === "create" ? handleCreateSubmit : handleRenameSubmit
+                      modal.type === "create"
+                        ? () => handleCreateSubmit(false)
+                        : handleRenameSubmit
                     }
                   >
                     {modal.type === "create" ? "Create" : "Save"}
