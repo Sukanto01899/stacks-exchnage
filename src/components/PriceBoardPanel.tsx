@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type FilterMode = "all" | "watchlist" | "gainers" | "losers" | "volume";
 type SortKey = "price" | "volume" | "change" | "change1h";
@@ -85,6 +85,8 @@ const PriceBoardPanel = ({
     | null
   >(null);
   const [modalName, setModalName] = useState("");
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const modalTitleId = "watchlist-modal-title";
   const tagOptions = [
     "Core",
     "Momentum",
@@ -344,6 +346,70 @@ const PriceBoardPanel = ({
     closeModal();
   };
 
+  useEffect(() => {
+    if (!modal) return;
+    const root = modalRef.current;
+    if (!root) return;
+    const focusableSelectors = [
+      "button:not([disabled])",
+      "a[href]",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "textarea:not([disabled])",
+      "[tabindex]:not([tabindex='-1'])",
+    ];
+    const getFocusable = () =>
+      Array.from(
+        root.querySelectorAll<HTMLElement>(focusableSelectors.join(",")),
+      ).filter((el) => !el.hasAttribute("disabled"));
+
+    const focusables = getFocusable();
+    const preferred =
+      root.querySelector<HTMLElement>("input, button.primary") ?? focusables[0];
+    preferred?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeModal();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        if (modal.type === "delete") {
+          event.preventDefault();
+          handleDeleteSubmit();
+        } else if (
+          document.activeElement instanceof HTMLInputElement ||
+          document.activeElement instanceof HTMLButtonElement
+        ) {
+          event.preventDefault();
+          modal.type === "create" ? handleCreateSubmit() : handleRenameSubmit();
+        }
+      }
+
+      if (event.key === "Tab") {
+        const items = getFocusable();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const current = document.activeElement as HTMLElement | null;
+        if (event.shiftKey && current === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && current === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modal, handleCreateSubmit, handleDeleteSubmit, handleRenameSubmit]);
+
   return (
     <div className="price-board-panel">
       <div className="panel-head">
@@ -592,11 +658,15 @@ const PriceBoardPanel = ({
 
       {modal && (
         <div className="watchlist-modal-backdrop" role="dialog" aria-modal="true">
-          <div className="watchlist-modal">
+          <div
+            className="watchlist-modal"
+            ref={modalRef}
+            aria-labelledby={modalTitleId}
+          >
             <div className="watchlist-modal-head">
               <div>
                 <p className="eyebrow">Watchlists</p>
-                <h3>
+                <h3 id={modalTitleId}>
                   {modal.type === "create"
                     ? "Create watchlist"
                     : modal.type === "rename"
