@@ -318,16 +318,12 @@ const PriceBoardPanel = ({
     setModal(null);
   };
 
-  const handleCreateSubmit = (keepOpen = false) => {
+  const handleCreateSubmit = () => {
     const name = modalName.trim();
     if (!name) return;
     const id = `wl-${Date.now().toString(36)}`;
     setWatchlists((prev) => [...prev, { id, name, items: {} }]);
     setActiveWatchlistId(id);
-    if (keepOpen) {
-      setModalName("New watchlist");
-      return;
-    }
     closeModal();
   };
 
@@ -380,6 +376,11 @@ const PriceBoardPanel = ({
       }
 
       if (event.key === "Enter") {
+        if (event.shiftKey) {
+          event.preventDefault();
+          closeModal();
+          return;
+        }
         if (modal.type === "delete") {
           event.preventDefault();
           handleDeleteSubmit();
@@ -388,11 +389,7 @@ const PriceBoardPanel = ({
           document.activeElement instanceof HTMLButtonElement
         ) {
           event.preventDefault();
-          if (modal.type === "create") {
-            handleCreateSubmit(event.shiftKey);
-          } else {
-            handleRenameSubmit();
-          }
+          modal.type === "create" ? handleCreateSubmit() : handleRenameSubmit();
         }
       }
 
