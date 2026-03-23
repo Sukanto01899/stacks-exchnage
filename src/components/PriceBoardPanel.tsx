@@ -208,26 +208,6 @@ const PriceBoardPanel = ({
             </button>
           ))}
         </div>
-        <div className="price-board-sort">
-          <span className="muted small">Sort by</span>
-          <select
-            value={sortKey}
-            onChange={(event) => setSortKey(event.target.value as SortKey)}
-          >
-            <option value="volume">24h volume</option>
-            <option value="price">Last price</option>
-            <option value="change">24h change</option>
-          </select>
-          <button
-            type="button"
-            className="tiny ghost"
-            onClick={() =>
-              setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
-            }
-          >
-            {sortDir === "asc" ? "Asc" : "Desc"}
-          </button>
-        </div>
         <div className="price-board-search">
           <span className="price-board-search-icon">Search</span>
           <input
@@ -242,10 +222,56 @@ const PriceBoardPanel = ({
       <div className="price-board-table">
         <div className="price-board-row price-board-head">
           <span>Market</span>
-          <span>Last</span>
+          <button
+            type="button"
+            className={`price-board-head-button ${
+              sortKey === "price" ? "is-active" : ""
+            }`}
+            onClick={() => {
+              if (sortKey === "price") {
+                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+              } else {
+                setSortKey("price");
+                setSortDir("desc");
+              }
+            }}
+          >
+            Last {sortKey === "price" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+          </button>
           <span>1h</span>
-          <span>24h</span>
-          <span>24h volume</span>
+          <button
+            type="button"
+            className={`price-board-head-button ${
+              sortKey === "change" ? "is-active" : ""
+            }`}
+            onClick={() => {
+              if (sortKey === "change") {
+                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+              } else {
+                setSortKey("change");
+                setSortDir("desc");
+              }
+            }}
+          >
+            24h {sortKey === "change" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+          </button>
+          <button
+            type="button"
+            className={`price-board-head-button ${
+              sortKey === "volume" ? "is-active" : ""
+            }`}
+            onClick={() => {
+              if (sortKey === "volume") {
+                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+              } else {
+                setSortKey("volume");
+                setSortDir("desc");
+              }
+            }}
+          >
+            24h volume{" "}
+            {sortKey === "volume" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+          </button>
           <span>Watch</span>
         </div>
         {visibleRows.map((row) => {

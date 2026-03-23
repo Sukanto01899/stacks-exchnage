@@ -622,23 +622,6 @@ h3 {
   flex-wrap: wrap;
 }
 
-.price-board-sort {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.price-board-sort select {
-  border: 1px solid var(--stroke);
-  border-radius: 999px;
-  background: #2d3246;
-  color: var(--text);
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .price-board-search {
   flex: 1 1 260px;
   display: flex;
@@ -694,6 +677,25 @@ h3 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.price-board-head-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.price-board-head-button.is-active {
+  color: #fff2d8;
 }
 
 .price-board-market {
