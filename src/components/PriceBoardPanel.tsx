@@ -78,6 +78,13 @@ const PriceBoardPanel = ({
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const [sortKey, setSortKey] = useState<SortKey>("volume");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [modal, setModal] = useState<
+    | { type: "create" }
+    | { type: "rename"; id: string; name: string }
+    | { type: "delete"; id: string; name: string }
+    | null
+  >(null);
+  const [modalName, setModalName] = useState("");
   const tagOptions = [
     "Core",
     "Momentum",
@@ -287,35 +294,54 @@ const PriceBoardPanel = ({
     );
   };
 
-  const handleAddWatchlist = () => {
-    const name = window.prompt("Name the new watchlist", "New watchlist");
+  const openCreateModal = () => {
+    setModal({ type: "create" });
+    setModalName("New watchlist");
+  };
+
+  const openRenameModal = () => {
+    const current = activeWatchlist;
+    if (!current) return;
+    setModal({ type: "rename", id: current.id, name: current.name });
+    setModalName(current.name);
+  };
+
+  const openDeleteModal = () => {
+    const current = activeWatchlist;
+    if (!current || watchlists.length <= 1) return;
+    setModal({ type: "delete", id: current.id, name: current.name });
+  };
+
+  const closeModal = () => {
+    setModal(null);
+  };
+
+  const handleCreateSubmit = () => {
+    const name = modalName.trim();
     if (!name) return;
     const id = `wl-${Date.now().toString(36)}`;
     setWatchlists((prev) => [...prev, { id, name, items: {} }]);
     setActiveWatchlistId(id);
+    closeModal();
   };
 
-  const handleRenameWatchlist = () => {
-    const current = activeWatchlist;
-    if (!current) return;
-    const name = window.prompt("Rename watchlist", current.name);
+  const handleRenameSubmit = () => {
+    if (!modal || modal.type !== "rename") return;
+    const name = modalName.trim();
     if (!name) return;
     setWatchlists((prev) =>
-      prev.map((list) => (list.id === current.id ? { ...list, name } : list)),
+      prev.map((list) => (list.id === modal.id ? { ...list, name } : list)),
     );
+    closeModal();
   };
 
-  const handleDeleteWatchlist = () => {
+  const handleDeleteSubmit = () => {
+    if (!modal || modal.type !== "delete") return;
     if (watchlists.length <= 1) return;
-    const current = activeWatchlist;
-    if (!current) return;
-    const confirmed = window.confirm(
-      `Delete "${current.name}" watchlist? This cannot be undone.`,
-    );
-    if (!confirmed) return;
-    setWatchlists((prev) => prev.filter((list) => list.id !== current.id));
-    const next = watchlists.find((list) => list.id !== current.id);
+    setWatchlists((prev) => prev.filter((list) => list.id !== modal.id));
+    const next = watchlists.find((list) => list.id !== modal.id);
     setActiveWatchlistId(next?.id ?? "");
+    closeModal();
   };
 
   return (
@@ -382,13 +408,13 @@ const PriceBoardPanel = ({
           </select>
         </div>
         <div className="watchlist-actions">
-          <button className="tiny ghost" type="button" onClick={handleAddWatchlist}>
+          <button className="tiny ghost" type="button" onClick={openCreateModal}>
             New
           </button>
           <button
             className="tiny ghost"
             type="button"
-            onClick={handleRenameWatchlist}
+            onClick={openRenameModal}
             disabled={!activeWatchlist}
           >
             Rename
@@ -396,7 +422,7 @@ const PriceBoardPanel = ({
           <button
             className="tiny ghost"
             type="button"
-            onClick={handleDeleteWatchlist}
+            onClick={openDeleteModal}
             disabled={watchlists.length <= 1}
           >
             Delete
@@ -562,6 +588,69 @@ const PriceBoardPanel = ({
         <p className="muted small price-board-empty">
           No markets match this filter yet.
         </p>
+      )}
+
+      {modal && (
+        <div className="watchlist-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="watchlist-modal">
+            <div className="watchlist-modal-head">
+              <div>
+                <p className="eyebrow">Watchlists</p>
+                <h3>
+                  {modal.type === "create"
+                    ? "Create watchlist"
+                    : modal.type === "rename"
+                      ? "Rename watchlist"
+                      : "Delete watchlist"}
+                </h3>
+              </div>
+              <button className="icon-button" type="button" onClick={closeModal}>
+                ×
+              </button>
+            </div>
+
+            {modal.type === "delete" ? (
+              <div className="watchlist-modal-body">
+                <p className="muted">
+                  Delete <strong>{modal.name}</strong>? This cannot be undone.
+                </p>
+                <div className="watchlist-modal-actions">
+                  <button className="secondary" type="button" onClick={closeModal}>
+                    Cancel
+                  </button>
+                  <button className="primary" type="button" onClick={handleDeleteSubmit}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="watchlist-modal-body">
+                <label>Name</label>
+                <input
+                  className="watchlist-modal-input"
+                  type="text"
+                  value={modalName}
+                  onChange={(event) => setModalName(event.target.value)}
+                  placeholder="e.g. Momentum picks"
+                />
+                <div className="watchlist-modal-actions">
+                  <button className="secondary" type="button" onClick={closeModal}>
+                    Cancel
+                  </button>
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={
+                      modal.type === "create" ? handleCreateSubmit : handleRenameSubmit
+                    }
+                  >
+                    {modal.type === "create" ? "Create" : "Save"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
