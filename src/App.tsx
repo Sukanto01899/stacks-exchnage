@@ -26,6 +26,7 @@ import PortfolioPanel from "./components/PortfolioPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import ApprovalManager from "./components/ApprovalManager";
 import PriceBoardPanel from "./components/PriceBoardPanel";
+import MarketChartPanel from "./components/MarketChartPanel";
 import type {
   AppTab,
   OnboardingState,
@@ -1052,6 +1053,25 @@ function App() {
         ),
         tvl: pool.tvl,
         volume24h: pool.volume24h,
+      })),
+    [mockPools, resolveTokenLabel],
+  );
+
+  const marketChartMarkets = useMemo(
+    () =>
+      mockPools.map((pool) => ({
+        id: pool.id,
+        label: pool.label,
+        tokenXLabel: resolveTokenLabel(
+          pool.tokenXId,
+          pool.tokenXIsStx,
+          "Token X",
+        ),
+        tokenYLabel: resolveTokenLabel(
+          pool.tokenYId,
+          pool.tokenYIsStx,
+          "Token Y",
+        ),
       })),
     [mockPools, resolveTokenLabel],
   );
@@ -3579,13 +3599,19 @@ function App() {
                   faucetPending={faucetPending}
                 />
               ) : activeTab === "prices" ? (
-                <PriceBoardPanel
-                  markets={priceBoardMarkets}
-                  formatNumber={formatNumber}
-                  formatCompactNumber={formatCompactNumber}
-                  formatSignedPercent={formatSignedPercent}
-                  storageKey={priceBoardStorageKey}
-                />
+                <div className="prices-stack">
+                  <MarketChartPanel
+                    markets={marketChartMarkets}
+                    formatNumber={formatNumber}
+                  />
+                  <PriceBoardPanel
+                    markets={priceBoardMarkets}
+                    formatNumber={formatNumber}
+                    formatCompactNumber={formatCompactNumber}
+                    formatSignedPercent={formatSignedPercent}
+                    storageKey={priceBoardStorageKey}
+                  />
+                </div>
               ) : activeTab === "liquidity" ? (
                 <Suspense
                   fallback={<div className="note subtle">Loading pool...</div>}
