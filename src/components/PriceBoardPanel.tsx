@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type FilterMode = "all" | "watchlist" | "gainers" | "losers" | "volume";
-type SortKey = "price" | "volume" | "change";
+type SortKey = "price" | "volume" | "change" | "change1h";
 
 type MarketInput = {
   id: string;
@@ -157,6 +157,7 @@ const PriceBoardPanel = ({
     const dir = sortDir === "asc" ? 1 : -1;
     const sorted = [...filtered].sort((a, b) => {
       if (sortKey === "price") return (a.lastPrice - b.lastPrice) * dir;
+      if (sortKey === "change1h") return (a.change1h - b.change1h) * dir;
       if (sortKey === "change") return (a.change24h - b.change24h) * dir;
       return (a.volume24hLive - b.volume24hLive) * dir;
     });
@@ -238,7 +239,22 @@ const PriceBoardPanel = ({
           >
             Last {sortKey === "price" ? (sortDir === "asc" ? "↑" : "↓") : ""}
           </button>
-          <span>1h</span>
+          <button
+            type="button"
+            className={`price-board-head-button ${
+              sortKey === "change1h" ? "is-active" : ""
+            }`}
+            onClick={() => {
+              if (sortKey === "change1h") {
+                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+              } else {
+                setSortKey("change1h");
+                setSortDir("desc");
+              }
+            }}
+          >
+            1h {sortKey === "change1h" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+          </button>
           <button
             type="button"
             className={`price-board-head-button ${
