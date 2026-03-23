@@ -622,6 +622,23 @@ h3 {
   flex-wrap: wrap;
 }
 
+.price-board-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price-board-sort select {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .price-board-search {
   flex: 1 1 260px;
   display: flex;

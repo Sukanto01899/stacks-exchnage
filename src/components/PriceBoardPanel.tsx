@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type FilterMode = "all" | "watchlist" | "gainers" | "losers" | "volume";
+type SortKey = "price" | "volume" | "change";
 
 type MarketInput = {
   id: string;
@@ -72,6 +73,8 @@ const PriceBoardPanel = ({
     buildInitialRows(markets),
   );
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
+  const [sortKey, setSortKey] = useState<SortKey>("volume");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     setRows(buildInitialRows(markets));
@@ -137,7 +140,7 @@ const PriceBoardPanel = ({
 
   const visibleRows = useMemo(() => {
     const normalized = search.trim().toLowerCase();
-    return rows.filter((row) => {
+    const filtered = rows.filter((row) => {
       if (filterMode === "watchlist" && !watchlist.includes(row.id)) {
         return false;
       }
@@ -150,7 +153,16 @@ const PriceBoardPanel = ({
       const haystack = `${row.label} ${row.tokenXLabel} ${row.tokenYLabel}`.toLowerCase();
       return haystack.includes(normalized);
     });
-  }, [filterMode, rows, search, watchlist, volumeThreshold]);
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortKey === "price") return (a.lastPrice - b.lastPrice) * dir;
+      if (sortKey === "change") return (a.change24h - b.change24h) * dir;
+      return (a.volume24hLive - b.volume24hLive) * dir;
+    });
+
+    return sorted;
+  }, [filterMode, rows, search, sortDir, sortKey, volumeThreshold, watchlist]);
 
   const toggleWatch = (id: string) => {
     setWatchlist((prev) =>
@@ -195,6 +207,26 @@ const PriceBoardPanel = ({
               {item.label}
             </button>
           ))}
+        </div>
+        <div className="price-board-sort">
+          <span className="muted small">Sort by</span>
+          <select
+            value={sortKey}
+            onChange={(event) => setSortKey(event.target.value as SortKey)}
+          >
+            <option value="volume">24h volume</option>
+            <option value="price">Last price</option>
+            <option value="change">24h change</option>
+          </select>
+          <button
+            type="button"
+            className="tiny ghost"
+            onClick={() =>
+              setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
+            }
+          >
+            {sortDir === "asc" ? "Asc" : "Desc"}
+          </button>
         </div>
         <div className="price-board-search">
           <span className="price-board-search-icon">Search</span>
