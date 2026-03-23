@@ -66,6 +66,19 @@ const buildSeries = (id: string, timeframe: Timeframe, points: number) => {
   return series;
 };
 
+const buildCandles = (id: string, timeframe: Timeframe, points: number) => {
+  const seed = seedFrom(`${id}-${timeframe}-ohlc`);
+  const rand = mulberry32(seed);
+  const closes = buildSeries(id, timeframe, points);
+  return closes.map((close, idx) => {
+    const prev = idx === 0 ? close : closes[idx - 1];
+    const open = prev * (0.996 + rand() * 0.008);
+    const high = Math.max(open, close) * (1 + rand() * 0.015);
+    const low = Math.min(open, close) * (1 - rand() * 0.015);
+    return { open, high, low, close };
+  });
+};
+
 const buildPath = (values: number[], width: number, height: number, padding: number) => {
   if (values.length === 0) return "";
   const min = Math.min(...values);
@@ -141,6 +154,8 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     x: number;
     y: number;
   } | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState<number | null>(null);
 
   const points = useMemo(() => {
     if (timeframe === "1H") return 48;
@@ -149,10 +164,15 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     return 96;
   }, [timeframe]);
 
-  const primary = useMemo(() => {
+  const primaryCandles = useMemo(() => {
     if (!primaryId) return [];
-    return buildSeries(primaryId, timeframe, points);
+    return buildCandles(primaryId, timeframe, points);
   }, [points, primaryId, timeframe]);
+
+  const primary = useMemo(
+    () => primaryCandles.map((candle) => candle.close),
+    [primaryCandles],
+  );
 
   const compare = useMemo(() => {
     if (!compareId) return [];
@@ -172,10 +192,6 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     primary,
   ]);
 
-  const primaryPath = useMemo(
-    () => buildPath(primary, chartDims.width, chartDims.height, chartDims.padding),
-    [primary],
-  );
   const comparePath = useMemo(
     () => buildPath(compare, chartDims.width, chartDims.height, chartDims.padding),
     [compare],
@@ -249,6 +265,28 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
         setPendingTrend(null);
       }
     }
+  };
+
+  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * chartDims.width;
+    const index = Math.round(
+      ((x - chartDims.padding) /
+        (chartDims.width - chartDims.padding * 2)) *
+        (primaryCandles.length - 1),
+    );
+    if (index < 0 || index >= primaryCandles.length) {
+      setHoverIndex(null);
+      setHoverX(null);
+      return;
+    }
+    setHoverIndex(index);
+    setHoverX(x);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverIndex(null);
+    setHoverX(null);
   };
 
   const valueToY = (value: number, values: number[], height: number, padding: number) => {
@@ -368,8 +406,33 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
           viewBox={`0 0 ${chartDims.width} ${chartDims.height}`}
           aria-label="Price chart"
           onClick={handleChartClick}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
-          <path className="market-chart-line" d={primaryPath} />
+          {primaryCandles.map((candle, idx) => {
+            const innerW = chartDims.width - chartDims.padding * 2;
+            const step = innerW / Math.max(primaryCandles.length, 1);
+            const candleWidth = step * 0.7;
+            const x =
+              chartDims.padding + idx * step + (step - candleWidth) / 2;
+            const openY = valueToY(candle.open, primary, chartDims.height, chartDims.padding);
+            const closeY = valueToY(candle.close, primary, chartDims.height, chartDims.padding);
+            const highY = valueToY(candle.high, primary, chartDims.height, chartDims.padding);
+            const lowY = valueToY(candle.low, primary, chartDims.height, chartDims.padding);
+            const isUp = candle.close >= candle.open;
+            return (
+              <g key={`c-${idx}`} className={`candle ${isUp ? "up" : "down"}`}>
+                <line x1={x + candleWidth / 2} x2={x + candleWidth / 2} y1={highY} y2={lowY} />
+                <rect
+                  x={x}
+                  y={Math.min(openY, closeY)}
+                  width={candleWidth}
+                  height={Math.max(1.5, Math.abs(closeY - openY))}
+                />
+              </g>
+            );
+          })}
+
           {comparePath && compare.length > 0 && (
             <path className="market-chart-line compare" d={comparePath} />
           )}
@@ -411,7 +474,53 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
               className="market-chart-drawing ghost"
             />
           )}
+          {hoverIndex !== null && hoverX !== null && primaryCandles[hoverIndex] && (
+            <>
+              <line
+                className="market-chart-crosshair"
+                x1={hoverX}
+                x2={hoverX}
+                y1={chartDims.padding}
+                y2={chartDims.height - chartDims.padding}
+              />
+              <line
+                className="market-chart-crosshair"
+                x1={chartDims.padding}
+                x2={chartDims.width - chartDims.padding}
+                y1={valueToY(
+                  primaryCandles[hoverIndex].close,
+                  primary,
+                  chartDims.height,
+                  chartDims.padding,
+                )}
+                y2={valueToY(
+                  primaryCandles[hoverIndex].close,
+                  primary,
+                  chartDims.height,
+                  chartDims.padding,
+                )}
+              />
+            </>
+          )}
         </svg>
+        {hoverIndex !== null && primaryCandles[hoverIndex] && hoverX !== null && (
+          <div
+            className="market-chart-tooltip"
+            style={{
+              left: `${(hoverX / chartDims.width) * 100}%`,
+              top: "12px",
+            }}
+          >
+            <strong>
+              O: {formatNumber(primaryCandles[hoverIndex].open)} H:{" "}
+              {formatNumber(primaryCandles[hoverIndex].high)}
+            </strong>
+            <span>
+              L: {formatNumber(primaryCandles[hoverIndex].low)} C:{" "}
+              {formatNumber(primaryCandles[hoverIndex].close)}
+            </span>
+          </div>
+        )}
         <div className="market-chart-legend">
           <span className="legend-dot primary">
             {primaryLabel}/{primaryQuote}

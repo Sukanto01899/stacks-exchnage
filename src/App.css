@@ -857,6 +857,7 @@ h3 {
   border: 1px solid var(--stroke);
   background: rgba(0, 0, 0, 0.2);
   padding: 10px;
+  position: relative;
 }
 
 .market-chart-svg {
@@ -875,6 +876,24 @@ h3 {
   stroke-width: 2.3;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.candle line {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 1;
+}
+
+.candle rect {
+  stroke: rgba(255, 255, 255, 0.25);
+  stroke-width: 0.8;
+}
+
+.candle.up rect {
+  fill: rgba(34, 197, 94, 0.65);
+}
+
+.candle.down rect {
+  fill: rgba(239, 68, 68, 0.65);
 }
 
 .market-chart-line.compare {
@@ -905,6 +924,32 @@ h3 {
 .market-chart-drawing.ghost {
   stroke-dasharray: 4 4;
   opacity: 0.5;
+}
+
+.market-chart-crosshair {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.market-chart-tooltip {
+  position: absolute;
+  transform: translateX(-50%);
+  background: rgba(10, 13, 22, 0.9);
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+}
+
+.market-chart-tooltip span {
+  color: var(--text-muted);
 }
 
 .market-chart-legend {
