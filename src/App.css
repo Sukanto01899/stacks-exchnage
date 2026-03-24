@@ -925,6 +925,88 @@ h3 {
   padding: 12px;
 }
 
+.trade-sim-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.trade-sim-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.trade-sim-controls {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.trade-sim-select select {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.trade-sim-direction {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.trade-sim-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trade-sim-grid input {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.trade-sim-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trade-sim-quick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.trade-sim-stats {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trade-sim-stats > div {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 10px;
+  min-width: 0;
+}
+
 .market-chart-price {
   display: flex;
   align-items: baseline;
@@ -3261,6 +3343,12 @@ label {
   .pool-list-grid,
   .onboarding-grid,
   .alert-builder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-sim-controls,
+  .trade-sim-grid,
+  .trade-sim-stats {
     grid-template-columns: 1fr;
   }
 

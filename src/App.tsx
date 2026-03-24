@@ -27,6 +27,7 @@ import OnboardingModal from "./components/OnboardingModal";
 import ApprovalManager from "./components/ApprovalManager";
 import PriceBoardPanel from "./components/PriceBoardPanel";
 import MarketChartPanel from "./components/MarketChartPanel";
+import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
 import type {
   AppTab,
   OnboardingState,
@@ -3601,6 +3602,10 @@ function App() {
               ) : activeTab === "prices" ? (
                 <div className="prices-stack">
                   <MarketChartPanel
+                    markets={marketChartMarkets}
+                    formatNumber={formatNumber}
+                  />
+                  <TradeSimulatorPanel
                     markets={marketChartMarkets}
                     formatNumber={formatNumber}
                   />
