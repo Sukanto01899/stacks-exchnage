@@ -2,8 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type FilterMode = "all" | "watchlist" | "gainers" | "losers" | "volume";
 type SortKey = "price" | "volume" | "change" | "change1h";
-type WatchlistItemMeta = { tag: string; preset: string };
-type Watchlist = { id: string; name: string; items: Record<string, WatchlistItemMeta> };
+type AlertPresetType = "price" | "percent" | "volume";
+type AlertPreset = {
+  id: string;
+  name: string;
+  type: AlertPresetType;
+  threshold: number;
+  window: number;
+};
+type WatchlistItemMeta = { tag: string; presetId: string };
+type Watchlist = {
+  id: string;
+  name: string;
+  items: Record<string, WatchlistItemMeta>;
+};
 
 type MarketInput = {
   id: string;
@@ -72,6 +84,7 @@ const PriceBoardPanel = ({
   const [search, setSearch] = useState("");
   const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState("");
+  const [presets, setPresets] = useState<AlertPreset[]>(defaultPresets);
   const [rows, setRows] = useState<MarketRow[]>(() =>
     buildInitialRows(markets),
   );
@@ -96,13 +109,27 @@ const PriceBoardPanel = ({
     "Arb",
     "Watch",
   ];
-  const presetOptions = [
-    "5% move",
-    "10% move",
-    "Breakout",
-    "Mean reversion",
-    "Volume spike",
+  const defaultPresets: AlertPreset[] = [
+    { id: "p-5", name: "5% move", type: "percent", threshold: 5, window: 60 },
+    { id: "p-10", name: "10% move", type: "percent", threshold: 10, window: 60 },
+    { id: "p-break", name: "Breakout", type: "price", threshold: 0, window: 240 },
+    {
+      id: "p-vol",
+      name: "Volume spike",
+      type: "volume",
+      threshold: 150,
+      window: 60,
+    },
   ];
+  const resolvePresetId = (value: string | undefined, list: AlertPreset[]) => {
+    if (!value) return list[0]?.id ?? "p-5";
+    const byId = list.find((preset) => preset.id === value);
+    if (byId) return byId.id;
+    const byName = list.find(
+      (preset) => preset.name.toLowerCase() === value.toLowerCase(),
+    );
+    return byName?.id ?? list[0]?.id ?? "p-5";
+  };
 
   const activeWatchlist = useMemo(
     () => watchlists.find((list) => list.id === activeWatchlistId) ?? null,
@@ -129,10 +156,16 @@ const PriceBoardPanel = ({
         ];
         setWatchlists(defaults);
         setActiveWatchlistId(defaults[0]?.id ?? "");
+        setPresets(defaultPresets);
         return;
       }
       const parsed = JSON.parse(stored) as
-        | { version: number; activeId: string; lists: Watchlist[] }
+        | {
+            version: number;
+            activeId: string;
+            lists: Watchlist[];
+            presets?: AlertPreset[];
+          }
         | string[];
 
       if (Array.isArray(parsed)) {
@@ -143,7 +176,7 @@ const PriceBoardPanel = ({
             items: parsed.reduce<Record<string, WatchlistItemMeta>>(
               (acc, id) => {
                 if (typeof id === "string") {
-                  acc[id] = { tag: "Core", preset: "5% move" };
+                  acc[id] = { tag: "Core", presetId: "p-5" };
                 }
                 return acc;
               },
@@ -153,16 +186,45 @@ const PriceBoardPanel = ({
         ];
         setWatchlists(migrated);
         setActiveWatchlistId("wl-main");
+        setPresets(defaultPresets);
         return;
       }
 
       if (parsed?.lists && Array.isArray(parsed.lists)) {
+        const presetList =
+          parsed.presets && Array.isArray(parsed.presets)
+            ? parsed.presets
+            : defaultPresets;
         const sanitized = parsed.lists
           .filter((list) => list && typeof list.id === "string")
           .map((list) => ({
             id: list.id,
             name: typeof list.name === "string" ? list.name : "Watchlist",
-            items: list.items && typeof list.items === "object" ? list.items : {},
+            items:
+              list.items && typeof list.items === "object"
+                ? Object.fromEntries(
+                    Object.entries(list.items).map(([key, meta]) => {
+                      const item = meta as Partial<WatchlistItemMeta> & {
+                        preset?: string;
+                      };
+                      return [
+                        key,
+                        {
+                          tag:
+                            typeof item.tag === "string" ? item.tag : "Core",
+                          presetId: resolvePresetId(
+                            typeof item.presetId === "string"
+                              ? item.presetId
+                              : typeof item.preset === "string"
+                                ? item.preset
+                                : undefined,
+                            presetList,
+                          ),
+                        },
+                      ];
+                    }),
+                  )
+                : {},
           }));
         setWatchlists(sanitized);
         setActiveWatchlistId(
@@ -170,6 +232,30 @@ const PriceBoardPanel = ({
             ? parsed.activeId
             : sanitized[0]?.id ?? "",
         );
+        if (parsed.presets && Array.isArray(parsed.presets)) {
+          setPresets(
+            parsed.presets.filter(
+              (preset) =>
+                preset &&
+                typeof preset.id === "string" &&
+                typeof preset.name === "string",
+            ).map((preset) => ({
+              id: preset.id,
+              name: preset.name,
+              type:
+                preset.type === "price" ||
+                preset.type === "percent" ||
+                preset.type === "volume"
+                  ? preset.type
+                  : "percent",
+              threshold:
+                typeof preset.threshold === "number" ? preset.threshold : 5,
+              window: typeof preset.window === "number" ? preset.window : 60,
+            })),
+          );
+        } else {
+          setPresets(defaultPresets);
+        }
       }
     } catch {
       // ignore storage errors
@@ -182,15 +268,16 @@ const PriceBoardPanel = ({
       localStorage.setItem(
         storageKey,
         JSON.stringify({
-          version: 1,
+          version: 2,
           activeId: activeWatchlistId,
           lists: watchlists,
+          presets,
         }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [activeWatchlistId, storageKey, watchlists]);
+  }, [activeWatchlistId, presets, storageKey, watchlists]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -272,7 +359,10 @@ const PriceBoardPanel = ({
         if (nextItems[id]) {
           delete nextItems[id];
         } else {
-          nextItems[id] = { tag: "Core", preset: "5% move" };
+          nextItems[id] = {
+            tag: "Core",
+            presetId: presets[0]?.id ?? "p-5",
+          };
         }
         return { ...list, items: nextItems };
       }),
@@ -344,6 +434,43 @@ const PriceBoardPanel = ({
     const next = watchlists.find((list) => list.id !== modal.id);
     setActiveWatchlistId(next?.id ?? "");
     closeModal();
+  };
+
+  const presetById = useMemo(() => {
+    const map = new Map<string, AlertPreset>();
+    presets.forEach((preset) => map.set(preset.id, preset));
+    return map;
+  }, [presets]);
+
+  const updatePreset = (id: string, patch: Partial<AlertPreset>) => {
+    setPresets((prev) =>
+      prev.map((preset) => (preset.id === id ? { ...preset, ...patch } : preset)),
+    );
+  };
+
+  const handleAddPreset = () => {
+    const id = `p-${Date.now().toString(36)}`;
+    setPresets((prev) => [
+      ...prev,
+      { id, name: "New preset", type: "percent", threshold: 5, window: 60 },
+    ]);
+  };
+
+  const handleRemovePreset = (id: string) => {
+    if (presets.length <= 1) return;
+    const fallbackId = presets.find((preset) => preset.id !== id)?.id ?? id;
+    setPresets((prev) => prev.filter((preset) => preset.id !== id));
+    setWatchlists((prev) =>
+      prev.map((list) => ({
+        ...list,
+        items: Object.fromEntries(
+          Object.entries(list.items).map(([key, meta]) => [
+            key,
+            meta.presetId === id ? { ...meta, presetId: fallbackId } : meta,
+          ]),
+        ),
+      })),
+    );
   };
 
   useEffect(() => {
@@ -501,6 +628,117 @@ const PriceBoardPanel = ({
         </div>
       </div>
 
+      <div className="alert-builder">
+        <div className="alert-builder-head">
+          <div>
+            <p className="eyebrow">Alert builder</p>
+            <h3>Presets</h3>
+          </div>
+          <button className="tiny ghost" type="button" onClick={handleAddPreset}>
+            Add preset
+          </button>
+        </div>
+        <div className="alert-builder-grid">
+          {presets.map((preset) => (
+            <div key={preset.id} className="alert-card">
+              <div className="alert-card-head">
+                <input
+                  className="alert-card-name"
+                  value={preset.name}
+                  onChange={(event) =>
+                    updatePreset(preset.id, { name: event.target.value })
+                  }
+                />
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => handleRemovePreset(preset.id)}
+                  disabled={presets.length <= 1}
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="alert-card-row">
+                <label>Type</label>
+                <select
+                  value={preset.type}
+                  onChange={(event) =>
+                    updatePreset(preset.id, {
+                      type: event.target.value as AlertPresetType,
+                    })
+                  }
+                >
+                  <option value="price">Price</option>
+                  <option value="percent">% Move</option>
+                  <option value="volume">Volume</option>
+                </select>
+              </div>
+              <div className="alert-card-row">
+                <label>Threshold</label>
+                <input
+                  type="number"
+                  value={preset.threshold}
+                  onChange={(event) =>
+                    updatePreset(preset.id, {
+                      threshold: Number(event.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="alert-card-row">
+                <label>Window (min)</label>
+                <input
+                  type="number"
+                  value={preset.window}
+                  onChange={(event) =>
+                    updatePreset(preset.id, {
+                      window: Number(event.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="alert-builder preview">
+        <div className="alert-builder-head">
+          <div>
+            <p className="eyebrow">Live watchlist</p>
+            <h3>Alert preview</h3>
+          </div>
+        </div>
+        <div className="alert-preview-list">
+          {Object.entries(watchlistItems).length === 0 ? (
+            <p className="muted small">Add markets to see alert routing.</p>
+          ) : (
+            visibleRows
+              .filter((row) => watchlistItems[row.id])
+              .map((row) => {
+                const meta = watchlistItems[row.id];
+                const preset = presetById.get(meta.presetId);
+                const label = preset
+                  ? `${preset.name} · ${preset.type} ${preset.threshold} ${
+                      preset.type === "percent" ? "%" : ""
+                    } / ${preset.window}m`
+                  : "Preset not found";
+                return (
+                  <div key={`preview-${row.id}`} className="alert-preview-item">
+                    <div>
+                      <strong>
+                        {row.tokenXLabel}/{row.tokenYLabel}
+                      </strong>
+                      <p className="muted small">{label}</p>
+                    </div>
+                    <span className="pill-small">{meta.tag}</span>
+                  </div>
+                );
+              })
+          )}
+        </div>
+      </div>
+
       <div className="price-board-table">
         <div className="price-board-row price-board-head">
           <span>Market</span>
@@ -629,14 +867,14 @@ const PriceBoardPanel = ({
               {isWatched ? (
                 <select
                   className="price-board-select"
-                  value={itemMeta?.preset ?? presetOptions[0]}
+                  value={itemMeta?.presetId ?? presets[0]?.id ?? "p-5"}
                   onChange={(event) =>
-                    updateWatchItem(row.id, { preset: event.target.value })
+                    updateWatchItem(row.id, { presetId: event.target.value })
                   }
                 >
-                  {presetOptions.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
                     </option>
                   ))}
                 </select>

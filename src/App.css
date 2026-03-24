@@ -686,6 +686,100 @@ h3 {
   flex-wrap: wrap;
 }
 
+.alert-builder {
+  margin-top: 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 12px;
+}
+
+.alert-builder.preview {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.alert-builder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alert-builder-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.alert-card {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.alert-card-name {
+  flex: 1 1 auto;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  outline: 0;
+}
+
+.alert-card-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.alert-card-row input,
+.alert-card-row select {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.alert-preview-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-preview-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 10px;
+}
+
 .price-board-table {
   margin-top: 12px;
   display: flex;
@@ -3131,7 +3225,8 @@ label {
   .portfolio-grid,
   .analytics-grid,
   .pool-list-grid,
-  .onboarding-grid {
+  .onboarding-grid,
+  .alert-builder-grid {
     grid-template-columns: 1fr;
   }
 
