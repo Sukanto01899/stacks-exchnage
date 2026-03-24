@@ -794,14 +794,14 @@ h3 {
   grid-template-columns:
     minmax(160px, 1.3fr) repeat(3, minmax(80px, 0.7fr))
     minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(130px, 0.9fr)
-    minmax(90px, 0.6fr);
+    minmax(140px, 0.9fr) minmax(90px, 0.6fr);
   gap: 10px;
   align-items: center;
   border-radius: var(--radius-sm);
   border: 1px solid var(--stroke);
   background: rgba(0, 0, 0, 0.14);
   padding: 10px;
-  min-width: 920px;
+  min-width: 1040px;
 }
 
 .price-board-head {
@@ -878,6 +878,40 @@ h3 {
   border-color: rgba(var(--accent-rgb), 0.6);
   background: rgba(var(--accent-rgb), 0.18);
   color: #fff2d8;
+}
+
+.signal-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.signal-badge {
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.signal-badge.ok {
+  border-color: rgba(var(--ok-rgb), 0.5);
+  background: rgba(var(--ok-rgb), 0.18);
+  color: #dffbe9;
+}
+
+.signal-badge.warn {
+  border-color: rgba(255, 192, 92, 0.5);
+  background: rgba(255, 192, 92, 0.12);
+  color: #ffe7b0;
+}
+
+.signal-badge.neutral {
+  color: var(--text-muted);
 }
 
 .price-board-empty {

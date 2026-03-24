@@ -32,6 +32,11 @@ type MarketRow = MarketInput & {
   change1h: number;
   lastMove: "up" | "down" | "flat";
   volume24hLive: number;
+  history: number[];
+  rsi: number | null;
+  maFast: number | null;
+  maSlow: number | null;
+  signal: { rsi: "overbought" | "oversold" | "neutral"; maCross: "bull" | "bear" | null };
 };
 
 type Props = {
@@ -62,6 +67,9 @@ const buildInitialRows = (markets: MarketInput[]): MarketRow[] => {
     const lastPrice = Number((base + factor * 1.2).toFixed(4));
     const change24h = Number((((factor * 2 - 1) * 10).toFixed(2)));
     const change1h = Number((((factor * 2 - 1) * 2.8).toFixed(2)));
+    const history = Array.from({ length: 18 }, (_, idx) =>
+      Number((lastPrice * (1 + (idx - 9) * 0.002)).toFixed(4)),
+    );
     return {
       ...market,
       lastPrice,
@@ -69,8 +77,35 @@ const buildInitialRows = (markets: MarketInput[]): MarketRow[] => {
       change1h,
       lastMove: "flat",
       volume24hLive: market.volume24h,
+      history,
+      rsi: null,
+      maFast: null,
+      maSlow: null,
+      signal: { rsi: "neutral", maCross: null },
     };
   });
+};
+
+const calcMA = (values: number[], period: number) => {
+  if (values.length < period) return null;
+  const slice = values.slice(-period);
+  const sum = slice.reduce((acc, value) => acc + value, 0);
+  return sum / slice.length;
+};
+
+const calcRSI = (values: number[], period: number) => {
+  if (values.length < period + 1) return null;
+  const changes = values.slice(-period - 1).map((value, idx, arr) => {
+    if (idx === 0) return 0;
+    return value - arr[idx - 1];
+  });
+  const gains = changes.map((delta) => Math.max(0, delta));
+  const losses = changes.map((delta) => Math.max(0, -delta));
+  const avgGain = gains.reduce((a, b) => a + b, 0) / period;
+  const avgLoss = losses.reduce((a, b) => a + b, 0) / period;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return 100 - 100 / (1 + rs);
 };
 
 const PriceBoardPanel = ({
@@ -294,6 +329,30 @@ const PriceBoardPanel = ({
               : nextPrice < row.lastPrice
                 ? "down"
                 : "flat";
+          const nextHistory = [...row.history, Number(nextPrice.toFixed(4))].slice(
+            -32,
+          );
+          const maFast = calcMA(nextHistory, 5);
+          const maSlow = calcMA(nextHistory, 12);
+          const prevFast = calcMA(nextHistory.slice(0, -1), 5);
+          const prevSlow = calcMA(nextHistory.slice(0, -1), 12);
+          let maCross: "bull" | "bear" | null = null;
+          if (
+            prevFast !== null &&
+            prevSlow !== null &&
+            maFast !== null &&
+            maSlow !== null
+          ) {
+            if (prevFast <= prevSlow && maFast > maSlow) maCross = "bull";
+            if (prevFast >= prevSlow && maFast < maSlow) maCross = "bear";
+          }
+          const rsi = calcRSI(nextHistory, 14);
+          const rsiSignal =
+            rsi !== null && rsi >= 70
+              ? "overbought"
+              : rsi !== null && rsi <= 30
+                ? "oversold"
+                : "neutral";
           return {
             ...row,
             lastPrice: Number(nextPrice.toFixed(4)),
@@ -301,6 +360,11 @@ const PriceBoardPanel = ({
             change1h: Number(nextChange1h.toFixed(2)),
             lastMove: move,
             volume24hLive: Number(nextVolume.toFixed(2)),
+            history: nextHistory,
+            rsi,
+            maFast,
+            maSlow,
+            signal: { rsi: rsiSignal, maCross },
           };
         }),
       );
@@ -809,6 +873,7 @@ const PriceBoardPanel = ({
           </button>
           <span>Tag</span>
           <span>Alert preset</span>
+          <span>Signals</span>
           <span>Watch</span>
         </div>
         {visibleRows.map((row) => {
@@ -881,6 +946,23 @@ const PriceBoardPanel = ({
               ) : (
                 <span className="muted small">—</span>
               )}
+              <div className="signal-badges">
+                {row.signal.rsi === "overbought" && (
+                  <span className="signal-badge warn">RSI OB</span>
+                )}
+                {row.signal.rsi === "oversold" && (
+                  <span className="signal-badge ok">RSI OS</span>
+                )}
+                {row.signal.maCross === "bull" && (
+                  <span className="signal-badge ok">MA Bull</span>
+                )}
+                {row.signal.maCross === "bear" && (
+                  <span className="signal-badge warn">MA Bear</span>
+                )}
+                {row.signal.rsi === "neutral" && !row.signal.maCross && (
+                  <span className="signal-badge neutral">—</span>
+                )}
+              </div>
               <button
                 className={`tiny ghost ${isWatched ? "is-active" : ""}`}
                 type="button"
