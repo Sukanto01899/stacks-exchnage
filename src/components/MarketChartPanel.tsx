@@ -157,6 +157,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [draggingCrosshair, setDraggingCrosshair] = useState(false);
+  const [crosshairPinned, setCrosshairPinned] = useState(false);
 
   const points = useMemo(() => {
     if (timeframe === "1H") return 48;
@@ -236,7 +237,58 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     );
   };
 
+  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * chartDims.width;
+    const index = Math.round(
+      ((x - chartDims.padding) /
+        (chartDims.width - chartDims.padding * 2)) *
+        (primaryCandles.length - 1),
+    );
+    if (index < 0 || index >= primaryCandles.length) {
+      if (!draggingCrosshair && !crosshairPinned) {
+        setHoverIndex(null);
+        setHoverX(null);
+      }
+      return;
+    }
+    setHoverIndex(index);
+    setHoverX(x);
+  };
+
+  const handleMouseLeave = () => {
+    if (draggingCrosshair || crosshairPinned) return;
+    setHoverIndex(null);
+    setHoverX(null);
+  };
+
+  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
+    if (drawTool !== "none") return;
+    setDraggingCrosshair(true);
+    handleMouseMove(event);
+  };
+
+  const handleMouseUp = () => {
+    if (drawTool !== "none") return;
+    setDraggingCrosshair(false);
+    setCrosshairPinned(true);
+  };
+
+  useEffect(() => {
+    if (!draggingCrosshair) return;
+    const handleWindowUp = () => setDraggingCrosshair(false);
+    window.addEventListener("mouseup", handleWindowUp);
+    return () => window.removeEventListener("mouseup", handleWindowUp);
+  }, [draggingCrosshair]);
+
   const handleChartClick = (event: MouseEvent<SVGSVGElement>) => {
+    if (crosshairPinned) {
+      setCrosshairPinned(false);
+      if (!draggingCrosshair) {
+        handleMouseMove(event);
+      }
+      return;
+    }
     if (drawTool === "none") return;
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * chartDims.width;
@@ -277,47 +329,6 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
       }
     }
   };
-
-  const handleMouseMove = (event: MouseEvent<SVGSVGElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * chartDims.width;
-    const index = Math.round(
-      ((x - chartDims.padding) /
-        (chartDims.width - chartDims.padding * 2)) *
-        (primaryCandles.length - 1),
-    );
-    if (index < 0 || index >= primaryCandles.length) {
-      if (!draggingCrosshair) {
-        setHoverIndex(null);
-        setHoverX(null);
-      }
-      return;
-    }
-    setHoverIndex(index);
-    setHoverX(x);
-  };
-
-  const handleMouseLeave = () => {
-    if (draggingCrosshair) return;
-    setHoverIndex(null);
-    setHoverX(null);
-  };
-
-  const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
-    setDraggingCrosshair(true);
-    handleMouseMove(event);
-  };
-
-  const handleMouseUp = () => {
-    setDraggingCrosshair(false);
-  };
-
-  useEffect(() => {
-    if (!draggingCrosshair) return;
-    const handleWindowUp = () => setDraggingCrosshair(false);
-    window.addEventListener("mouseup", handleWindowUp);
-    return () => window.removeEventListener("mouseup", handleWindowUp);
-  }, [draggingCrosshair]);
 
   const valueToY = (value: number, values: number[], height: number, padding: number) => {
     const min = Math.min(...values);
