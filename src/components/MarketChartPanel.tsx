@@ -158,6 +158,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   const [hoverX, setHoverX] = useState<number | null>(null);
   const [draggingCrosshair, setDraggingCrosshair] = useState(false);
   const [crosshairPinned, setCrosshairPinned] = useState(false);
+  const [pinMode, setPinMode] = useState(true);
 
   const points = useMemo(() => {
     if (timeframe === "1H") return 48;
@@ -246,7 +247,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
         (primaryCandles.length - 1),
     );
     if (index < 0 || index >= primaryCandles.length) {
-      if (!draggingCrosshair && !crosshairPinned) {
+      if (!draggingCrosshair && (!crosshairPinned || !pinMode)) {
         setHoverIndex(null);
         setHoverX(null);
       }
@@ -257,19 +258,19 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   };
 
   const handleMouseLeave = () => {
-    if (draggingCrosshair || crosshairPinned) return;
+    if (draggingCrosshair || (crosshairPinned && pinMode)) return;
     setHoverIndex(null);
     setHoverX(null);
   };
 
   const handleMouseDown = (event: MouseEvent<SVGSVGElement>) => {
-    if (drawTool !== "none") return;
+    if (drawTool !== "none" || !pinMode) return;
     setDraggingCrosshair(true);
     handleMouseMove(event);
   };
 
   const handleMouseUp = () => {
-    if (drawTool !== "none") return;
+    if (drawTool !== "none" || !pinMode) return;
     setDraggingCrosshair(false);
     setCrosshairPinned(true);
   };
@@ -282,7 +283,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
   }, [draggingCrosshair]);
 
   const handleChartClick = (event: MouseEvent<SVGSVGElement>) => {
-    if (crosshairPinned) {
+    if (pinMode && crosshairPinned) {
       setCrosshairPinned(false);
       if (!draggingCrosshair) {
         handleMouseMove(event);
@@ -428,6 +429,22 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
               {item.label}
             </button>
           ))}
+          <button
+            type="button"
+            className={`chip ${pinMode ? "is-favorite" : ""}`}
+            onClick={() => {
+              setPinMode((prev) => {
+                const next = !prev;
+                if (!next) {
+                  setCrosshairPinned(false);
+                  setDraggingCrosshair(false);
+                }
+                return next;
+              });
+            }}
+          >
+            Pin crosshair
+          </button>
           <button
             type="button"
             className="tiny ghost"
