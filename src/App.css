@@ -2871,6 +2871,23 @@ h3 {
   gap: 8px;
 }
 
+.analytics-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.analytics-range select {
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .analytics-chart-head strong {
   display: block;
   margin-top: 4px;

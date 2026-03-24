@@ -108,6 +108,19 @@ const calcRSI = (values: number[], period: number) => {
   return 100 - 100 / (1 + rs);
 };
 
+const DEFAULT_PRESETS: AlertPreset[] = [
+  { id: "p-5", name: "5% move", type: "percent", threshold: 5, window: 60 },
+  { id: "p-10", name: "10% move", type: "percent", threshold: 10, window: 60 },
+  { id: "p-break", name: "Breakout", type: "price", threshold: 0, window: 240 },
+  {
+    id: "p-vol",
+    name: "Volume spike",
+    type: "volume",
+    threshold: 150,
+    window: 60,
+  },
+];
+
 const PriceBoardPanel = ({
   markets,
   formatNumber,
@@ -119,7 +132,7 @@ const PriceBoardPanel = ({
   const [search, setSearch] = useState("");
   const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState("");
-  const [presets, setPresets] = useState<AlertPreset[]>(defaultPresets);
+  const [presets, setPresets] = useState<AlertPreset[]>(DEFAULT_PRESETS);
   const [rows, setRows] = useState<MarketRow[]>(() =>
     buildInitialRows(markets),
   );
@@ -143,18 +156,6 @@ const PriceBoardPanel = ({
     "High risk",
     "Arb",
     "Watch",
-  ];
-  const defaultPresets: AlertPreset[] = [
-    { id: "p-5", name: "5% move", type: "percent", threshold: 5, window: 60 },
-    { id: "p-10", name: "10% move", type: "percent", threshold: 10, window: 60 },
-    { id: "p-break", name: "Breakout", type: "price", threshold: 0, window: 240 },
-    {
-      id: "p-vol",
-      name: "Volume spike",
-      type: "volume",
-      threshold: 150,
-      window: 60,
-    },
   ];
   const resolvePresetId = (value: string | undefined, list: AlertPreset[]) => {
     if (!value) return list[0]?.id ?? "p-5";
@@ -191,7 +192,7 @@ const PriceBoardPanel = ({
         ];
         setWatchlists(defaults);
         setActiveWatchlistId(defaults[0]?.id ?? "");
-        setPresets(defaultPresets);
+        setPresets(DEFAULT_PRESETS);
         return;
       }
       const parsed = JSON.parse(stored) as
@@ -221,7 +222,7 @@ const PriceBoardPanel = ({
         ];
         setWatchlists(migrated);
         setActiveWatchlistId("wl-main");
-        setPresets(defaultPresets);
+        setPresets(DEFAULT_PRESETS);
         return;
       }
 
@@ -229,7 +230,7 @@ const PriceBoardPanel = ({
         const presetList =
           parsed.presets && Array.isArray(parsed.presets)
             ? parsed.presets
-            : defaultPresets;
+            : DEFAULT_PRESETS;
         const sanitized = parsed.lists
           .filter((list) => list && typeof list.id === "string")
           .map((list) => ({
@@ -289,7 +290,7 @@ const PriceBoardPanel = ({
             })),
           );
         } else {
-          setPresets(defaultPresets);
+          setPresets(DEFAULT_PRESETS);
         }
       }
     } catch {
@@ -1046,7 +1047,7 @@ const PriceBoardPanel = ({
                     type="button"
                     onClick={
                       modal.type === "create"
-                        ? () => handleCreateSubmit(false)
+                        ? handleCreateSubmit
                         : handleRenameSubmit
                     }
                   >

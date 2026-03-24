@@ -522,7 +522,7 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
                 y1={y1}
                 y2={y2}
                 className="market-chart-drawing"
-              );
+              />
             );
           })}
           {pendingTrend && (

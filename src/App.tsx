@@ -18,6 +18,7 @@ import { useActivity } from "./hooks/useActivity";
 import { useAnalytics } from "./hooks/useAnalytics";
 import { useBalances } from "./hooks/useBalances";
 import { usePool } from "./hooks/usePool";
+import { usePoolHistory } from "./hooks/usePoolHistory";
 import SwapCard from "./components/SwapCard";
 const LiquidityCard = lazy(() => import("./components/LiquidityCard"));
 const AnalyticsPanel = lazy(() => import("./components/AnalyticsPanel"));
@@ -1154,6 +1155,18 @@ function App() {
     if (pool.reserveX === 0 || pool.reserveY === 0) return 0;
     return pool.reserveY / pool.reserveX;
   }, [pool.reserveX, pool.reserveY]);
+
+  const poolHistoryKey = useMemo(
+    () => `pool-history-${RESOLVED_STACKS_NETWORK}-${POOL_CONTRACT_ID}`,
+    [],
+  );
+  const { poolHistory } = usePoolHistory({
+    poolHistoryKey,
+    pool,
+    currentPrice,
+    snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
+    retentionMs: DAY_MS * 90,
+  });
 
   const directionalPrice = useMemo(() => {
     if (!currentPrice) return 0;
@@ -3694,6 +3707,11 @@ function App() {
                     analytics={analytics}
                     portfolioMetrics={portfolioMetrics}
                     currentPrice={currentPrice}
+                    pool={pool}
+                    poolShare={poolShare}
+                    poolHistory={poolHistory}
+                    activityItems={activityItems}
+                    tokenLabels={selectionLabels}
                     formatNumber={formatNumber}
                     formatSignedPercent={formatSignedPercent}
                     formatCompactNumber={formatCompactNumber}

@@ -7,6 +7,14 @@ export type PoolState = {
   totalShares: number;
 };
 
+export type PoolSnapshot = {
+  ts: number;
+  reserveX: number;
+  reserveY: number;
+  priceYX: number;
+  totalShares?: number;
+};
+
 export type PoolTokenInfo = {
   tokenX: string | null;
   tokenY: string | null;
