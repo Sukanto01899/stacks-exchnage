@@ -29,6 +29,7 @@ import ApprovalManager from "./components/ApprovalManager";
 import PriceBoardPanel from "./components/PriceBoardPanel";
 import MarketChartPanel from "./components/MarketChartPanel";
 import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
+import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
 import type {
   AppTab,
   OnboardingState,
@@ -449,6 +450,82 @@ function App() {
       return { ok: true };
     },
     [STACKS_API],
+  );
+
+  const tokenDiscoverSeeds = useMemo(() => {
+    const seeds: Array<{ id: string; label: string; verified: boolean }> = [
+      ...PRESET_TOKENS.map((token) => ({
+        id: token.id,
+        label: token.label,
+        verified: true,
+      })),
+    ];
+
+    if (!tokenDraft.xIsStx && tokenDraft.xId) {
+      seeds.push({
+        id: tokenDraft.xId,
+        label: "Current Token X",
+        verified: tokenValidation.x.status === "ok",
+      });
+    }
+    if (!tokenDraft.yIsStx && tokenDraft.yId) {
+      seeds.push({
+        id: tokenDraft.yId,
+        label: "Current Token Y",
+        verified: tokenValidation.y.status === "ok",
+      });
+    }
+    if (!tokenSelection.xIsStx && tokenSelection.xId) {
+      seeds.push({
+        id: tokenSelection.xId,
+        label: "Applied Token X",
+        verified: true,
+      });
+    }
+    if (!tokenSelection.yIsStx && tokenSelection.yId) {
+      seeds.push({
+        id: tokenSelection.yId,
+        label: "Applied Token Y",
+        verified: true,
+      });
+    }
+
+    return seeds;
+  }, [
+    tokenDraft.xId,
+    tokenDraft.xIsStx,
+    tokenDraft.yId,
+    tokenDraft.yIsStx,
+    tokenSelection.xId,
+    tokenSelection.xIsStx,
+    tokenSelection.yId,
+    tokenSelection.yIsStx,
+    tokenValidation.x.status,
+    tokenValidation.y.status,
+  ]);
+
+  const pickDiscoverToken = useCallback(
+    (side: "x" | "y", token: { id: string; isStx: boolean }) => {
+      setTokenDraft((prev) => {
+        if (side === "x") {
+          return {
+            ...prev,
+            xIsStx: token.isStx,
+            xId: token.isStx ? prev.xId : token.id,
+          };
+        }
+        return {
+          ...prev,
+          yIsStx: token.isStx,
+          yId: token.isStx ? prev.yId : token.id,
+        };
+      });
+      setTokenValidation((prev) => ({
+        ...prev,
+        [side]: { status: "idle" },
+      }));
+    },
+    [],
   );
 
   useEffect(() => {
@@ -3497,6 +3574,20 @@ function App() {
                 {tokenSelectMessage && (
                   <p className="muted small">{tokenSelectMessage}</p>
                 )}
+                <TokenDiscoverPanel
+                  resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+                  seedTokens={tokenDiscoverSeeds}
+                  selected={{
+                    xId: tokenDraft.xId,
+                    yId: tokenDraft.yId,
+                    xIsStx: tokenDraft.xIsStx,
+                    yIsStx: tokenDraft.yIsStx,
+                  }}
+                  metadataByPrincipal={metadataByPrincipal}
+                  getTokenPrincipal={getTokenPrincipal}
+                  validateSip10Token={validateSip10Token}
+                  onPickToken={pickDiscoverToken}
+                />
               </div>
 
               {pendingTxs.length > 0 && (
