@@ -30,6 +30,7 @@ import PriceBoardPanel from "./components/PriceBoardPanel";
 import MarketChartPanel from "./components/MarketChartPanel";
 import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
 import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
+import AddressPill from "./components/AddressPill";
 import type {
   AppTab,
   OnboardingState,
@@ -211,6 +212,8 @@ function App() {
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
   const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
   const [slippageInput, setSlippageInput] = useState("0.5");
+  const [highSlippageConfirmed, setHighSlippageConfirmed] = useState(false);
+  const [customTokenConfirmed, setCustomTokenConfirmed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
@@ -241,7 +244,13 @@ function App() {
   );
   const [approvePending, setApprovePending] = useState<TokenKey | null>(null);
   const [approveUnlimited, setApproveUnlimited] = useState(true);
+  const [unlimitedApprovalConfirmed, setUnlimitedApprovalConfirmed] =
+    useState(false);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUnlimitedApprovalConfirmed(false);
+  }, [approveUnlimited]);
 
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
@@ -1827,6 +1836,31 @@ function App() {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
 
+  const highSlippageRequired = useMemo(() => {
+    const parsed = Number(slippageInput);
+    return Number.isFinite(parsed) && parsed > 5;
+  }, [slippageInput]);
+
+  useEffect(() => {
+    if (!highSlippageRequired) setHighSlippageConfirmed(false);
+  }, [highSlippageRequired]);
+
+  const customTokenRequired = useMemo(() => {
+    const preset = new Set(PRESET_TOKENS.map((token) => token.id));
+    const xCustom = !tokenSelection.xIsStx && !preset.has(tokenSelection.xId);
+    const yCustom = !tokenSelection.yIsStx && !preset.has(tokenSelection.yId);
+    return xCustom || yCustom;
+  }, [
+    tokenSelection.xId,
+    tokenSelection.xIsStx,
+    tokenSelection.yId,
+    tokenSelection.yIsStx,
+  ]);
+
+  useEffect(() => {
+    if (!customTokenRequired) setCustomTokenConfirmed(false);
+  }, [customTokenRequired]);
+
   const prepareSwapDraft = async (addressOverride?: string | null) => {
     const activeAddress = addressOverride || stacksAddress;
     setSwapMessage(null);
@@ -1842,6 +1876,18 @@ function App() {
     }
     if (!activeAddress) {
       setSwapMessage("Connect a Stacks wallet first.");
+      return null;
+    }
+    if (!isNetworkAddress(activeAddress)) {
+      setSwapMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
+      return null;
+    }
+    if (customTokenRequired && !customTokenConfirmed) {
+      setSwapMessage(
+        "Confirm the unverified token warning before swapping with custom tokens.",
+      );
       return null;
     }
     if (pool.reserveX <= 0 || pool.reserveY <= 0) {
@@ -1900,6 +1946,12 @@ function App() {
       slippagePercent > 50
     ) {
       setSwapMessage("Set slippage between 0 and 50%.");
+      return null;
+    }
+    if (slippagePercent > 5 && !highSlippageConfirmed) {
+      setSwapMessage(
+        "High slippage requires confirmation before swapping.",
+      );
       return null;
     }
     const deadlineMinutes = Number(deadlineMinutesInput);
@@ -2031,6 +2083,12 @@ function App() {
       setSwapMessage("Connect a Stacks wallet first.");
       return;
     }
+    if (!isNetworkAddress(activeAddress)) {
+      setSwapMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
+      return;
+    }
     try {
       setSwapPending(true);
       await openContractCall({
@@ -2101,6 +2159,12 @@ function App() {
     setApprovalMessage(null);
     if (!stacksAddress) {
       setApprovalMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (!isNetworkAddress(stacksAddress)) {
+      setApprovalMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
       return;
     }
     if (tokenIsStx[token]) {
@@ -2196,6 +2260,12 @@ function App() {
     }
     if (!stacksAddress) {
       setLiqMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (!isNetworkAddress(stacksAddress)) {
+      setLiqMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
       return;
     }
     if (approvalSupport.x) {
@@ -2305,6 +2375,12 @@ function App() {
     }
     if (!stacksAddress) {
       setBurnMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (!isNetworkAddress(stacksAddress)) {
+      setBurnMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
       return;
     }
     const sharesUint = BigInt(Math.floor(shares));
@@ -2878,13 +2954,21 @@ function App() {
       approvalSupport={approvalSupport}
       approveUnlimited={approveUnlimited}
       setApproveUnlimited={setApproveUnlimited}
+      unlimitedApprovalConfirmed={unlimitedApprovalConfirmed}
+      setUnlimitedApprovalConfirmed={setUnlimitedApprovalConfirmed}
       allowances={allowances}
       formatNumber={formatNumber}
       handleApprove={handleApprove}
       stacksAddress={stacksAddress}
+      networkMismatch={networkMismatch}
       approvePending={approvePending}
       spenderContractId={spenderContractId}
     />
+  );
+
+  const networkMismatch = useMemo(
+    () => Boolean(stacksAddress && !isNetworkAddress(stacksAddress)),
+    [stacksAddress],
   );
 
   return (
@@ -2966,9 +3050,12 @@ function App() {
             </button>
 
             {stacksAddress ? (
-              <button className="wallet-pill" onClick={handleStacksDisconnect}>
-                {shortAddress(stacksAddress)}
-              </button>
+              <AddressPill
+                address={stacksAddress}
+                networkLabel={RESOLVED_STACKS_NETWORK}
+                networkMismatch={networkMismatch}
+                onClick={handleStacksDisconnect}
+              />
             ) : (
               <button className="wallet-pill" onClick={handleStacksConnect}>
                 Connect Stacks
@@ -3262,15 +3349,15 @@ function App() {
               </button>
               <hr />
               {stacksAddress ? (
-                <button
-                  className="wallet-pill"
+                <AddressPill
+                  address={stacksAddress}
+                  networkLabel={RESOLVED_STACKS_NETWORK}
+                  networkMismatch={networkMismatch}
                   onClick={() => {
                     handleStacksDisconnect();
                     setDrawerOpen(false);
                   }}
-                >
-                  {shortAddress(stacksAddress)}
-                </button>
+                />
               ) : (
                 <button
                   className="wallet-pill"
@@ -3317,6 +3404,20 @@ function App() {
                         ? "Browse pools and jump straight into trading or LP."
                         : "Inspect price movement, reserves, and local activity trends."}
                   </div>
+                </div>
+              )}
+
+              {stacksAddress && networkMismatch && (
+                <div className="note error">
+                  <p className="muted small">Network mismatch</p>
+                  <strong>
+                    Connected address is not {RESOLVED_STACKS_NETWORK}. Swap and
+                    LP actions are blocked.
+                  </strong>
+                  <p className="muted small">
+                    Switch your wallet to {RESOLVED_STACKS_NETWORK} or disconnect
+                    and reconnect.
+                  </p>
                 </div>
               )}
 
@@ -3670,8 +3771,16 @@ function App() {
                   setImpactConfirmed={setImpactConfirmed}
                   slippageInput={slippageInput}
                   setSlippageInput={setSlippageInput}
+                  highSlippageRequired={highSlippageRequired}
+                  highSlippageConfirmed={highSlippageConfirmed}
+                  setHighSlippageConfirmed={setHighSlippageConfirmed}
                   deadlineMinutesInput={deadlineMinutesInput}
                   setDeadlineMinutesInput={setDeadlineMinutesInput}
+                  customTokenRequired={customTokenRequired}
+                  customTokenConfirmed={customTokenConfirmed}
+                  setCustomTokenConfirmed={setCustomTokenConfirmed}
+                  networkMismatch={networkMismatch}
+                  resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   directionalPrice={directionalPrice}
                   targetPriceEnabled={targetPriceEnabled}
                   setTargetPriceEnabled={setTargetPriceEnabled}

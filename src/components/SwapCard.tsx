@@ -39,8 +39,16 @@ export default function SwapCard(props: any) {
     setImpactConfirmed,
     slippageInput,
     setSlippageInput,
+    highSlippageRequired,
+    highSlippageConfirmed,
+    setHighSlippageConfirmed,
     deadlineMinutesInput,
     setDeadlineMinutesInput,
+    customTokenRequired,
+    customTokenConfirmed,
+    setCustomTokenConfirmed,
+    networkMismatch,
+    resolvedStacksNetwork,
     directionalPrice,
     targetPriceEnabled,
     setTargetPriceEnabled,
@@ -97,6 +105,9 @@ export default function SwapCard(props: any) {
   const insufficientBalance =
     Number.isFinite(swapAmount) && swapAmount > 0 && swapAmount > fromBalance;
   const noLiquidity = pool.reserveX <= 0 || pool.reserveY <= 0;
+  const missingRiskConfirm =
+    (customTokenRequired && !customTokenConfirmed) ||
+    (highSlippageRequired && !highSlippageConfirmed);
 
   const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
     if (iconUrl) {
@@ -168,6 +179,19 @@ export default function SwapCard(props: any) {
               </button>
             ) : null}
           </div>
+        </div>
+      )}
+
+      {networkMismatch && (
+        <div className="note error">
+          <p className="muted small">Network mismatch</p>
+          <strong>
+            Connected wallet is not on {resolvedStacksNetwork}. Swaps are
+            disabled.
+          </strong>
+          <p className="muted small">
+            Switch wallet network and reconnect, then refresh pool data.
+          </p>
         </div>
       )}
 
@@ -778,6 +802,40 @@ export default function SwapCard(props: any) {
         </div>
       </div>
 
+      {(customTokenRequired || highSlippageRequired) && (
+        <div className="note warning">
+          <p className="muted small">Confirmation required</p>
+          <strong>Review risks before swapping</strong>
+          <div className="note-actions">
+            {customTokenRequired && (
+              <label className="target-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!customTokenConfirmed}
+                  onChange={(e) => setCustomTokenConfirmed(e.target.checked)}
+                />
+                I trust these custom tokens
+              </label>
+            )}
+            {highSlippageRequired && (
+              <label className="target-toggle">
+                <input
+                  type="checkbox"
+                  checked={!!highSlippageConfirmed}
+                  onChange={(e) => setHighSlippageConfirmed(e.target.checked)}
+                />
+                I accept high slippage
+              </label>
+            )}
+          </div>
+          {missingRiskConfirm && (
+            <p className="muted small">
+              Swap stays disabled until required confirmations are checked.
+            </p>
+          )}
+        </div>
+      )}
+
       {renderApprovalManager("swap")}
 
       <button
@@ -787,7 +845,11 @@ export default function SwapCard(props: any) {
           quoteLoading ||
           swapPending ||
           preflightPending ||
-          tokenMismatch
+          tokenMismatch ||
+          insufficientBalance ||
+          noLiquidity ||
+          networkMismatch ||
+          missingRiskConfirm
         }
       >
         {quoteLoading
