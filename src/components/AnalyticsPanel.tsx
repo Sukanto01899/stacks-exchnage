@@ -31,8 +31,13 @@ type AnalyticsPanelProps = {
   pool: PoolState;
   poolShare: number;
   poolHistory: PoolSnapshot[];
+  portfolioHistoryCount: number;
   activityItems: ActivityItem[];
   tokenLabels: { x: string; y: string };
+  onExportPortfolioCsv: () => void;
+  onExportPoolCsv: () => void;
+  onClearPortfolioHistory: () => void;
+  onClearPoolHistory: () => void;
   formatNumber: (value: number) => string;
   formatSignedPercent: (value: number | null) => string;
   formatCompactNumber: (value: number) => string;
@@ -46,8 +51,13 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
     pool,
     poolShare,
     poolHistory,
+    portfolioHistoryCount,
     activityItems,
     tokenLabels,
+    onExportPortfolioCsv,
+    onExportPoolCsv,
+    onClearPortfolioHistory,
+    onClearPoolHistory,
     formatNumber,
     formatSignedPercent,
     formatCompactNumber,
@@ -434,6 +444,54 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
         ) : (
           <p className="muted small">{lpMetrics.reason}</p>
         )}
+      </div>
+
+      <div className="analytics-chart-card">
+        <div className="analytics-chart-head">
+          <div>
+            <p className="muted small">Local data</p>
+            <strong>
+              {poolHistory.length} pool snapshots · {portfolioHistoryCount} portfolio snapshots
+            </strong>
+          </div>
+          <div className="mini-actions">
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onExportPoolCsv}
+              disabled={poolHistory.length === 0}
+            >
+              Export pool CSV
+            </button>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onExportPortfolioCsv}
+              disabled={portfolioHistoryCount === 0}
+            >
+              Export portfolio CSV
+            </button>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onClearPoolHistory}
+              disabled={poolHistory.length === 0}
+            >
+              Clear pool
+            </button>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onClearPortfolioHistory}
+              disabled={portfolioHistoryCount === 0}
+            >
+              Clear portfolio
+            </button>
+          </div>
+        </div>
+        <p className="muted small">
+          These snapshots are stored in your browser for charts and estimates.
+        </p>
       </div>
     </section>
   );

@@ -30,6 +30,15 @@ export const usePoolHistory = ({
 }: UsePoolHistoryParams) => {
   const [poolHistory, setPoolHistory] = useState<PoolSnapshot[]>([]);
 
+  const clearPoolHistory = () => {
+    setPoolHistory([]);
+    try {
+      localStorage.removeItem(poolHistoryKey);
+    } catch (error) {
+      console.warn("Pool history clear failed", error);
+    }
+  };
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(poolHistoryKey);
@@ -103,6 +112,5 @@ export const usePoolHistory = ({
     [poolHistory],
   );
 
-  return { poolHistory: sortedPoolHistory };
+  return { poolHistory: sortedPoolHistory, clearPoolHistory };
 };
-

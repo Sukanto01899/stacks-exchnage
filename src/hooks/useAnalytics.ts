@@ -66,6 +66,15 @@ export const useAnalytics = ({
     [],
   );
 
+  const clearPortfolioHistory = () => {
+    setPortfolioHistory([]);
+    try {
+      localStorage.removeItem(portfolioHistoryKey);
+    } catch (error) {
+      console.warn("Portfolio history clear failed", error);
+    }
+  };
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(portfolioHistoryKey);
@@ -264,5 +273,7 @@ export const useAnalytics = ({
   return {
     analytics,
     portfolioMetrics,
+    portfolioHistory,
+    clearPortfolioHistory,
   };
 };

@@ -1319,7 +1319,7 @@ function App() {
     () => `pool-history-${RESOLVED_STACKS_NETWORK}-${POOL_CONTRACT_ID}`,
     [],
   );
-  const { poolHistory } = usePoolHistory({
+  const { poolHistory, clearPoolHistory } = usePoolHistory({
     poolHistoryKey,
     pool,
     currentPrice,
@@ -1406,7 +1406,7 @@ function App() {
     lpPosition.y,
     currentPrice,
   ]);
-  const { analytics, portfolioMetrics } = useAnalytics({
+  const { analytics, portfolioMetrics, portfolioHistory, clearPortfolioHistory } = useAnalytics({
     stacksAddress,
     portfolioHistoryKey,
     portfolioTotals,
@@ -1416,6 +1416,59 @@ function App() {
     dayMs: DAY_MS,
     snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
   });
+
+  const exportPortfolioHistoryCsv = useCallback(() => {
+    const esc = (value: unknown) => {
+      const raw = value === null || value === undefined ? "" : String(value);
+      const needsQuotes = /[",\n\r]/.test(raw);
+      const cleaned = raw.replaceAll('"', '""');
+      return needsQuotes ? `"${cleaned}"` : cleaned;
+    };
+    const header = ["ts", "totalX", "totalY", "priceYX", "reserveX", "reserveY"].join(
+      ",",
+    );
+    const rows = portfolioHistory.map((snap) =>
+      [
+        esc(new Date(snap.ts).toISOString()),
+        esc(snap.totalX),
+        esc(snap.totalY),
+        esc(snap.priceYX),
+        esc(snap.reserveX ?? ""),
+        esc(snap.reserveY ?? ""),
+      ].join(","),
+    );
+    downloadTextFile(
+      `portfolio-history-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+      [header, ...rows].join("\n"),
+      "text/csv",
+    );
+  }, [downloadTextFile, portfolioHistory]);
+
+  const exportPoolHistoryCsv = useCallback(() => {
+    const esc = (value: unknown) => {
+      const raw = value === null || value === undefined ? "" : String(value);
+      const needsQuotes = /[",\n\r]/.test(raw);
+      const cleaned = raw.replaceAll('"', '""');
+      return needsQuotes ? `"${cleaned}"` : cleaned;
+    };
+    const header = ["ts", "reserveX", "reserveY", "priceYX", "totalShares"].join(
+      ",",
+    );
+    const rows = poolHistory.map((snap) =>
+      [
+        esc(new Date(snap.ts).toISOString()),
+        esc(snap.reserveX),
+        esc(snap.reserveY),
+        esc(snap.priceYX),
+        esc(snap.totalShares ?? ""),
+      ].join(","),
+    );
+    downloadTextFile(
+      `pool-history-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+      [header, ...rows].join("\n"),
+      "text/csv",
+    );
+  }, [downloadTextFile, poolHistory]);
 
   const lpFeeEstimates = useMemo(() => {
     const now = Date.now();
@@ -4087,8 +4140,13 @@ function App() {
                     pool={pool}
                     poolShare={poolShare}
                     poolHistory={poolHistory}
+                    portfolioHistoryCount={portfolioHistory.length}
                     activityItems={activityItems}
                     tokenLabels={selectionLabels}
+                    onExportPortfolioCsv={exportPortfolioHistoryCsv}
+                    onExportPoolCsv={exportPoolHistoryCsv}
+                    onClearPortfolioHistory={clearPortfolioHistory}
+                    onClearPoolHistory={clearPoolHistory}
                     formatNumber={formatNumber}
                     formatSignedPercent={formatSignedPercent}
                     formatCompactNumber={formatCompactNumber}
