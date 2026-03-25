@@ -31,6 +31,7 @@ import MarketChartPanel from "./components/MarketChartPanel";
 import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
 import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
 import AddressPill from "./components/AddressPill";
+import SwapConfirmModal from "./components/SwapConfirmModal";
 import type {
   AppTab,
   OnboardingState,
@@ -214,6 +215,12 @@ function App() {
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [highSlippageConfirmed, setHighSlippageConfirmed] = useState(false);
   const [customTokenConfirmed, setCustomTokenConfirmed] = useState(false);
+  const [swapConfirmDraft, setSwapConfirmDraft] = useState<SwapDraft | null>(
+    null,
+  );
+  const [swapConfirmAddressOverride, setSwapConfirmAddressOverride] = useState<
+    string | null
+  >(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
@@ -2197,7 +2204,8 @@ function App() {
   const handleSwap = async () => {
     const draft = await prepareSwapDraft();
     if (!draft) return;
-    await executeSwap(draft);
+    setSwapConfirmDraft(draft);
+    setSwapConfirmAddressOverride(null);
   };
 
   const executeSwap = async (
@@ -2278,7 +2286,8 @@ function App() {
     }
     const draft = await prepareSwapDraft(activeAddress);
     if (!draft) return;
-    await executeSwap(draft, activeAddress);
+    setSwapConfirmDraft(draft);
+    setSwapConfirmAddressOverride(activeAddress);
   };
 
   const handleApprove = async (
@@ -3110,6 +3119,19 @@ function App() {
     () => Boolean(stacksAddress && !isNetworkAddress(stacksAddress)),
     [stacksAddress],
   );
+
+  const closeSwapConfirm = useCallback(() => {
+    setSwapConfirmDraft(null);
+    setSwapConfirmAddressOverride(null);
+  }, []);
+
+  const confirmSwapAndSign = useCallback(async () => {
+    if (!swapConfirmDraft) return;
+    const draft = swapConfirmDraft;
+    const addressOverride = swapConfirmAddressOverride;
+    closeSwapConfirm();
+    await executeSwap(draft, addressOverride);
+  }, [closeSwapConfirm, swapConfirmAddressOverride, swapConfirmDraft]);
 
   return (
     <div
@@ -4185,6 +4207,17 @@ function App() {
           faucetPending={faucetPending}
         />
       )}
+      <SwapConfirmModal
+        open={Boolean(swapConfirmDraft)}
+        draft={swapConfirmDraft}
+        fromLabel={swapDirection === "x-to-y" ? selectionLabels.x : selectionLabels.y}
+        toLabel={swapDirection === "x-to-y" ? selectionLabels.y : selectionLabels.x}
+        resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+        onClose={closeSwapConfirm}
+        onConfirm={() => void confirmSwapAndSign()}
+        onCopy={(text) => void copyToClipboard("Swap details", text)}
+        formatNumber={formatNumber}
+      />
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
           <div
