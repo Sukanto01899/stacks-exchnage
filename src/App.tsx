@@ -1679,6 +1679,49 @@ function App() {
     }
   }, [syncBalances]);
 
+  const swapSettingsKey = useMemo(
+    () => `swap-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [RESOLVED_STACKS_NETWORK, stacksAddress],
+  );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(swapSettingsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as
+        | { slippageInput?: unknown; deadlineMinutesInput?: unknown }
+        | null;
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.slippageInput === "string") {
+        setSlippageInput(parsed.slippageInput);
+      }
+      if (typeof parsed.deadlineMinutesInput === "string") {
+        setDeadlineMinutesInput(parsed.deadlineMinutesInput);
+      }
+    } catch (error) {
+      console.warn("Swap settings load failed", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swapSettingsKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        swapSettingsKey,
+        JSON.stringify({ slippageInput, deadlineMinutesInput }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [deadlineMinutesInput, slippageInput, swapSettingsKey]);
+
+  const resetSwapSettings = useCallback(() => {
+    setSlippageInput("0.5");
+    setDeadlineMinutesInput("30");
+    setHighSlippageConfirmed(false);
+    setImpactConfirmed(false);
+  }, []);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
@@ -4038,6 +4081,7 @@ function App() {
                   setHighSlippageConfirmed={setHighSlippageConfirmed}
                   deadlineMinutesInput={deadlineMinutesInput}
                   setDeadlineMinutesInput={setDeadlineMinutesInput}
+                  onResetSwapSettings={resetSwapSettings}
                   customTokenRequired={customTokenRequired}
                   customTokenConfirmed={customTokenConfirmed}
                   setCustomTokenConfirmed={setCustomTokenConfirmed}

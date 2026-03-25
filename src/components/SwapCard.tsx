@@ -44,6 +44,7 @@ export default function SwapCard(props: any) {
     setHighSlippageConfirmed,
     deadlineMinutesInput,
     setDeadlineMinutesInput,
+    onResetSwapSettings,
     customTokenRequired,
     customTokenConfirmed,
     setCustomTokenConfirmed,
@@ -540,6 +541,11 @@ export default function SwapCard(props: any) {
             >
               1%
             </button>
+            {onResetSwapSettings ? (
+              <button className="tiny ghost" onClick={onResetSwapSettings}>
+                Reset
+              </button>
+            ) : null}
           </div>
         </div>
         <div>
