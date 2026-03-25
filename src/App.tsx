@@ -32,6 +32,7 @@ import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
 import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
 import AddressPill from "./components/AddressPill";
 import SwapConfirmModal from "./components/SwapConfirmModal";
+import WalletMenuModal from "./components/WalletMenuModal";
 import type {
   AppTab,
   OnboardingState,
@@ -221,6 +222,7 @@ function App() {
   const [swapConfirmAddressOverride, setSwapConfirmAddressOverride] = useState<
     string | null
   >(null);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
@@ -3133,6 +3135,14 @@ function App() {
     await executeSwap(draft, addressOverride);
   }, [closeSwapConfirm, swapConfirmAddressOverride, swapConfirmDraft]);
 
+  const openWalletMenu = useCallback(() => {
+    setWalletMenuOpen(true);
+  }, []);
+
+  const closeWalletMenu = useCallback(() => {
+    setWalletMenuOpen(false);
+  }, []);
+
   return (
     <div
       className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}
@@ -3216,7 +3226,7 @@ function App() {
                 address={stacksAddress}
                 networkLabel={RESOLVED_STACKS_NETWORK}
                 networkMismatch={networkMismatch}
-                onClick={handleStacksDisconnect}
+                onClick={openWalletMenu}
               />
             ) : (
               <button className="wallet-pill" onClick={handleStacksConnect}>
@@ -3606,8 +3616,8 @@ function App() {
                   networkLabel={RESOLVED_STACKS_NETWORK}
                   networkMismatch={networkMismatch}
                   onClick={() => {
-                    handleStacksDisconnect();
                     setDrawerOpen(false);
+                    openWalletMenu();
                   }}
                 />
               ) : (
@@ -4217,6 +4227,18 @@ function App() {
         onConfirm={() => void confirmSwapAndSign()}
         onCopy={(text) => void copyToClipboard("Swap details", text)}
         formatNumber={formatNumber}
+      />
+      <WalletMenuModal
+        open={walletMenuOpen}
+        address={stacksAddress}
+        resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+        networkMismatch={networkMismatch}
+        onClose={closeWalletMenu}
+        onCopyAddress={(address) => void copyToClipboard("Address", address)}
+        onDisconnect={() => {
+          handleStacksDisconnect();
+          closeWalletMenu();
+        }}
       />
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
