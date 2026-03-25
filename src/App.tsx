@@ -33,6 +33,7 @@ import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
 import AddressPill from "./components/AddressPill";
 import SwapConfirmModal from "./components/SwapConfirmModal";
 import WalletMenuModal from "./components/WalletMenuModal";
+import CommandPaletteModal, { type CommandItem } from "./components/CommandPaletteModal";
 import type {
   AppTab,
   OnboardingState,
@@ -223,6 +224,8 @@ function App() {
     string | null
   >(null);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
@@ -3186,6 +3189,155 @@ function App() {
     setWalletMenuOpen(false);
   }, []);
 
+  const closeCommandPalette = useCallback(() => {
+    setCommandPaletteOpen(false);
+    setCommandQuery("");
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isK = event.key.toLowerCase() === "k";
+      const meta = event.metaKey || event.ctrlKey;
+      if (!meta || !isK) return;
+      event.preventDefault();
+      setCommandPaletteOpen(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const commandItems = useMemo<CommandItem[]>(() => {
+    const items: CommandItem[] = [
+      {
+        id: "nav-trade",
+        label: "Go to Trade",
+        keywords: "tab swap trade",
+        hotkey: "T",
+        run: () => {
+          setActiveTab("swap");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "nav-prices",
+        label: "Go to Prices",
+        keywords: "tab prices chart board",
+        hotkey: "P",
+        run: () => {
+          setActiveTab("prices");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "nav-pools",
+        label: "Go to Pools",
+        keywords: "tab pools list favorites",
+        hotkey: "O",
+        run: () => {
+          setActiveTab("pools");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "nav-analytics",
+        label: "Go to Analytics",
+        keywords: "tab analytics pnl il",
+        hotkey: "A",
+        run: () => {
+          setActiveTab("analytics");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "nav-liquidity",
+        label: "Go to Pool (Liquidity)",
+        keywords: "tab liquidity pool lp add remove",
+        hotkey: "L",
+        run: () => {
+          setActiveTab("liquidity");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "open-activity",
+        label: "Open Activity",
+        keywords: "drawer transactions tx",
+        run: () => {
+          openActivityDrawer();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "open-wallet",
+        label: "Open Wallet menu",
+        keywords: "wallet address disconnect",
+        run: () => {
+          if (stacksAddress) openWalletMenu();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "swap-reset",
+        label: "Reset swap settings",
+        keywords: "slippage deadline reset",
+        run: () => {
+          resetSwapSettings();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "swap-25",
+        label: "Set swap to 25%",
+        keywords: "swap preset 25",
+        run: () => {
+          setSwapPreset(0.25);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "swap-50",
+        label: "Set swap to 50%",
+        keywords: "swap preset 50",
+        run: () => {
+          setSwapPreset(0.5);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "swap-75",
+        label: "Set swap to 75%",
+        keywords: "swap preset 75",
+        run: () => {
+          setSwapPreset(0.75);
+          closeCommandPalette();
+        },
+      },
+    ];
+
+    if (stacksAddress) {
+      items.unshift({
+        id: "copy-address",
+        label: "Copy wallet address",
+        keywords: "copy address",
+        run: () => {
+          void copyToClipboard("Address", stacksAddress);
+          closeCommandPalette();
+        },
+      });
+    }
+
+    return items;
+  }, [
+    closeCommandPalette,
+    copyToClipboard,
+    openActivityDrawer,
+    openWalletMenu,
+    resetSwapSettings,
+    setActiveTab,
+    setSwapPreset,
+    stacksAddress,
+  ]);
+
   return (
     <div
       className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}
@@ -4283,6 +4435,13 @@ function App() {
           handleStacksDisconnect();
           closeWalletMenu();
         }}
+      />
+      <CommandPaletteModal
+        open={commandPaletteOpen}
+        query={commandQuery}
+        setQuery={setCommandQuery}
+        items={commandItems}
+        onClose={closeCommandPalette}
       />
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
