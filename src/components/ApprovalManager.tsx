@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type ApprovalSupport = {
   x: boolean;
   y: boolean;
@@ -23,7 +25,11 @@ type ApprovalManagerProps = {
   setUnlimitedApprovalConfirmed: (value: boolean) => void;
   allowances: Allowances;
   formatNumber: (value: number) => string;
-  handleApprove: (token: "x" | "y", amount: number) => void;
+  handleApprove: (
+    token: "x" | "y",
+    amount: number,
+    mode?: "required" | "custom" | "unlimited" | "revoke",
+  ) => void;
   stacksAddress: string | null;
   networkMismatch: boolean;
   approvePending: "x" | "y" | null;
@@ -69,6 +75,9 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
   const needsUnlimitedConfirm = approveUnlimited && hasAnySupport;
   const missingUnlimitedConfirm =
     needsUnlimitedConfirm && !unlimitedApprovalConfirmed;
+
+  const [customX, setCustomX] = useState("");
+  const [customY, setCustomY] = useState("");
 
   return (
     <div className="approval-panel">
@@ -117,22 +126,75 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                 ? "N/A"
                 : `${formatNumber(allowances.x)} ${tokenLabels.x}`}
             </strong>
-            <button
-              className="tiny ghost"
-              onClick={() => handleApprove("x", requiredX)}
-              disabled={
-                tokenMismatch ||
-                networkMismatch ||
-                !approvalSupport.x ||
-                !stacksAddress ||
-                missingUnlimitedConfirm ||
-                approvePending !== null
-              }
-            >
-              {approvePending === "x"
-                ? `Approving ${tokenLabels.x}...`
-                : `Approve ${tokenLabels.x}`}
-            </button>
+            <div className="approval-actions">
+              <button
+                className="tiny ghost"
+                onClick={() =>
+                  handleApprove(
+                    "x",
+                    requiredX,
+                    approveUnlimited ? "unlimited" : "required",
+                  )
+                }
+                disabled={
+                  tokenMismatch ||
+                  networkMismatch ||
+                  !approvalSupport.x ||
+                  !stacksAddress ||
+                  approvePending !== null ||
+                  (approveUnlimited && missingUnlimitedConfirm) ||
+                  (!approveUnlimited && requiredX <= 0)
+                }
+              >
+                {approvePending === "x"
+                  ? `Approving ${tokenLabels.x}...`
+                  : approveUnlimited
+                    ? `Approve unlimited`
+                    : requiredX > 0
+                      ? `Approve required`
+                      : `No approval needed`}
+              </button>
+              <div className="approval-custom">
+                <input
+                  className="approval-input"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={customX}
+                  onChange={(e) => setCustomX(e.target.value)}
+                  placeholder="Custom amount"
+                  aria-label={`${tokenLabels.x} custom allowance`}
+                />
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => handleApprove("x", Number(customX), "custom")}
+                  disabled={
+                    tokenMismatch ||
+                    networkMismatch ||
+                    !approvalSupport.x ||
+                    !stacksAddress ||
+                    approvePending !== null
+                  }
+                >
+                  Custom
+                </button>
+              </div>
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => handleApprove("x", 0, "revoke")}
+                disabled={
+                  tokenMismatch ||
+                  networkMismatch ||
+                  !approvalSupport.x ||
+                  !stacksAddress ||
+                  approvePending !== null
+                }
+              >
+                Revoke
+              </button>
+            </div>
           </div>
           <div>
             <p className="muted small">{tokenLabels.y} allowance</p>
@@ -141,22 +203,75 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                 ? "N/A"
                 : `${formatNumber(allowances.y)} ${tokenLabels.y}`}
             </strong>
-            <button
-              className="tiny ghost"
-              onClick={() => handleApprove("y", requiredY)}
-              disabled={
-                tokenMismatch ||
-                networkMismatch ||
-                !approvalSupport.y ||
-                !stacksAddress ||
-                missingUnlimitedConfirm ||
-                approvePending !== null
-              }
-            >
-              {approvePending === "y"
-                ? `Approving ${tokenLabels.y}...`
-                : `Approve ${tokenLabels.y}`}
-            </button>
+            <div className="approval-actions">
+              <button
+                className="tiny ghost"
+                onClick={() =>
+                  handleApprove(
+                    "y",
+                    requiredY,
+                    approveUnlimited ? "unlimited" : "required",
+                  )
+                }
+                disabled={
+                  tokenMismatch ||
+                  networkMismatch ||
+                  !approvalSupport.y ||
+                  !stacksAddress ||
+                  approvePending !== null ||
+                  (approveUnlimited && missingUnlimitedConfirm) ||
+                  (!approveUnlimited && requiredY <= 0)
+                }
+              >
+                {approvePending === "y"
+                  ? `Approving ${tokenLabels.y}...`
+                  : approveUnlimited
+                    ? `Approve unlimited`
+                    : requiredY > 0
+                      ? `Approve required`
+                      : `No approval needed`}
+              </button>
+              <div className="approval-custom">
+                <input
+                  className="approval-input"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={customY}
+                  onChange={(e) => setCustomY(e.target.value)}
+                  placeholder="Custom amount"
+                  aria-label={`${tokenLabels.y} custom allowance`}
+                />
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => handleApprove("y", Number(customY), "custom")}
+                  disabled={
+                    tokenMismatch ||
+                    networkMismatch ||
+                    !approvalSupport.y ||
+                    !stacksAddress ||
+                    approvePending !== null
+                  }
+                >
+                  Custom
+                </button>
+              </div>
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => handleApprove("y", 0, "revoke")}
+                disabled={
+                  tokenMismatch ||
+                  networkMismatch ||
+                  !approvalSupport.y ||
+                  !stacksAddress ||
+                  approvePending !== null
+                }
+              >
+                Revoke
+              </button>
+            </div>
           </div>
         </div>
       )}

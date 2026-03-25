@@ -2796,6 +2796,31 @@ h3 {
   gap: 8px;
 }
 
+.approval-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.approval-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.approval-input {
+  flex: 1 1 140px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  outline: 0;
+}
+
 .target-head {
   display: flex;
   align-items: center;

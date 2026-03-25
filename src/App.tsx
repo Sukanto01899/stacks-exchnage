@@ -2155,7 +2155,11 @@ function App() {
     await executeSwap(draft, activeAddress);
   };
 
-  const handleApprove = async (token: TokenKey, requiredAmount?: number) => {
+  const handleApprove = async (
+    token: TokenKey,
+    amount?: number,
+    mode: "required" | "custom" | "unlimited" | "revoke" = "required",
+  ) => {
     setApprovalMessage(null);
     if (!stacksAddress) {
       setApprovalMessage("Connect a Stacks wallet first.");
@@ -2178,16 +2182,26 @@ function App() {
       return;
     }
 
-    const requiredMicro = BigInt(
-      Math.max(1, Math.floor((requiredAmount || 0) * TOKEN_DECIMALS)),
-    );
     const unlimitedMicro = 9_999_999_999_999_999n;
-    const amountMicro = approveUnlimited ? unlimitedMicro : requiredMicro;
     const tokenLabel = selectionLabels[token];
     const tokenContract = tokenContracts[token];
     if (!tokenContract?.address || !tokenContract?.contractName) {
       setApprovalMessage("Token contract is missing or invalid.");
       return;
+    }
+
+    let amountMicro: bigint;
+    if (mode === "revoke") {
+      amountMicro = 0n;
+    } else if (mode === "unlimited") {
+      amountMicro = unlimitedMicro;
+    } else {
+      const nextAmount = Number(amount || 0);
+      if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+        setApprovalMessage("Enter an approval amount greater than 0.");
+        return;
+      }
+      amountMicro = BigInt(Math.max(1, Math.floor(nextAmount * TOKEN_DECIMALS)));
     }
 
     try {
