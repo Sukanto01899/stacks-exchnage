@@ -220,6 +220,8 @@ function App() {
   const [activityDrawerClosing, setActivityDrawerClosing] = useState(false);
   const [activityFilter, setActivityFilter] =
     useState<ActivityFilter>("all");
+  const [activitySearch, setActivitySearch] = useState("");
+  const [activityLimit, setActivityLimit] = useState(10);
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
@@ -288,6 +290,21 @@ function App() {
       setToasts((prev) => prev.filter((item) => item.id !== id));
     }, 4200);
   }, []);
+
+  const copyToClipboard = useCallback(
+    async (label: string, value: string) => {
+      try {
+        await navigator.clipboard.writeText(value);
+        pushToast(`${label} copied.`, "success");
+      } catch (error) {
+        pushToast(
+          error instanceof Error ? error.message : "Clipboard not available.",
+          "error",
+        );
+      }
+    },
+    [pushToast],
+  );
 
   // TODO: Update this if your contract uses a different network configuration
   const network = useMemo(
@@ -932,6 +949,18 @@ function App() {
     }
     return activityItems.filter((item) => item.kind === activityFilter);
   }, [activityFilter, activityItems]);
+  const activityDrawerItems = useMemo(() => {
+    const q = activitySearch.trim().toLowerCase();
+    if (!q) return filteredActivityItems;
+    return filteredActivityItems.filter((item) => {
+      const hay = `${item.kind} ${item.status} ${item.message} ${item.detail || ""} ${item.txid || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [activitySearch, filteredActivityItems]);
+
+  useEffect(() => {
+    setActivityLimit(10);
+  }, [activityFilter, activitySearch]);
   const recentSwaps = useMemo(
     () => activityItems.filter((item) => item.kind === "swap"),
     [activityItems],
@@ -3171,12 +3200,30 @@ function App() {
                   Faucet
                 </button>
               </div>
+              <div className="activity-search-row">
+                <input
+                  className="activity-search"
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                  placeholder="Search txid, status, message…"
+                  aria-label="Search activity"
+                />
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => setActivitySearch("")}
+                  disabled={!activitySearch.trim()}
+                >
+                  Clear search
+                </button>
+              </div>
               <div className="mini-actions">
                 <button
                   className="tiny ghost"
                   onClick={() => {
                     setActivityItems([]);
                     setActivityFilter("all");
+                    setActivitySearch("");
                     try {
                       localStorage.removeItem(activityKey);
                     } catch (error) {
@@ -3192,11 +3239,11 @@ function App() {
 
             {activityItems.length > 0 && (
               <p className="muted small activity-drawer-summary">
-                Showing {Math.min(filteredActivityItems.length, 10)} of{" "}
-                {filteredActivityItems.length} matching entries.
+                Showing {Math.min(activityDrawerItems.length, activityLimit)} of{" "}
+                {activityDrawerItems.length} matching entries.
               </p>
             )}
-            {filteredActivityItems.length === 0 ? (
+            {activityDrawerItems.length === 0 ? (
               <p className="muted small">
                 {activityItems.length === 0
                   ? "No activity yet."
@@ -3204,7 +3251,7 @@ function App() {
               </p>
             ) : (
               <div className="activity-drawer-list">
-                {filteredActivityItems.slice(0, 10).map((item) => (
+                {activityDrawerItems.slice(0, activityLimit).map((item) => (
                   <div className="activity-drawer-item" key={item.id}>
                     <div className="activity-drawer-main">
                       <span className={`chip ghost status-${item.status}`}>
@@ -3217,14 +3264,24 @@ function App() {
                         {new Date(item.ts).toLocaleString()}
                       </span>
                       {item.txid ? (
-                        <a
-                          className="chip ghost"
-                          href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                        </a>
+                        <div className="activity-chip-row">
+                          <a
+                            className="chip ghost"
+                            href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                          </a>
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() => void copyToClipboard("Txid", item.txid || "")}
+                            aria-label="Copy txid"
+                          >
+                            Copy
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                     {item.detail ? (
@@ -3232,6 +3289,15 @@ function App() {
                     ) : null}
                   </div>
                 ))}
+                {activityDrawerItems.length > activityLimit && (
+                  <button
+                    className="tiny ghost activity-load-more"
+                    type="button"
+                    onClick={() => setActivityLimit((prev) => prev + 10)}
+                  >
+                    Load more
+                  </button>
+                )}
               </div>
             )}
           </div>

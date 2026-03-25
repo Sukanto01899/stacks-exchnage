@@ -2476,6 +2476,36 @@ h3 {
   gap: 6px;
 }
 
+.activity-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-search {
+  flex: 1 1 240px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  outline: 0;
+}
+
+.activity-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.activity-load-more {
+  align-self: center;
+}
+
 .activity-filter-row .tiny.is-active {
   border-color: rgba(var(--accent-rgb), 0.6);
   color: #fff;
