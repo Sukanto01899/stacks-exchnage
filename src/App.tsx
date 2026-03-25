@@ -306,6 +306,29 @@ function App() {
     [pushToast],
   );
 
+  const downloadTextFile = useCallback(
+    (filename: string, text: string, mime = "text/plain") => {
+      try {
+        const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        pushToast(`Downloaded ${filename}.`, "success");
+      } catch (error) {
+        pushToast(
+          error instanceof Error ? error.message : "Download failed.",
+          "error",
+        );
+      }
+    },
+    [pushToast],
+  );
+
   // TODO: Update this if your contract uses a different network configuration
   const network = useMemo(
     () =>
@@ -957,6 +980,27 @@ function App() {
       return hay.includes(q);
     });
   }, [activitySearch, filteredActivityItems]);
+
+  const activityCsv = useMemo(() => {
+    const esc = (value: unknown) => {
+      const raw = value === null || value === undefined ? "" : String(value);
+      const needsQuotes = /[",\n\r]/.test(raw);
+      const cleaned = raw.replaceAll('"', '""');
+      return needsQuotes ? `"${cleaned}"` : cleaned;
+    };
+    const header = ["ts", "kind", "status", "message", "detail", "txid"].join(",");
+    const rows = activityDrawerItems.map((item) =>
+      [
+        esc(new Date(item.ts).toISOString()),
+        esc(item.kind),
+        esc(item.status),
+        esc(item.message),
+        esc(item.detail || ""),
+        esc(item.txid || ""),
+      ].join(","),
+    );
+    return [header, ...rows].join("\n");
+  }, [activityDrawerItems]);
 
   useEffect(() => {
     setActivityLimit(10);
@@ -3218,6 +3262,59 @@ function App() {
                 </button>
               </div>
               <div className="mini-actions">
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() =>
+                    downloadTextFile(
+                      `activity-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+                      activityCsv,
+                      "text/csv",
+                    )
+                  }
+                  disabled={activityDrawerItems.length === 0}
+                >
+                  Export CSV
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() =>
+                    void copyToClipboard(
+                      "Diagnostics",
+                      JSON.stringify(
+                        {
+                          ts: new Date().toISOString(),
+                          resolvedStacksNetwork: RESOLVED_STACKS_NETWORK,
+                          stacksAddress,
+                          networkMismatch,
+                          poolContractId: POOL_CONTRACT_ID,
+                          tokenSelection,
+                          pool,
+                          currentPrice,
+                          balances,
+                          allowances,
+                          approvalSupport,
+                          approveUnlimited,
+                          slippageInput,
+                          deadlineMinutesInput,
+                          swapDirection,
+                          swapInput,
+                          activityFilter,
+                          activitySearch,
+                          userAgent:
+                            typeof navigator === "undefined"
+                              ? null
+                              : navigator.userAgent,
+                        },
+                        null,
+                        2,
+                      ),
+                    )
+                  }
+                >
+                  Copy diagnostics
+                </button>
                 <button
                   className="tiny ghost"
                   onClick={() => {
