@@ -26,6 +26,7 @@ type PoolListPanelProps = {
   clearFavorites: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
+  resolvedStacksNetwork: string;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
 };
@@ -46,9 +47,16 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     clearFavorites,
     onOpenPool,
     onCopyPoolId,
+    resolvedStacksNetwork,
     formatCompactNumber,
     formatNumber,
   } = props;
+
+  const toContractExplorerUrl = (contractId: string) => {
+    const [address = "", name = ""] = contractId.split(".");
+    if (!address || !name) return null;
+    return `https://explorer.hiro.so/contract/${address}/${name}?chain=${resolvedStacksNetwork}`;
+  };
 
   return (
     <section className="pool-list-panel">
@@ -165,6 +173,16 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 >
                   Copy contract
                 </button>
+                {toContractExplorerUrl(pool.id) && (
+                  <a
+                    className="tiny ghost"
+                    href={toContractExplorerUrl(pool.id) as string}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Explorer
+                  </a>
+                )}
                 <button
                   className="secondary"
                   type="button"

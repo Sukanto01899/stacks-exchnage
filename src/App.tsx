@@ -4763,6 +4763,7 @@ function App() {
                   clearFavorites={clearFavoritePools}
                   onOpenPool={handleOpenPoolFromList}
                   onCopyPoolId={(id) => void copyToClipboard("Pool contract", id)}
+                  resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}
                 />

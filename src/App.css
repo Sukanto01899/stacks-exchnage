@@ -3528,6 +3528,10 @@ h3 {
   font-weight: 700;
   padding: 6px 10px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tiny.ghost {
