@@ -3206,6 +3206,28 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isTyping) return;
+      if (event.key !== "/") return;
+
+      event.preventDefault();
+      setCommandPaletteOpen(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const commandItems = useMemo<CommandItem[]>(() => {
     const items: CommandItem[] = [
       {
@@ -3389,10 +3411,17 @@ function App() {
               </button>
             </nav>
           </div>
-          <div className="nav-search" aria-hidden="true">
+          <button
+            className="nav-search"
+            type="button"
+            onClick={() => setCommandPaletteOpen(true)}
+            aria-label="Open search"
+            title="Search (Ctrl/Cmd+K or /)"
+          >
             <span className="nav-search-icon">Search</span>
             <span className="nav-search-text">tokens, pools, and wallets</span>
-          </div>
+            <span className="nav-search-hint">Ctrl/Cmd+K</span>
+          </button>
           <div className="nav-actions">
             <button
               className="activity-pill"

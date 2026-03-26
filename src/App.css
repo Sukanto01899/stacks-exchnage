@@ -140,6 +140,18 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+  text-align: left;
+}
+
+.nav-search:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-search:active {
+  transform: translateY(0.5px);
 }
 
 .nav-search-icon {
@@ -152,6 +164,19 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 14px;
+}
+
+.nav-search-hint {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 3px 8px;
+  opacity: 0.9;
 }
 
 .wallet-pill {
@@ -3648,6 +3673,7 @@ label {
 .secondary:focus-visible,
 .tiny:focus-visible,
 .switcher:focus-visible,
+.nav-search:focus-visible,
 .token-select:focus-visible {
   outline: 2px solid rgba(var(--accent-rgb), 0.7);
   outline-offset: 2px;
@@ -3666,6 +3692,10 @@ label {
 
   .nav-search {
     max-width: none;
+  }
+
+  .nav-search-hint {
+    display: none;
   }
 
   .nav-actions {
