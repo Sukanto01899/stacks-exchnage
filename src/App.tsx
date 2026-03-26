@@ -1509,6 +1509,33 @@ function App() {
     );
   }, [downloadTextFile, poolHistory]);
 
+  const exportActivityCsv = useCallback(() => {
+    const esc = (value: unknown) => {
+      const raw = value === null || value === undefined ? "" : String(value);
+      const needsQuotes = /[",\n\r]/.test(raw);
+      const cleaned = raw.replaceAll('"', '""');
+      return needsQuotes ? `"${cleaned}"` : cleaned;
+    };
+    const header = ["ts", "kind", "status", "txid", "message", "detail"].join(
+      ",",
+    );
+    const rows = activityItems.map((item) =>
+      [
+        esc(new Date(item.ts).toISOString()),
+        esc(item.kind),
+        esc(item.status),
+        esc(item.txid ?? ""),
+        esc(item.message),
+        esc(item.detail ?? ""),
+      ].join(","),
+    );
+    downloadTextFile(
+      `activity-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+      [header, ...rows].join("\n"),
+      "text/csv",
+    );
+  }, [activityItems, downloadTextFile]);
+
   const lpFeeEstimates = useMemo(() => {
     const now = Date.now();
     const share = Math.max(0, Math.min(1, poolShare));
@@ -3710,6 +3737,14 @@ function App() {
                   }
                 >
                   Copy diagnostics
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => exportActivityCsv()}
+                  disabled={activityItems.length === 0}
+                >
+                  Export CSV
                 </button>
                 <button
                   className="tiny ghost"
