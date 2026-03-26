@@ -1966,6 +1966,60 @@ function App() {
     }
   }, [favoritePoolsOnlyKey, poolFavoritesOnly]);
 
+  const poolUiStorageKey = useMemo(
+    () => `pool-ui-${RESOLVED_STACKS_NETWORK}`,
+    [],
+  );
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(poolUiStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<{
+        version: number;
+        search: string;
+        sort: "tvl" | "volume" | "fees" | "apr";
+        sortDir: "asc" | "desc";
+        favoritesOnly: boolean;
+      }>;
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.search === "string") setPoolSearch(parsed.search);
+      if (
+        parsed.sort === "tvl" ||
+        parsed.sort === "volume" ||
+        parsed.sort === "fees" ||
+        parsed.sort === "apr"
+      ) {
+        setPoolSort(parsed.sort);
+      }
+      if (parsed.sortDir === "asc" || parsed.sortDir === "desc") {
+        setPoolSortDir(parsed.sortDir);
+      }
+      if (typeof parsed.favoritesOnly === "boolean") {
+        setPoolFavoritesOnly(parsed.favoritesOnly);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [poolUiStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        poolUiStorageKey,
+        JSON.stringify({
+          version: 1,
+          search: poolSearch,
+          sort: poolSort,
+          sortDir: poolSortDir,
+          favoritesOnly: poolFavoritesOnly,
+        }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [poolFavoritesOnly, poolSearch, poolSort, poolSortDir, poolUiStorageKey]);
+
   useEffect(() => {
     try {
       const cached = localStorage.getItem("stacks-address");
@@ -4761,6 +4815,12 @@ function App() {
                   favorites={favoritePools}
                   toggleFavorite={toggleFavoritePool}
                   clearFavorites={clearFavoritePools}
+                  onResetFilters={() => {
+                    setPoolSearch("");
+                    setPoolFavoritesOnly(false);
+                    setPoolSort("tvl");
+                    setPoolSortDir("desc");
+                  }}
                   onOpenPool={handleOpenPoolFromList}
                   onCopyPoolId={(id) => void copyToClipboard("Pool contract", id)}
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}

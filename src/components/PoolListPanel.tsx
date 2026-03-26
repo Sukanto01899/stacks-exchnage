@@ -24,6 +24,7 @@ type PoolListPanelProps = {
   favorites: string[];
   toggleFavorite: (poolId: string) => void;
   clearFavorites: () => void;
+  onResetFilters: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
   resolvedStacksNetwork: string;
@@ -45,6 +46,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     favorites,
     toggleFavorite,
     clearFavorites,
+    onResetFilters,
     onOpenPool,
     onCopyPoolId,
     resolvedStacksNetwork,
@@ -57,6 +59,12 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     if (!address || !name) return null;
     return `https://explorer.hiro.so/contract/${address}/${name}?chain=${resolvedStacksNetwork}`;
   };
+
+  const isDefaultFilters =
+    search.trim() === "" &&
+    sort === "tvl" &&
+    sortDir === "desc" &&
+    favoritesOnly === false;
 
   return (
     <section className="pool-list-panel">
@@ -107,6 +115,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
             />
             Favorites only
           </label>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={onResetFilters}
+            disabled={isDefaultFilters}
+          >
+            Reset
+          </button>
           <button
             className="tiny ghost"
             type="button"
