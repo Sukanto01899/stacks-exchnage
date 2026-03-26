@@ -4724,6 +4724,7 @@ function App() {
                   toggleFavorite={toggleFavoritePool}
                   clearFavorites={clearFavoritePools}
                   onOpenPool={handleOpenPoolFromList}
+                  onCopyPoolId={(id) => void copyToClipboard("Pool contract", id)}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}
                 />

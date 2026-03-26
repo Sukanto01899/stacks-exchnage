@@ -23,6 +23,7 @@ type PoolListPanelProps = {
   toggleFavorite: (poolId: string) => void;
   clearFavorites: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
+  onCopyPoolId: (poolId: string) => void;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
 };
@@ -40,6 +41,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     toggleFavorite,
     clearFavorites,
     onOpenPool,
+    onCopyPoolId,
     formatCompactNumber,
     formatNumber,
   } = props;
@@ -145,6 +147,13 @@ export default function PoolListPanel(props: PoolListPanelProps) {
               </div>
               <div className="pool-list-actions">
                 <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => onCopyPoolId(pool.id)}
+                >
+                  Copy contract
+                </button>
+                <button
                   className="secondary"
                   type="button"
                   onClick={() => onOpenPool(pool.id, "swap")}
@@ -166,3 +175,4 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     </section>
   );
 }
+
