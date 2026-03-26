@@ -52,7 +52,7 @@ import {
   IS_MAINNET,
   MINIMUM_LIQUIDITY,
   ONBOARDING_STORAGE_KEY,
-  POOL_CONTRACT_ID,
+  POOL_CONTRACT_IDS,
   PRESET_TOKENS,
   PRICE_IMPACT_BLOCK_PCT,
   PRICE_IMPACT_CONFIRM_PCT,
@@ -71,7 +71,14 @@ import {
   formatSignedPercent,
   shortAddress,
 } from "./lib/helper";
-import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
+import {
+  parseClarityBool,
+  parseClarityNumber,
+  parseOptionalPrincipal,
+  parsePoolReserves,
+  readClarityField,
+  unwrapReadOnlyOk,
+} from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
@@ -380,8 +387,34 @@ function App() {
     [STACKS_API],
   );
 
-  // TODO: Update these memoized values if your contract has different function names, argument structures, or if you want to support multiple pools or token pairs in the same UI
-  const poolContract = useMemo(() => parseContractId(POOL_CONTRACT_ID), []);
+  const poolContractStorageKey = useMemo(
+    () => `active-pool-${RESOLVED_STACKS_NETWORK}`,
+    [RESOLVED_STACKS_NETWORK],
+  );
+  const [poolContractId, setPoolContractId] = useState(() => {
+    try {
+      const stored = localStorage.getItem(poolContractStorageKey);
+      if (stored && POOL_CONTRACT_IDS.includes(stored)) return stored;
+    } catch {
+      // ignore storage errors
+    }
+    return POOL_CONTRACT_IDS[0] ?? "";
+  });
+
+  useEffect(() => {
+    try {
+      if (poolContractId) {
+        localStorage.setItem(poolContractStorageKey, poolContractId);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [poolContractId, poolContractStorageKey]);
+
+  const poolContract = useMemo(
+    () => parseContractId(poolContractId),
+    [poolContractId],
+  );
 
   const defaultTokenSelection = useMemo(
     () => ({
@@ -393,8 +426,8 @@ function App() {
     [],
   );
   const tokenSelectionKey = useMemo(
-    () => `token-selection-${RESOLVED_STACKS_NETWORK}`,
-    [RESOLVED_STACKS_NETWORK],
+    () => `token-selection-${RESOLVED_STACKS_NETWORK}-${poolContractId || "unknown"}`,
+    [RESOLVED_STACKS_NETWORK, poolContractId],
   );
   const [tokenSelection, setTokenSelection] = useState(defaultTokenSelection);
   const [tokenDraft, setTokenDraft] = useState(defaultTokenSelection);
@@ -953,15 +986,18 @@ function App() {
     [stacksAddress],
   );
   const activityKey = useMemo(
-    () => `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
-    [stacksAddress],
+    () =>
+      `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
+    [poolContractId, stacksAddress],
   );
   const priceAlertsKey = useMemo(
-    () => `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
-    [stacksAddress],
+    () =>
+      `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
+    [poolContractId, stacksAddress],
   );
   const favoritePoolsKey = useMemo(
-    () => `pool-favorites-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    () =>
+      `pool-favorites-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
   const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
@@ -1112,92 +1148,180 @@ function App() {
     [metadataByPrincipal],
   );
 
-  const mockPools = useMemo(
-    () => [
-      {
-        id: "pool-stx-x",
-        label: "Core STX liquidity",
-        tokenXId: "STX",
-        tokenYId: TOKEN_CONTRACTS.x,
-        tokenXIsStx: true,
-        tokenYIsStx: false,
-        tvl: 1_250_000,
-        volume24h: 182_000,
-        fees24h: 546,
-        apr: 12.4,
-      },
-      {
-        id: "pool-stx-y",
-        label: "STX growth pool",
-        tokenXId: "STX",
-        tokenYId: TOKEN_CONTRACTS.y,
-        tokenXIsStx: true,
-        tokenYIsStx: false,
-        tvl: 980_000,
-        volume24h: 144_500,
-        fees24h: 433,
-        apr: 10.2,
-      },
-      {
-        id: "pool-x-y",
-        label: "Blue-chip pair",
-        tokenXId: TOKEN_CONTRACTS.x,
-        tokenYId: TOKEN_CONTRACTS.y,
-        tokenXIsStx: false,
-        tokenYIsStx: false,
-        tvl: 640_000,
-        volume24h: 92_400,
-        fees24h: 277,
-        apr: 8.9,
-      },
-      {
-        id: "pool-stx-eco",
-        label: "Ecosystem flow",
-        tokenXId: "STX",
-        tokenYId: `${CONTRACT_ADDRESS}.eco-token::eco-token`,
-        tokenXIsStx: true,
-        tokenYIsStx: false,
-        tvl: 420_000,
-        volume24h: 61_900,
-        fees24h: 186,
-        apr: 7.4,
-      },
-      {
-        id: "pool-x-gov",
-        label: "Governance basket",
-        tokenXId: TOKEN_CONTRACTS.x,
-        tokenYId: `${CONTRACT_ADDRESS}.gov-token::gov-token`,
-        tokenXIsStx: false,
-        tokenYIsStx: false,
-        tvl: 310_000,
-        volume24h: 34_800,
-        fees24h: 105,
-        apr: 6.1,
-      },
-    ],
-    [],
+  const [ftAssetIdByPrincipal, setFtAssetIdByPrincipal] = useState<
+    Record<string, string>
+  >({});
+  const resolveFtAssetId = useCallback(
+    async (principal: string) => {
+      if (!principal) return null;
+      const cached = ftAssetIdByPrincipal[principal];
+      if (cached) return cached;
+      const contract = parseContractId(principal);
+      if (!contract.address || !contract.contractName) return null;
+      const response = await fetch(
+        `${STACKS_API}/v2/contracts/interface/${contract.address}/${contract.contractName}`,
+      ).catch(() => null);
+      if (!response?.ok) return null;
+      const data = await response.json().catch(() => ({}));
+      const fts = Array.isArray(data?.fungible_tokens) ? data.fungible_tokens : [];
+      if (fts.length === 0) return null;
+      const first = fts[0] as Record<string, unknown>;
+      const assetIdentifierRaw = first?.asset_identifier;
+      const nameRaw = first?.name ?? first?.token;
+      const inferred =
+        typeof assetIdentifierRaw === "string"
+          ? assetIdentifierRaw
+          : typeof nameRaw === "string"
+            ? `${principal}::${nameRaw}`
+            : null;
+      if (!inferred) return null;
+      setFtAssetIdByPrincipal((prev) => ({ ...prev, [principal]: inferred }));
+      return inferred;
+    },
+    [STACKS_API, ftAssetIdByPrincipal],
   );
+
+  const buildTokenId = useCallback(
+    (principal: string | null, isStx: boolean) => {
+      if (isStx) return "STX";
+      if (!principal) return "";
+      return ftAssetIdByPrincipal[principal] ?? `${principal}::token`;
+    },
+    [ftAssetIdByPrincipal],
+  );
+
+  const [poolsDirectoryPending, setPoolsDirectoryPending] = useState(false);
+  const [poolsDirectory, setPoolsDirectory] = useState<
+    Array<{
+      id: string;
+      label: string;
+      tokenXPrincipal: string | null;
+      tokenYPrincipal: string | null;
+      tokenXIsStx: boolean;
+      tokenYIsStx: boolean;
+      tvl: number;
+      volume24h: number;
+      fees24h: number;
+      apr: number | null;
+    }>
+  >([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setPoolsDirectoryPending(true);
+      try {
+        const senderAddress = stacksAddress || CONTRACT_ADDRESS;
+        const results = await Promise.all(
+          POOL_CONTRACT_IDS.map(async (id) => {
+            const contract = parseContractId(id);
+            if (!contract.address || !contract.contractName) {
+              return null;
+            }
+            try {
+              const [reservesRaw, tokenInfoRaw] = await Promise.all([
+                fetchCallReadOnlyFunction({
+                  contractAddress: contract.address,
+                  contractName: contract.contractName,
+                  functionName: "get-reserves",
+                  functionArgs: [],
+                  senderAddress,
+                  network,
+                }),
+                fetchCallReadOnlyFunction({
+                  contractAddress: contract.address,
+                  contractName: contract.contractName,
+                  functionName: "get-token-info",
+                  functionArgs: [],
+                  senderAddress,
+                  network,
+                }),
+              ]);
+
+              const reservesValue = unwrapReadOnlyOk(reservesRaw);
+              const tokenInfoValue = unwrapReadOnlyOk(tokenInfoRaw);
+              const tokenXPrincipal = parseOptionalPrincipal(
+                readClarityField(tokenInfoValue, "token-x"),
+              );
+              const tokenYPrincipal = parseOptionalPrincipal(
+                readClarityField(tokenInfoValue, "token-y"),
+              );
+              const tokenXIsStx = parseClarityBool(
+                readClarityField(tokenInfoValue, "token-x-is-stx"),
+              );
+              const tokenYIsStx = parseClarityBool(
+                readClarityField(tokenInfoValue, "token-y-is-stx"),
+              );
+              const parsedReserves = parsePoolReserves(
+                reservesValue,
+                TOKEN_DECIMALS,
+              );
+              const tvl = parsedReserves.reserveX + parsedReserves.reserveY;
+
+              return {
+                id,
+                label: contract.contractName,
+                tokenXPrincipal,
+                tokenYPrincipal,
+                tokenXIsStx,
+                tokenYIsStx,
+                tvl,
+                volume24h: 0,
+                fees24h: 0,
+                apr: null,
+              };
+            } catch (error) {
+              console.warn("Pool directory fetch failed", id, error);
+              return null;
+            }
+          }),
+        );
+
+        const next = results.filter(Boolean) as NonNullable<(typeof results)[number]>[];
+        if (cancelled) return;
+        setPoolsDirectory(next);
+      } finally {
+        if (!cancelled) setPoolsDirectoryPending(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [network, stacksAddress]);
+
+  useEffect(() => {
+    const principals = new Set<string>();
+    poolsDirectory.forEach((pool) => {
+      if (!pool.tokenXIsStx && pool.tokenXPrincipal) {
+        principals.add(pool.tokenXPrincipal);
+      }
+      if (!pool.tokenYIsStx && pool.tokenYPrincipal) {
+        principals.add(pool.tokenYPrincipal);
+      }
+    });
+
+    principals.forEach((principal) => {
+      const cached = metadataByPrincipal[principal];
+      if (cached?.loading) return;
+      if (cached?.symbol || cached?.name || cached?.imageUri || cached?.imageThumbnailUri) {
+        return;
+      }
+      void fetchTokenMetadata(principal);
+    });
+  }, [fetchTokenMetadata, metadataByPrincipal, poolsDirectory]);
 
   const poolList = useMemo(() => {
     const normalizedSearch = poolSearch.trim().toLowerCase();
     const favoritesSet = new Set(favoritePools);
-    const filtered = mockPools
+    const filtered = poolsDirectory
       .map((pool) => {
-        const tokenXLabel = resolveTokenLabel(
-          pool.tokenXId,
-          pool.tokenXIsStx,
-          "Token X",
-        );
-        const tokenYLabel = resolveTokenLabel(
-          pool.tokenYId,
-          pool.tokenYIsStx,
-          "Token Y",
-        );
-        return {
-          ...pool,
-          tokenXLabel,
-          tokenYLabel,
-        };
+        const tokenXId = buildTokenId(pool.tokenXPrincipal, pool.tokenXIsStx);
+        const tokenYId = buildTokenId(pool.tokenYPrincipal, pool.tokenYIsStx);
+        const tokenXLabel = resolveTokenLabel(tokenXId, pool.tokenXIsStx, "Token X");
+        const tokenYLabel = resolveTokenLabel(tokenYId, pool.tokenYIsStx, "Token Y");
+        return { ...pool, tokenXId, tokenYId, tokenXLabel, tokenYLabel };
       })
       .filter((pool) => {
         if (!normalizedSearch) return true;
@@ -1229,52 +1353,62 @@ function App() {
     return sorted;
   }, [
     favoritePools,
-    mockPools,
+    poolsDirectory,
     poolSearch,
     poolSort,
     poolSortDir,
+    buildTokenId,
     resolveTokenLabel,
   ]);
 
-  const priceBoardMarkets = useMemo(
+  const marketsByPool = useMemo(
     () =>
-      mockPools.map((pool) => ({
-        id: pool.id,
-        label: pool.label,
-        tokenXLabel: resolveTokenLabel(
-          pool.tokenXId,
-          pool.tokenXIsStx,
-          "Token X",
-        ),
-        tokenYLabel: resolveTokenLabel(
-          pool.tokenYId,
-          pool.tokenYIsStx,
-          "Token Y",
-        ),
-        tvl: pool.tvl,
-        volume24h: pool.volume24h,
-      })),
-    [mockPools, resolveTokenLabel],
+      poolsDirectory.map((pool) => {
+        const tokenXId = buildTokenId(pool.tokenXPrincipal, pool.tokenXIsStx);
+        const tokenYId = buildTokenId(pool.tokenYPrincipal, pool.tokenYIsStx);
+        return {
+          id: pool.id,
+          label: pool.label,
+          tokenXLabel: resolveTokenLabel(tokenXId, pool.tokenXIsStx, "Token X"),
+          tokenYLabel: resolveTokenLabel(tokenYId, pool.tokenYIsStx, "Token Y"),
+          tvl: pool.tvl,
+          volume24h: pool.volume24h,
+        };
+      }),
+    [buildTokenId, poolsDirectory, resolveTokenLabel],
+  );
+
+  const priceBoardMarkets = useMemo(
+    () => marketsByPool,
+    [marketsByPool],
   );
 
   const marketChartMarkets = useMemo(
     () =>
-      mockPools.map((pool) => ({
-        id: pool.id,
-        label: pool.label,
-        tokenXLabel: resolveTokenLabel(
-          pool.tokenXId,
-          pool.tokenXIsStx,
-          "Token X",
-        ),
-        tokenYLabel: resolveTokenLabel(
-          pool.tokenYId,
-          pool.tokenYIsStx,
-          "Token Y",
-        ),
+      marketsByPool.map((market) => ({
+        id: market.id,
+        label: market.label,
+        tokenXLabel: market.tokenXLabel,
+        tokenYLabel: market.tokenYLabel,
       })),
-    [mockPools, resolveTokenLabel],
+    [marketsByPool],
   );
+
+  const poolSelectorOptions = useMemo(() => {
+    if (POOL_CONTRACT_IDS.length <= 1) return [];
+    const byId = new Map(poolsDirectory.map((pool) => [pool.id, pool]));
+    return POOL_CONTRACT_IDS.map((id) => {
+      const entry = byId.get(id);
+      if (!entry) {
+        return { id, label: id };
+      }
+      const tokenXId = buildTokenId(entry.tokenXPrincipal, entry.tokenXIsStx);
+      const tokenYId = buildTokenId(entry.tokenYPrincipal, entry.tokenYIsStx);
+      const tokenXLabel = resolveTokenLabel(tokenXId, entry.tokenXIsStx, "Token X");
+      const tokenYLabel = resolveTokenLabel(tokenYId, entry.tokenYIsStx, "Token Y");
+      return { id, label: `${tokenXLabel} / ${tokenYLabel} · ${entry.label}` };
+    });
+  }, [buildTokenId, poolsDirectory, resolveTokenLabel]);
 
   const priceBoardStorageKey = useMemo(
     () => `price-board-watchlist-${RESOLVED_STACKS_NETWORK}`,
@@ -1321,6 +1455,77 @@ function App() {
     tokenSelection.yId,
   ]);
 
+  useEffect(() => {
+    if (!tokenInfo) return;
+    const poolInitialized =
+      pool.totalShares > 0 || pool.reserveX > 0 || pool.reserveY > 0;
+    if (!poolInitialized) return;
+
+    let cancelled = false;
+    const run = async () => {
+      const xId = tokenInfo.tokenXIsStx
+        ? "STX"
+        : tokenInfo.tokenX
+          ? (await resolveFtAssetId(tokenInfo.tokenX))
+          : null;
+      const yId = tokenInfo.tokenYIsStx
+        ? "STX"
+        : tokenInfo.tokenY
+          ? (await resolveFtAssetId(tokenInfo.tokenY))
+          : null;
+      if (cancelled) return;
+      if (!xId || !yId) return;
+      const next = {
+        xId,
+        yId,
+        xIsStx: tokenInfo.tokenXIsStx,
+        yIsStx: tokenInfo.tokenYIsStx,
+      };
+
+      const already =
+        tokenSelection.xId === next.xId &&
+        tokenSelection.yId === next.yId &&
+        tokenSelection.xIsStx === next.xIsStx &&
+        tokenSelection.yIsStx === next.yIsStx;
+      if (already) return;
+
+      setTokenSelection(next);
+      setTokenDraft(next);
+      setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
+      setTokenSelectMessage("Loaded tokens for selected pool.");
+      try {
+        localStorage.setItem(tokenSelectionKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+
+      if (stacksAddress) {
+        void syncBalances(stacksAddress, { silent: true });
+      } else {
+        void fetchPoolState(null);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    fetchPoolState,
+    pool.reserveX,
+    pool.reserveY,
+    pool.totalShares,
+    resolveFtAssetId,
+    stacksAddress,
+    syncBalances,
+    tokenInfo,
+    tokenSelection.xId,
+    tokenSelection.xIsStx,
+    tokenSelection.yId,
+    tokenSelection.yIsStx,
+    tokenSelectionKey,
+  ]);
+
   const toOptionalTokenCv = useCallback(
     (token: TokenKey) => {
       if (tokenIsStx[token]) return noneCV();
@@ -1355,8 +1560,9 @@ function App() {
   }, [pool.reserveX, pool.reserveY]);
 
   const poolHistoryKey = useMemo(
-    () => `pool-history-${RESOLVED_STACKS_NETWORK}-${POOL_CONTRACT_ID}`,
-    [],
+    () =>
+      `pool-history-${RESOLVED_STACKS_NETWORK}-${poolContractId || "unknown"}`,
+    [RESOLVED_STACKS_NETWORK, poolContractId],
   );
   const { poolHistory, clearPoolHistory } = usePoolHistory({
     poolHistoryKey,
@@ -2885,31 +3091,13 @@ function App() {
     poolId: string,
     target: "swap" | "liquidity",
   ) => {
-    const selected = mockPools.find((pool) => pool.id === poolId);
-    if (!selected) return;
-    const next = {
-      xId: selected.tokenXId,
-      yId: selected.tokenYId,
-      xIsStx: selected.tokenXIsStx,
-      yIsStx: selected.tokenYIsStx,
-    };
-    setTokenSelection(next);
-    setTokenDraft(next);
+    if (!poolId) return;
+    setPoolContractId(poolId);
     setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
-    setTokenSelectMessage(`Loaded ${selected.label}.`);
-    try {
-      localStorage.setItem(tokenSelectionKey, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
+    setTokenSelectMessage("Switching pool...");
     setActiveTab(target);
     setTokenSelectHighlight(true);
     window.setTimeout(() => setTokenSelectHighlight(false), 1400);
-    if (stacksAddress) {
-      void syncBalances(stacksAddress, { silent: true });
-    } else {
-      void fetchPoolState(null);
-    }
   };
 
   const toggleFavoritePool = (poolId: string) => {
@@ -3537,6 +3725,27 @@ function App() {
             <span className="nav-search-hint">Ctrl/Cmd+K</span>
           </button>
           <div className="nav-actions">
+            {poolSelectorOptions.length > 0 && (
+              <label className="pool-select" title="Select pool contract">
+                <span className="pool-select-label">Pool</span>
+                <select
+                  value={poolContractId}
+                  onChange={(e) => setPoolContractId(e.target.value)}
+                  aria-label="Select pool"
+                >
+                  {poolSelectorOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {poolsDirectoryPending && (
+                  <span className="pool-select-status" aria-hidden="true">
+                    Loading
+                  </span>
+                )}
+              </label>
+            )}
             <button
               className="activity-pill"
               type="button"
@@ -3711,7 +3920,7 @@ function App() {
                           resolvedStacksNetwork: RESOLVED_STACKS_NETWORK,
                           stacksAddress,
                           networkMismatch,
-                          poolContractId: POOL_CONTRACT_ID,
+                          poolContractId,
                           tokenSelection,
                           pool,
                           currentPrice,

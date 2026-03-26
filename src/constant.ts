@@ -68,6 +68,24 @@ export const POOL_CONTRACT_ID =
     ]) ||
   `${CONTRACT_ADDRESS}.dex-pool-v5`;
 
+export const POOL_CONTRACT_IDS = (() => {
+  const raw =
+    typeof import.meta !== "undefined" &&
+    (import.meta as { env?: Record<string, string | undefined> })?.env?.[
+      "VITE_POOLS"
+    ];
+  const extras =
+    typeof raw === "string" && raw.trim().length > 0
+      ? raw
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [];
+  const merged = [POOL_CONTRACT_ID, ...extras].filter(Boolean);
+  const unique = Array.from(new Set(merged));
+  return unique.length > 0 ? unique : [POOL_CONTRACT_ID];
+})();
+
 export const FAUCET_API =
   (typeof import.meta !== "undefined" &&
     (import.meta as { env?: Record<string, string | undefined> })?.env?.[
