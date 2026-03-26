@@ -74,6 +74,8 @@ import {
 import { parseClarityNumber, unwrapReadOnlyOk } from "./lib/clarity";
 import { isFiniteNumber } from "./lib/number";
 
+const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
+
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {
   if (!addr) return false;
@@ -203,7 +205,24 @@ type ActivityFilter =
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
 
-  const [activeTab, setActiveTab] = useState<AppTab>("swap");
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    if (typeof window === "undefined") return "swap";
+    try {
+      const raw = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+      if (
+        raw === "swap" ||
+        raw === "prices" ||
+        raw === "pools" ||
+        raw === "analytics" ||
+        raw === "liquidity"
+      ) {
+        return raw;
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return "swap";
+  });
   const [swapDirection, setSwapDirection] = useState<"x-to-y" | "y-to-x">(
     "x-to-y",
   );
@@ -261,6 +280,14 @@ function App() {
   const [unlimitedApprovalConfirmed, setUnlimitedApprovalConfirmed] =
     useState(false);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+    } catch {
+      // ignore storage errors
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     setUnlimitedApprovalConfirmed(false);
@@ -3193,6 +3220,66 @@ function App() {
     setCommandPaletteOpen(false);
     setCommandQuery("");
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key !== "Escape") return;
+
+      if (commandPaletteOpen) {
+        event.preventDefault();
+        closeCommandPalette();
+        return;
+      }
+
+      if (swapConfirmDraft) {
+        event.preventDefault();
+        closeSwapConfirm();
+        return;
+      }
+
+      if (walletMenuOpen) {
+        event.preventDefault();
+        closeWalletMenu();
+        return;
+      }
+
+      if (showOnboarding) {
+        event.preventDefault();
+        closeOnboarding(false);
+        return;
+      }
+
+      if (activityDrawerOpen || activityDrawerClosing) {
+        event.preventDefault();
+        closeActivityDrawer();
+        return;
+      }
+
+      if (drawerOpen || drawerClosing) {
+        event.preventDefault();
+        closeNavDrawer();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activityDrawerClosing,
+    activityDrawerOpen,
+    closeActivityDrawer,
+    closeCommandPalette,
+    closeNavDrawer,
+    closeOnboarding,
+    closeSwapConfirm,
+    closeWalletMenu,
+    commandPaletteOpen,
+    drawerClosing,
+    drawerOpen,
+    showOnboarding,
+    swapConfirmDraft,
+    walletMenuOpen,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
