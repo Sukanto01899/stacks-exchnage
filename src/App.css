@@ -2080,6 +2080,21 @@ h3 {
   flex-wrap: wrap;
 }
 
+.swap-amount-slider {
+  margin-top: 10px;
+}
+
+.swap-amount-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.swap-amount-slider-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
 .pool-actions {
   display: flex;
   justify-content: flex-end;

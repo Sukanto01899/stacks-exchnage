@@ -3216,7 +3216,8 @@ function App() {
     const balance =
       swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
     if (!balance || balance <= 0) return;
-    const next = balance * percent;
+    const normalized = Math.max(0, Math.min(1, percent));
+    const next = balance * normalized;
     setSwapInput(String(Number(next.toFixed(4))));
   };
 
@@ -3723,6 +3724,15 @@ function App() {
         keywords: "swap preset 75",
         run: () => {
           setSwapPreset(0.75);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "swap-100",
+        label: "Set swap to 100%",
+        keywords: "swap preset 100 max",
+        run: () => {
+          setSwapPreset(1);
           closeCommandPalette();
         },
       },

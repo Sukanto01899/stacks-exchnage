@@ -1,4 +1,6 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+import { TOKEN_DECIMALS } from "../constant";
+
 export default function SwapCard(props: any) {
   const {
     showMinimalSwapLayout,
@@ -103,12 +105,39 @@ export default function SwapCard(props: any) {
   const swapAmount = Number(swapInput || 0);
   const fromBalance =
     swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
-  const insufficientBalance =
-    Number.isFinite(swapAmount) && swapAmount > 0 && swapAmount > fromBalance;
+  const maxAvailable = maxSwap && maxSwap > 0 ? maxSwap : fromBalance;
+  const hasSwapInput = String(swapInput || "").trim().length > 0;
+  const swapAmountIsFinite = Number.isFinite(swapAmount);
+  const minSwapAmount = 1 / TOKEN_DECIMALS;
+  const swapAmountTooLarge =
+    hasSwapInput && swapAmountIsFinite && swapAmount > maxAvailable;
+  const swapAmountTooSmall =
+    hasSwapInput &&
+    swapAmountIsFinite &&
+    swapAmount > 0 &&
+    swapAmount < minSwapAmount;
+  const swapAmountInvalid = hasSwapInput && (!swapAmountIsFinite || swapAmount <= 0);
+  const insufficientBalance = swapAmountTooLarge;
   const noLiquidity = pool.reserveX <= 0 || pool.reserveY <= 0;
   const missingRiskConfirm =
     (customTokenRequired && !customTokenConfirmed) ||
     (highSlippageRequired && !highSlippageConfirmed);
+  const targetPriceInvalid =
+    targetPriceEnabled &&
+    String(targetPriceInput || "").trim().length > 0 &&
+    !targetPrice;
+
+  const swapPercent =
+    maxAvailable > 0 && swapAmountIsFinite
+      ? Math.min(100, Math.max(0, (swapAmount / maxAvailable) * 100))
+      : 0;
+
+  const handleSwapAmountBlur = () => {
+    if (!hasSwapInput || !swapAmountIsFinite) return;
+    if (maxAvailable > 0 && swapAmount > maxAvailable) {
+      setSwapInput(String(maxAvailable));
+    }
+  };
 
   const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
     if (iconUrl) {
@@ -157,7 +186,7 @@ export default function SwapCard(props: any) {
               ? "Selected tokens do not match the initialized pool."
               : noLiquidity
                 ? "Pool has no liquidity yet. Swaps are disabled."
-                : "Insufficient balance for this swap amount."}
+                : `Insufficient balance. Max ${formatNumber(maxAvailable)} ${fromLabel}.`}
           </strong>
           <div className="note-actions">
             {tokenMismatch && onOpenTokenSelector ? (
@@ -229,7 +258,9 @@ export default function SwapCard(props: any) {
             type="number"
             value={swapInput}
             onChange={(e) => setSwapInput(e.target.value)}
+            onBlur={handleSwapAmountBlur}
             min="0"
+            step="0.000001"
             placeholder="0.0"
           />
           <select
@@ -259,7 +290,40 @@ export default function SwapCard(props: any) {
           <button className="tiny ghost" onClick={() => setSwapPreset(0.75)}>
             75%
           </button>
+          <button className="tiny ghost" onClick={() => setSwapPreset(1)}>
+            100%
+          </button>
         </div>
+        <div className="swap-amount-slider" aria-label="Swap amount percentage">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={Math.round(swapPercent)}
+            onChange={(e) => {
+              const pct = Number(e.target.value || 0);
+              if (!maxAvailable || maxAvailable <= 0) return;
+              const next = (maxAvailable * pct) / 100;
+              setSwapInput(String(Number(next.toFixed(6))));
+            }}
+            disabled={maxAvailable <= 0}
+          />
+          <div className="swap-amount-slider-meta">
+            <span className="muted small">{Math.round(swapPercent)}%</span>
+            <span className="muted small">
+              Min {minSwapAmount.toFixed(6)} · Max {formatNumber(maxAvailable)}
+            </span>
+          </div>
+        </div>
+        {swapAmountInvalid && (
+          <p className="muted small">Enter an amount greater than 0.</p>
+        )}
+        {swapAmountTooSmall && (
+          <p className="muted small">
+            Amount is below minimum ({minSwapAmount.toFixed(6)} {fromLabel}).
+          </p>
+        )}
       </div>
 
       <button
@@ -612,6 +676,9 @@ export default function SwapCard(props: any) {
             disabled={!targetPriceEnabled}
           />
         </div>
+        {targetPriceInvalid && (
+          <p className="muted small">Enter a target price greater than 0.</p>
+        )}
         <div className="target-meta">
           <span className="muted small">
             Live:{" "}
@@ -847,17 +914,19 @@ export default function SwapCard(props: any) {
       <button
         className="primary"
         onClick={showMinimalSwapLayout ? handleSimpleSwap : handleSwap}
-        disabled={
-          quoteLoading ||
-          swapPending ||
-          preflightPending ||
-          tokenMismatch ||
-          insufficientBalance ||
-          noLiquidity ||
-          networkMismatch ||
-          missingRiskConfirm
-        }
-      >
+          disabled={
+            quoteLoading ||
+            swapPending ||
+            preflightPending ||
+            tokenMismatch ||
+            insufficientBalance ||
+            noLiquidity ||
+            networkMismatch ||
+            missingRiskConfirm ||
+            swapAmountInvalid ||
+            swapAmountTooSmall
+          }
+        >
         {quoteLoading
           ? "Loading quote..."
           : preflightPending
