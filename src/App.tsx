@@ -3772,14 +3772,26 @@ function App() {
                         {item.status}
                       </span>
                       {item.txid ? (
-                        <a
-                          className="chip ghost"
-                          href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                        </a>
+                        <div className="activity-chip-row">
+                          <a
+                            className="chip ghost"
+                            href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                          </a>
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() =>
+                              void copyToClipboard("Txid", item.txid || "")
+                            }
+                            aria-label="Copy txid"
+                          >
+                            Copy
+                          </button>
+                        </div>
                       ) : null}
                     </li>
                   ))
