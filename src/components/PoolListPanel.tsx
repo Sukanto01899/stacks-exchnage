@@ -15,6 +15,8 @@ type PoolListPanelProps = {
   pools: PoolListItem[];
   search: string;
   setSearch: (value: string) => void;
+  favoritesOnly: boolean;
+  setFavoritesOnly: (value: boolean) => void;
   sort: "tvl" | "volume" | "fees" | "apr";
   setSort: (value: "tvl" | "volume" | "fees" | "apr") => void;
   sortDir: "asc" | "desc";
@@ -33,6 +35,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     pools,
     search,
     setSearch,
+    favoritesOnly,
+    setFavoritesOnly,
     sort,
     setSort,
     sortDir,
@@ -87,6 +91,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
           >
             {sortDir === "desc" ? "High → Low" : "Low → High"}
           </button>
+          <label className="target-toggle pool-sort-favorites">
+            <input
+              type="checkbox"
+              checked={favoritesOnly}
+              onChange={(e) => setFavoritesOnly(e.target.checked)}
+            />
+            Favorites only
+          </label>
           <button
             className="tiny ghost"
             type="button"
@@ -175,4 +187,3 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     </section>
   );
 }
-

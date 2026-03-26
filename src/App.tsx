@@ -323,6 +323,7 @@ function App() {
   );
   const [poolSortDir, setPoolSortDir] = useState<"asc" | "desc">("desc");
   const [favoritePools, setFavoritePools] = useState<string[]>([]);
+  const [poolFavoritesOnly, setPoolFavoritesOnly] = useState(false);
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
@@ -1000,6 +1001,11 @@ function App() {
       `pool-favorites-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const favoritePoolsOnlyKey = useMemo(
+    () =>
+      `pool-favorites-only-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
   const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
     network,
     poolContract,
@@ -1335,6 +1341,10 @@ function App() {
           .join(" ")
           .toLowerCase();
         return haystack.includes(normalizedSearch);
+      })
+      .filter((pool) => {
+        if (!poolFavoritesOnly) return true;
+        return favoritesSet.has(pool.id);
       });
 
     const sorted = [...filtered].sort((a, b) => {
@@ -1359,6 +1369,7 @@ function App() {
     poolSortDir,
     buildTokenId,
     resolveTokenLabel,
+    poolFavoritesOnly,
   ]);
 
   const marketsByPool = useMemo(
@@ -1929,6 +1940,31 @@ function App() {
       setFavoritePools([]);
     }
   }, [favoritePoolsKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(favoritePoolsOnlyKey);
+      if (!raw) {
+        setPoolFavoritesOnly(false);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      setPoolFavoritesOnly(Boolean(parsed));
+    } catch {
+      setPoolFavoritesOnly(false);
+    }
+  }, [favoritePoolsOnlyKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        favoritePoolsOnlyKey,
+        JSON.stringify(poolFavoritesOnly),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [favoritePoolsOnlyKey, poolFavoritesOnly]);
 
   useEffect(() => {
     try {
@@ -4716,6 +4752,8 @@ function App() {
                   pools={poolList}
                   search={poolSearch}
                   setSearch={setPoolSearch}
+                  favoritesOnly={poolFavoritesOnly}
+                  setFavoritesOnly={setPoolFavoritesOnly}
                   sort={poolSort}
                   setSort={setPoolSort}
                   sortDir={poolSortDir}
