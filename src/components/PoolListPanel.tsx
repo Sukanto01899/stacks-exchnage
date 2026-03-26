@@ -83,8 +83,23 @@ export default function PoolListPanel(props: PoolListPanelProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && search.trim()) {
+                setSearch("");
+              }
+            }}
             placeholder="Search by token, symbol, or pool label"
           />
+          {search.trim() && (
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Clear pool search"
+            >
+              Clear
+            </button>
+          )}
         </div>
         <div className="pool-sort">
           <label htmlFor="pool-sort">Sort by</label>
