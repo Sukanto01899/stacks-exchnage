@@ -1,4 +1,5 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 
 export default function SwapCard(props: any) {
@@ -163,6 +164,24 @@ export default function SwapCard(props: any) {
         <span className="token-icon-text">{text}</span>
       </span>
     );
+  };
+
+  const [poolCopied, setPoolCopied] = useState(false);
+
+  useEffect(() => {
+    if (!poolCopied) return;
+    const timer = window.setTimeout(() => setPoolCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [poolCopied]);
+
+  const copyPoolContract = async () => {
+    const id = `${poolContract.address}.${poolContract.contractName}`;
+    try {
+      await navigator.clipboard.writeText(id);
+      setPoolCopied(true);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   return (
@@ -472,7 +491,16 @@ export default function SwapCard(props: any) {
             <p className="eyebrow">Route</p>
             <h3>Single pool path</h3>
           </div>
-          <span className="chip ghost">{poolContract.contractName}</span>
+          <div className="mini-actions">
+            <span className="chip ghost">{poolContract.contractName}</span>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void copyPoolContract()}
+            >
+              {poolCopied ? "Copied" : "Copy contract"}
+            </button>
+          </div>
         </div>
         <div className="swap-breakdown-grid">
           <div className="swap-breakdown-item">
