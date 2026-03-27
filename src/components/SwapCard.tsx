@@ -127,6 +127,7 @@ export default function SwapCard(props: any) {
     targetPriceEnabled &&
     String(targetPriceInput || "").trim().length > 0 &&
     !targetPrice;
+  const hasPriceImpact = Number.isFinite(priceImpact);
   const impactBlocked = priceImpact >= PRICE_IMPACT_BLOCK_PCT;
   const impactNeedsConfirm =
     priceImpact >= PRICE_IMPACT_CONFIRM_PCT && priceImpact < PRICE_IMPACT_BLOCK_PCT;
@@ -432,7 +433,7 @@ export default function SwapCard(props: any) {
             Fee: {(FEE_BPS / 100).toFixed(2)}%
           </span>
           <span className="chip ghost">
-            Impact: {priceImpact ? `${priceImpact.toFixed(3)}%` : "N/A"}
+            Impact: {hasPriceImpact ? `${priceImpact.toFixed(3)}%` : "N/A"}
           </span>
           <span className="chip ghost">
             Min:{" "}
@@ -513,7 +514,9 @@ export default function SwapCard(props: any) {
                 i
               </span>
             </span>
-            <strong>{priceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}</strong>
+            <strong>
+              {hasPriceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}
+            </strong>
           </div>
           <div className="swap-breakdown-item">
             <span className="muted small">
