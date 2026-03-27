@@ -2037,6 +2037,11 @@ function App() {
     () => `swap-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [RESOLVED_STACKS_NETWORK, stacksAddress],
   );
+  const approvalSettingsKey = useMemo(
+    () =>
+      `approval-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [RESOLVED_STACKS_NETWORK, stacksAddress],
+  );
 
   useEffect(() => {
     try {
@@ -2068,6 +2073,32 @@ function App() {
       // ignore storage errors
     }
   }, [deadlineMinutesInput, slippageInput, swapSettingsKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(approvalSettingsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { approveUnlimited?: unknown } | null;
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.approveUnlimited === "boolean") {
+        setApproveUnlimited(parsed.approveUnlimited);
+      }
+    } catch (error) {
+      console.warn("Approval settings load failed", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvalSettingsKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        approvalSettingsKey,
+        JSON.stringify({ approveUnlimited }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [approvalSettingsKey, approveUnlimited]);
 
   const resetSwapSettings = useCallback(() => {
     setSlippageInput("0.5");
