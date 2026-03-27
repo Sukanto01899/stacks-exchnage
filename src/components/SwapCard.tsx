@@ -661,6 +661,26 @@ export default function SwapCard(props: any) {
             value={deadlineMinutesInput}
             onChange={(e) => setDeadlineMinutesInput(e.target.value)}
           />
+          <div className="mini-actions">
+            <button
+              className="tiny ghost"
+              onClick={() => setDeadlineMinutesInput("10")}
+            >
+              10m
+            </button>
+            <button
+              className="tiny ghost"
+              onClick={() => setDeadlineMinutesInput("30")}
+            >
+              30m
+            </button>
+            <button
+              className="tiny ghost"
+              onClick={() => setDeadlineMinutesInput("60")}
+            >
+              60m
+            </button>
+          </div>
         </div>
       </div>
 
