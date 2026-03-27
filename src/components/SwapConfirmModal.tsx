@@ -28,7 +28,7 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
   if (!open || !draft) return null;
 
   const lines = [
-    `Swap: ${formatNumber(draft.amount)} ${fromLabel} → ~${formatNumber(draft.outputPreview)} ${toLabel}`,
+    `Swap: ${formatNumber(draft.amount)} ${fromLabel} -> ~${formatNumber(draft.outputPreview)} ${toLabel}`,
     `Min received: ${formatNumber(draft.minReceived)} ${toLabel}`,
     `Slippage: ${draft.slippagePercent}%`,
     `Deadline: ${draft.deadlineMinutes} minutes`,
@@ -55,7 +55,7 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
             aria-label="Close"
             onClick={onClose}
           >
-            ×
+            x
           </button>
         </div>
 
