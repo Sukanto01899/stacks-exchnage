@@ -35,6 +35,7 @@ export default function SwapCard(props: any) {
     PRICE_IMPACT_WARN_PCT,
     PRICE_IMPACT_CONFIRM_PCT,
     PRICE_IMPACT_BLOCK_PCT,
+    suggestedSlippagePercent,
     splitSuggestionCount,
     applySplitSuggestion,
     impactConfirmed,
@@ -126,6 +127,18 @@ export default function SwapCard(props: any) {
     targetPriceEnabled &&
     String(targetPriceInput || "").trim().length > 0 &&
     !targetPrice;
+  const impactBlocked = priceImpact >= PRICE_IMPACT_BLOCK_PCT;
+  const impactNeedsConfirm =
+    priceImpact >= PRICE_IMPACT_CONFIRM_PCT && priceImpact < PRICE_IMPACT_BLOCK_PCT;
+  const missingImpactConfirm = impactNeedsConfirm && !impactConfirmed;
+  const hasSuggestedSlippage = Number.isFinite(Number(suggestedSlippagePercent));
+  const suggestedSlippage =
+    hasSuggestedSlippage ? Number(suggestedSlippagePercent) : null;
+  const parsedSlippage = Number(slippageInput);
+  const slippageMatchesSuggestion =
+    suggestedSlippage !== null &&
+    Number.isFinite(parsedSlippage) &&
+    Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
 
   const swapPercent =
     maxAvailable > 0 && swapAmountIsFinite
@@ -566,6 +579,12 @@ export default function SwapCard(props: any) {
               I understand this swap has high price impact.
             </label>
           )}
+        {impactBlocked && (
+          <p className="muted small">
+            Swap blocked: price impact {priceImpact.toFixed(2)}% exceeds{" "}
+            {PRICE_IMPACT_BLOCK_PCT}%.
+          </p>
+        )}
         {priceImpact >= PRICE_IMPACT_WARN_PCT &&
           priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
             <p className="muted small">
@@ -586,6 +605,9 @@ export default function SwapCard(props: any) {
             value={slippageInput}
             onChange={(e) => setSlippageInput(e.target.value)}
           />
+          {suggestedSlippage !== null && (
+            <p className="muted small">Suggested for this trade: {suggestedSlippage}%</p>
+          )}
           <div className="mini-actions">
             <button
               className="tiny ghost"
@@ -605,6 +627,15 @@ export default function SwapCard(props: any) {
             >
               1%
             </button>
+            {suggestedSlippage !== null && (
+              <button
+                className="tiny ghost"
+                onClick={() => setSlippageInput(String(suggestedSlippage))}
+                disabled={slippageMatchesSuggestion}
+              >
+                Use suggested
+              </button>
+            )}
             {onResetSwapSettings ? (
               <button className="tiny ghost" onClick={onResetSwapSettings}>
                 Reset
@@ -923,6 +954,8 @@ export default function SwapCard(props: any) {
             noLiquidity ||
             networkMismatch ||
             missingRiskConfirm ||
+            missingImpactConfirm ||
+            impactBlocked ||
             swapAmountInvalid ||
             swapAmountTooSmall
           }

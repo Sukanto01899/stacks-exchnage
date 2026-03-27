@@ -79,7 +79,7 @@ import {
   readClarityField,
   unwrapReadOnlyOk,
 } from "./lib/clarity";
-import { isFiniteNumber } from "./lib/number";
+import { clamp, isFiniteNumber } from "./lib/number";
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
 
@@ -2462,7 +2462,6 @@ function App() {
     }
     if (
       impactPct >= PRICE_IMPACT_CONFIRM_PCT &&
-      !showMinimalSwapLayout &&
       !impactConfirmed
     ) {
       setSwapMessage(
@@ -3244,6 +3243,12 @@ function App() {
     if (!amount || reserve <= 0) return 0;
     return (amount / reserve) * 100;
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
+
+  const suggestedSlippagePercent = useMemo(() => {
+    if (!priceImpact || priceImpact <= 0) return 0.5;
+    const suggested = clamp(0.3 + priceImpact * 0.2, 0.1, 3);
+    return Math.round(suggested * 10) / 10;
+  }, [priceImpact]);
   const splitSuggestionCount = useMemo(() => {
     if (!priceImpact || priceImpact <= PRICE_IMPACT_TARGET_PCT) return 1;
     return Math.max(2, Math.ceil(priceImpact / PRICE_IMPACT_TARGET_PCT));
@@ -4694,6 +4699,7 @@ function App() {
                   PRICE_IMPACT_WARN_PCT={PRICE_IMPACT_WARN_PCT}
                   PRICE_IMPACT_CONFIRM_PCT={PRICE_IMPACT_CONFIRM_PCT}
                   PRICE_IMPACT_BLOCK_PCT={PRICE_IMPACT_BLOCK_PCT}
+                  suggestedSlippagePercent={suggestedSlippagePercent}
                   splitSuggestionCount={splitSuggestionCount}
                   applySplitSuggestion={applySplitSuggestion}
                   impactConfirmed={impactConfirmed}
