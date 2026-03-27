@@ -2042,6 +2042,11 @@ function App() {
       `approval-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [RESOLVED_STACKS_NETWORK, stacksAddress],
   );
+  const targetSettingsKey = useMemo(
+    () =>
+      `target-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [RESOLVED_STACKS_NETWORK, stacksAddress],
+  );
 
   useEffect(() => {
     try {
@@ -2099,6 +2104,62 @@ function App() {
       // ignore storage errors
     }
   }, [approvalSettingsKey, approveUnlimited]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(targetSettingsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as
+        | {
+            targetPriceEnabled?: unknown;
+            targetCondition?: unknown;
+            targetPairDirection?: unknown;
+            targetPriceInput?: unknown;
+          }
+        | null;
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.targetPriceEnabled === "boolean") {
+        setTargetPriceEnabled(parsed.targetPriceEnabled);
+      }
+      if (parsed.targetCondition === ">=" || parsed.targetCondition === "<=") {
+        setTargetCondition(parsed.targetCondition);
+      }
+      if (
+        parsed.targetPairDirection === "x-to-y" ||
+        parsed.targetPairDirection === "y-to-x"
+      ) {
+        setTargetPairDirection(parsed.targetPairDirection);
+      }
+      if (typeof parsed.targetPriceInput === "string") {
+        setTargetPriceInput(parsed.targetPriceInput);
+      }
+    } catch (error) {
+      console.warn("Target settings load failed", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetSettingsKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        targetSettingsKey,
+        JSON.stringify({
+          targetPriceEnabled,
+          targetCondition,
+          targetPairDirection,
+          targetPriceInput,
+        }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [
+    targetCondition,
+    targetPairDirection,
+    targetPriceEnabled,
+    targetPriceInput,
+    targetSettingsKey,
+  ]);
 
   const resetSwapSettings = useCallback(() => {
     setSlippageInput("0.5");
