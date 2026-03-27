@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type ApprovalSupport = {
   x: boolean;
@@ -78,6 +78,23 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
 
   const [customX, setCustomX] = useState("");
   const [customY, setCustomY] = useState("");
+  const [spenderCopied, setSpenderCopied] = useState(false);
+
+  useEffect(() => {
+    if (!spenderCopied) return;
+    const timer = window.setTimeout(() => setSpenderCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [spenderCopied]);
+
+  const copySpender = async () => {
+    if (!spenderContractId) return;
+    try {
+      await navigator.clipboard.writeText(spenderContractId);
+      setSpenderCopied(true);
+    } catch {
+      // ignore clipboard errors (permissions, insecure context, etc.)
+    }
+  };
 
   return (
     <div className="approval-panel">
@@ -278,7 +295,17 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
       {tokenMismatch && (
         <p className="muted small">Fix token selection to continue.</p>
       )}
-      <p className="muted small">Spender: {spenderContractId}</p>
+      <p className="muted small">
+        Spender: {spenderContractId}{" "}
+        <button
+          className="tiny ghost"
+          type="button"
+          onClick={() => void copySpender()}
+          disabled={!spenderContractId}
+        >
+          {spenderCopied ? "Copied" : "Copy"}
+        </button>
+      </p>
     </div>
   );
 }
