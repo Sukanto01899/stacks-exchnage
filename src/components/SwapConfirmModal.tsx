@@ -33,6 +33,9 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
     `Slippage: ${draft.slippagePercent}%`,
     `Deadline: ${draft.deadlineMinutes} minutes`,
     `Price impact: ${draft.priceImpact.toFixed(2)}%`,
+    ...(draft.feeEstimate !== null && draft.feeEstimate !== undefined
+      ? [`Estimated fee: ${formatNumber(draft.feeEstimate)} ${draft.feeSymbol || ""}`.trim()]
+      : []),
     `Network: ${resolvedStacksNetwork}`,
   ];
 
@@ -90,6 +93,14 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
               <p className="muted small">Price impact</p>
               <strong>{draft.priceImpact.toFixed(2)}%</strong>
             </div>
+            <div className="confirm-modal-stat">
+              <p className="muted small">Estimated fee</p>
+              <strong>
+                {draft.feeEstimate !== null && draft.feeEstimate !== undefined
+                  ? `${formatNumber(draft.feeEstimate)} ${draft.feeSymbol || ""}`.trim()
+                  : "N/A"}
+              </strong>
+            </div>
           </div>
 
           <div className="confirm-modal-actions">
@@ -113,4 +124,3 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
     </div>
   );
 }
-
