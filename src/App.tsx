@@ -82,6 +82,7 @@ import {
 import { clamp, isFiniteNumber } from "./lib/number";
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
+const STX_SWAP_FEE_BUFFER = 0.1;
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
 const isNetworkAddress = (addr: string | null) => {
@@ -3169,11 +3170,15 @@ function App() {
   };
 
   const setMaxSwap = () => {
-    if (swapDirection === "x-to-y") {
-      setSwapInput(String(balances.tokenX || ""));
+    const fromX = swapDirection === "x-to-y";
+    const fromIsStx = fromX ? tokenIsStx.x : tokenIsStx.y;
+    const balance = fromX ? balances.tokenX : balances.tokenY;
+    if (!balance || balance <= 0) {
+      setSwapInput("");
       return;
     }
-    setSwapInput(String(balances.tokenY || ""));
+    const max = fromIsStx ? Math.max(0, balance - STX_SWAP_FEE_BUFFER) : balance;
+    setSwapInput(String(Number(max.toFixed(6))));
   };
 
   const handleOpenPoolFromList = (
@@ -3356,11 +3361,13 @@ function App() {
   ]);
 
   const maxSwap = useMemo(() => {
-    const balance =
-      swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
+    const fromX = swapDirection === "x-to-y";
+    const fromIsStx = fromX ? tokenIsStx.x : tokenIsStx.y;
+    const balance = fromX ? balances.tokenX : balances.tokenY;
     if (!balance || balance <= 0) return 0;
-    return Math.max(0, Number(balance.toFixed(4)));
-  }, [balances.tokenX, balances.tokenY, swapDirection]);
+    const max = fromIsStx ? Math.max(0, balance - STX_SWAP_FEE_BUFFER) : balance;
+    return Math.max(0, Number(max.toFixed(4)));
+  }, [balances.tokenX, balances.tokenY, swapDirection, tokenIsStx.x, tokenIsStx.y]);
 
   const targetTriggered = useMemo(() => {
     if (!targetPriceEnabled || !targetPrice || !directionalPrice) return false;

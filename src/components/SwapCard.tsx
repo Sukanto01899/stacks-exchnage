@@ -258,7 +258,15 @@ export default function SwapCard(props: any) {
             >
               Y -&gt; X
             </button>
-            <button className="tiny" onClick={setMaxSwap}>
+            <button
+              className="tiny"
+              onClick={setMaxSwap}
+              title={
+                fromIsStx
+                  ? "Keeps 0.1 STX for transaction fees"
+                  : "Use your full balance"
+              }
+            >
               Max
             </button>
             <button className="tiny ghost" onClick={clearSwapInput}>
