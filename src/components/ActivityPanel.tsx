@@ -8,7 +8,7 @@ type ActivityItem = {
   detail?: string;
 };
 
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 type ActivityFilter =
   | "swap"
@@ -42,6 +42,23 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     activityKey,
     resolvedStacksNetwork,
   } = props;
+
+  const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!copiedTxid) return;
+    const timer = window.setTimeout(() => setCopiedTxid(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedTxid]);
+
+  const copyTxid = async (txid: string) => {
+    try {
+      await navigator.clipboard.writeText(txid);
+      setCopiedTxid(txid);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   return (
     <section className="activity-panel">
@@ -144,14 +161,23 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                   {new Date(item.ts).toLocaleString()}
                 </span>
                 {item.txid ? (
-                  <a
-                    className="chip ghost"
-                    href={`https://explorer.hiro.so/txid/${item.txid}?chain=${resolvedStacksNetwork}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                  </a>
+                  <div className="mini-actions">
+                    <a
+                      className="chip ghost"
+                      href={`https://explorer.hiro.so/txid/${item.txid}?chain=${resolvedStacksNetwork}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                    </a>
+                    <button
+                      className="tiny ghost"
+                      type="button"
+                      onClick={() => void copyTxid(item.txid || "")}
+                    >
+                      {copiedTxid === item.txid ? "Copied" : "Copy"}
+                    </button>
+                  </div>
                 ) : null}
               </div>
               {item.detail ? (
