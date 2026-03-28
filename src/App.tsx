@@ -2053,7 +2053,11 @@ function App() {
       const raw = localStorage.getItem(swapSettingsKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as
-        | { slippageInput?: unknown; deadlineMinutesInput?: unknown }
+        | {
+            slippageInput?: unknown;
+            deadlineMinutesInput?: unknown;
+            swapDirection?: unknown;
+          }
         | null;
       if (!parsed || typeof parsed !== "object") return;
       if (typeof parsed.slippageInput === "string") {
@@ -2061,6 +2065,9 @@ function App() {
       }
       if (typeof parsed.deadlineMinutesInput === "string") {
         setDeadlineMinutesInput(parsed.deadlineMinutesInput);
+      }
+      if (parsed.swapDirection === "x-to-y" || parsed.swapDirection === "y-to-x") {
+        setSwapDirection(parsed.swapDirection);
       }
     } catch (error) {
       console.warn("Swap settings load failed", error);
@@ -2072,12 +2079,12 @@ function App() {
     try {
       localStorage.setItem(
         swapSettingsKey,
-        JSON.stringify({ slippageInput, deadlineMinutesInput }),
+        JSON.stringify({ slippageInput, deadlineMinutesInput, swapDirection }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [deadlineMinutesInput, slippageInput, swapSettingsKey]);
+  }, [deadlineMinutesInput, slippageInput, swapDirection, swapSettingsKey]);
 
   useEffect(() => {
     try {
