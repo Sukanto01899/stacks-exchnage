@@ -3843,6 +3843,31 @@ function App() {
         },
       },
       {
+        id: "copy-pool-contract",
+        label: "Copy pool contract ID",
+        keywords: "copy pool contract",
+        run: () => {
+          void copyToClipboard(
+            "Pool contract",
+            `${poolContract.address}.${poolContract.contractName}`,
+          );
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "view-pool-contract",
+        label: "View pool contract on explorer",
+        keywords: "explorer pool contract view",
+        run: () => {
+          window.open(
+            `https://explorer.hiro.so/contract/${poolContract.address}/${poolContract.contractName}?chain=${RESOLVED_STACKS_NETWORK}`,
+            "_blank",
+            "noopener,noreferrer",
+          );
+          closeCommandPalette();
+        },
+      },
+      {
         id: "swap-reset",
         label: "Reset swap settings",
         keywords: "slippage deadline reset",
@@ -3907,6 +3932,8 @@ function App() {
     copyToClipboard,
     openActivityDrawer,
     openWalletMenu,
+    poolContract.address,
+    poolContract.contractName,
     resetSwapSettings,
     setActiveTab,
     setSwapPreset,
