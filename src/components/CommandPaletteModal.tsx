@@ -88,7 +88,7 @@ export default function CommandPaletteModal(props: CommandPaletteModalProps) {
             aria-label="Close"
             onClick={onClose}
           >
-            ×
+            x
           </button>
         </div>
 
@@ -97,7 +97,7 @@ export default function CommandPaletteModal(props: CommandPaletteModalProps) {
           className="palette-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type to search… (Esc to close)"
+          placeholder="Type to search... (Esc to close)"
           aria-label="Search commands"
         />
 
@@ -132,4 +132,3 @@ export default function CommandPaletteModal(props: CommandPaletteModalProps) {
     </div>
   );
 }
-

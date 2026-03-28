@@ -40,7 +40,7 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
             aria-label="Close"
             onClick={onClose}
           >
-            ×
+            x
           </button>
         </div>
 
@@ -84,4 +84,3 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
     </div>
   );
 }
-

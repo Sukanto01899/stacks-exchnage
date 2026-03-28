@@ -1010,7 +1010,7 @@ const PriceBoardPanel = ({
                 </h3>
               </div>
               <button className="icon-button" type="button" onClick={closeModal}>
-                ×
+                x
               </button>
             </div>
 
