@@ -3843,6 +3843,24 @@ function App() {
         },
       },
       {
+        id: "refresh-pool",
+        label: "Refresh pool data",
+        keywords: "refresh reload pool balances",
+        run: () => {
+          void handleManualRefresh();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "copy-swap-snapshot",
+        label: "Copy swap snapshot",
+        keywords: "copy snapshot quote impact",
+        run: () => {
+          void handleCopySwapSnapshot();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "copy-pool-contract",
         label: "Copy pool contract ID",
         keywords: "copy pool contract",
@@ -3930,6 +3948,8 @@ function App() {
   }, [
     closeCommandPalette,
     copyToClipboard,
+    handleCopySwapSnapshot,
+    handleManualRefresh,
     openActivityDrawer,
     openWalletMenu,
     poolContract.address,
