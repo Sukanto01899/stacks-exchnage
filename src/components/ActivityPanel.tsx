@@ -44,12 +44,52 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   } = props;
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
+  const [csvCopied, setCsvCopied] = useState(false);
 
   useEffect(() => {
     if (!copiedTxid) return;
     const timer = window.setTimeout(() => setCopiedTxid(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedTxid]);
+
+  useEffect(() => {
+    if (!csvCopied) return;
+    const timer = window.setTimeout(() => setCsvCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [csvCopied]);
+
+  const escapeCsvCell = (value: unknown) => {
+    const raw = value === null || value === undefined ? "" : String(value);
+    return `"${raw.replaceAll('"', '""')}"`;
+  };
+
+  const buildCsv = (items: ActivityItem[]) => {
+    const header = ["timestamp", "kind", "status", "txid", "message", "detail"];
+    const lines = [header.map(escapeCsvCell).join(",")];
+    for (const item of items) {
+      lines.push(
+        [
+          escapeCsvCell(new Date(item.ts).toISOString()),
+          escapeCsvCell(item.kind),
+          escapeCsvCell(item.status),
+          escapeCsvCell(item.txid || ""),
+          escapeCsvCell(item.message),
+          escapeCsvCell(item.detail || ""),
+        ].join(","),
+      );
+    }
+    return lines.join("\n");
+  };
+
+  const copyCsv = async () => {
+    const csv = buildCsv(filteredActivityItems);
+    try {
+      await navigator.clipboard.writeText(csv);
+      setCsvCopied(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   const copyTxid = async (txid: string) => {
     try {
@@ -116,6 +156,14 @@ export default function ActivityPanel(props: ActivityPanelProps) {
             disabled={activityFilter === "failed"}
           >
             Failed
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={() => void copyCsv()}
+            disabled={filteredActivityItems.length === 0}
+          >
+            {csvCopied ? "CSV copied" : "Copy CSV"}
           </button>
           <button
             className="tiny ghost"
