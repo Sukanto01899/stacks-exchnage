@@ -45,6 +45,11 @@ export default function ActivityPanel(props: ActivityPanelProps) {
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
   const [csvCopied, setCsvCopied] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(8);
+
+  useEffect(() => {
+    setVisibleCount(8);
+  }, [activityFilter, filteredActivityItems.length]);
 
   useEffect(() => {
     if (!copiedTxid) return;
@@ -184,7 +189,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
       </div>
       {activityItems.length > 0 && (
         <p className="muted small activity-summary">
-          Showing {Math.min(filteredActivityItems.length, 8)} of{" "}
+          Showing {Math.min(filteredActivityItems.length, visibleCount)} of{" "}
           {filteredActivityItems.length} matching entries.
         </p>
       )}
@@ -196,7 +201,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
         </p>
       ) : (
         <div className="activity-list">
-          {filteredActivityItems.slice(0, 8).map((item) => (
+          {filteredActivityItems.slice(0, visibleCount).map((item) => (
             <div className="activity-item" key={item.id}>
               <div className="activity-main">
                 <span className={`chip ghost status-${item.status}`}>
@@ -233,6 +238,30 @@ export default function ActivityPanel(props: ActivityPanelProps) {
               ) : null}
             </div>
           ))}
+          {filteredActivityItems.length > 8 && (
+            <div className="mini-actions">
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() =>
+                  setVisibleCount((prev) =>
+                    Math.min(filteredActivityItems.length, prev + 8),
+                  )
+                }
+                disabled={visibleCount >= filteredActivityItems.length}
+              >
+                Show more
+              </button>
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => setVisibleCount(8)}
+                disabled={visibleCount <= 8}
+              >
+                Show less
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>
