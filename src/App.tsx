@@ -992,6 +992,11 @@ function App() {
       `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
     [poolContractId, stacksAddress],
   );
+  const activityUiKey = useMemo(
+    () =>
+      `activity-ui-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
+    [poolContractId, stacksAddress],
+  );
   const priceAlertsKey = useMemo(
     () =>
       `price-alerts-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
@@ -2077,6 +2082,33 @@ function App() {
 
   useEffect(() => {
     try {
+      const raw = localStorage.getItem(activityUiKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { activityFilter?: unknown } | null;
+      if (!parsed || typeof parsed !== "object") return;
+      const next = parsed.activityFilter;
+      if (
+        next === "swap" ||
+        next === "confirmed" ||
+        next === "submitted" ||
+        next === "add-liquidity" ||
+        next === "remove-liquidity" ||
+        next === "approve" ||
+        next === "faucet" ||
+        next === "failed" ||
+        next === "cancelled" ||
+        next === "all"
+      ) {
+        setActivityFilter(next);
+      }
+    } catch (error) {
+      console.warn("Activity UI load failed", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityUiKey]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(
         swapSettingsKey,
         JSON.stringify({ slippageInput, deadlineMinutesInput, swapDirection }),
@@ -2085,6 +2117,14 @@ function App() {
       // ignore storage errors
     }
   }, [deadlineMinutesInput, slippageInput, swapDirection, swapSettingsKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(activityUiKey, JSON.stringify({ activityFilter }));
+    } catch {
+      // ignore storage errors
+    }
+  }, [activityFilter, activityUiKey]);
 
   useEffect(() => {
     try {
