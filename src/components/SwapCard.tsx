@@ -493,6 +493,14 @@ export default function SwapCard(props: any) {
           </div>
           <div className="mini-actions">
             <span className="chip ghost">{poolContract.contractName}</span>
+            <a
+              className="tiny ghost"
+              href={`https://explorer.hiro.so/contract/${poolContract.address}/${poolContract.contractName}?chain=${resolvedStacksNetwork}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View
+            </a>
             <button
               className="tiny ghost"
               type="button"
