@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 type WalletMenuModalProps = {
   open: boolean;
   address: string | null;
@@ -20,6 +22,14 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
   } = props;
 
   if (!open || !address) return null;
+
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   return (
     <div
@@ -62,9 +72,12 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
             <button
               className="secondary"
               type="button"
-              onClick={() => onCopyAddress(address)}
+              onClick={() => {
+                onCopyAddress(address);
+                setCopied(true);
+              }}
             >
-              Copy address
+              {copied ? "Copied" : "Copy address"}
             </button>
             <a
               className="secondary"
