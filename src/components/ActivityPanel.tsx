@@ -50,6 +50,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   } = props;
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
+  const [copiedTxLink, setCopiedTxLink] = useState<string | null>(null);
   const [csvCopied, setCsvCopied] = useState(false);
   const [csvDownloaded, setCsvDownloaded] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
@@ -70,6 +71,12 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     const timer = window.setTimeout(() => setCopiedTxid(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedTxid]);
+
+  useEffect(() => {
+    if (!copiedTxLink) return;
+    const timer = window.setTimeout(() => setCopiedTxLink(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedTxLink]);
 
   useEffect(() => {
     if (!csvCopied) return;
@@ -156,6 +163,16 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     try {
       await navigator.clipboard.writeText(txid);
       setCopiedTxid(txid);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
+
+  const copyTxLink = async (txid: string) => {
+    const url = `https://explorer.hiro.so/txid/${txid}?chain=${resolvedStacksNetwork}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedTxLink(txid);
     } catch {
       // ignore clipboard errors
     }
@@ -350,6 +367,13 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                       onClick={() => void copyTxid(item.txid || "")}
                     >
                       {copiedTxid === item.txid ? "Copied" : "Copy"}
+                    </button>
+                    <button
+                      className="tiny ghost"
+                      type="button"
+                      onClick={() => void copyTxLink(item.txid || "")}
+                    >
+                      {copiedTxLink === item.txid ? "Link copied" : "Copy link"}
                     </button>
                   </div>
                 ) : null}
