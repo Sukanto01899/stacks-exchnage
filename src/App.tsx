@@ -4195,6 +4195,14 @@ function App() {
                 <button
                   className="tiny ghost"
                   type="button"
+                  onClick={() => void copyToClipboard("CSV", activityCsv)}
+                  disabled={activityDrawerItems.length === 0}
+                >
+                  Copy CSV
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
                   onClick={() =>
                     downloadTextFile(
                       `activity-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
@@ -4205,6 +4213,14 @@ function App() {
                   disabled={activityDrawerItems.length === 0}
                 >
                   Export CSV
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => exportActivityCsv()}
+                  disabled={activityItems.length === 0}
+                >
+                  Export all CSV
                 </button>
                 <button
                   className="tiny ghost"
@@ -4244,14 +4260,6 @@ function App() {
                   }
                 >
                   Copy diagnostics
-                </button>
-                <button
-                  className="tiny ghost"
-                  type="button"
-                  onClick={() => exportActivityCsv()}
-                  disabled={activityItems.length === 0}
-                >
-                  Export CSV
                 </button>
                 <button
                   className="tiny ghost"
@@ -4308,18 +4316,31 @@ function App() {
                           >
                             {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
                           </a>
-                          <button
-                            className="chip ghost"
-                            type="button"
-                            onClick={() => void copyToClipboard("Txid", item.txid || "")}
-                            aria-label="Copy txid"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                    {item.detail ? (
+                        <button
+                          className="chip ghost"
+                          type="button"
+                          onClick={() => void copyToClipboard("Txid", item.txid || "")}
+                          aria-label="Copy txid"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          className="chip ghost"
+                          type="button"
+                          onClick={() =>
+                            void copyToClipboard(
+                              "Explorer link",
+                              `https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`,
+                            )
+                          }
+                          aria-label="Copy explorer link"
+                        >
+                          Copy link
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  {item.detail ? (
                       <p className="muted small">{item.detail}</p>
                     ) : null}
                   </div>
@@ -4419,6 +4440,19 @@ function App() {
                             aria-label="Copy txid"
                           >
                             Copy
+                          </button>
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() =>
+                              void copyToClipboard(
+                                "Explorer link",
+                                `https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`,
+                              )
+                            }
+                            aria-label="Copy explorer link"
+                          >
+                            Copy link
                           </button>
                         </div>
                       ) : null}
