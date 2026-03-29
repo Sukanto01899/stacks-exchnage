@@ -45,11 +45,18 @@ export default function ActivityPanel(props: ActivityPanelProps) {
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
   const [csvCopied, setCsvCopied] = useState(false);
+  const [csvDownloaded, setCsvDownloaded] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     setVisibleCount(8);
   }, [activityFilter, filteredActivityItems.length]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!copiedTxid) return;
@@ -62,6 +69,12 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     const timer = window.setTimeout(() => setCsvCopied(false), 1200);
     return () => window.clearTimeout(timer);
   }, [csvCopied]);
+
+  useEffect(() => {
+    if (!csvDownloaded) return;
+    const timer = window.setTimeout(() => setCsvDownloaded(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [csvDownloaded]);
 
   const escapeCsvCell = (value: unknown) => {
     const raw = value === null || value === undefined ? "" : String(value);
@@ -96,6 +109,25 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     }
   };
 
+  const downloadCsv = () => {
+    const csv = buildCsv(filteredActivityItems);
+    try {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+      link.href = url;
+      link.download = `activity-${stamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setCsvDownloaded(true);
+    } catch {
+      // ignore download errors
+    }
+  };
+
   const copyTxid = async (txid: string) => {
     try {
       await navigator.clipboard.writeText(txid);
@@ -103,6 +135,19 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     } catch {
       // ignore clipboard errors
     }
+  };
+
+  const formatRelativeTime = (timestampMs: number) => {
+    if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "Unknown";
+    const delta = Math.max(0, now - timestampMs);
+    const minute = 60_000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+
+    if (delta < minute) return "<1m ago";
+    if (delta < hour) return `${Math.floor(delta / minute)}m ago`;
+    if (delta < day) return `${Math.floor(delta / hour)}h ago`;
+    return `${Math.floor(delta / day)}d ago`;
   };
 
   return (
@@ -172,6 +217,14 @@ export default function ActivityPanel(props: ActivityPanelProps) {
           </button>
           <button
             className="tiny ghost"
+            type="button"
+            onClick={downloadCsv}
+            disabled={filteredActivityItems.length === 0}
+          >
+            {csvDownloaded ? "Downloaded" : "Download CSV"}
+          </button>
+          <button
+            className="tiny ghost"
             onClick={() => {
               setActivityItems([]);
               setActivityFilter("all");
@@ -210,8 +263,11 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                 <strong>{item.message}</strong>
               </div>
               <div className="activity-meta">
-                <span className="muted small">
-                  {new Date(item.ts).toLocaleString()}
+                <span
+                  className="muted small"
+                  title={new Date(item.ts).toLocaleString()}
+                >
+                  {formatRelativeTime(item.ts)}
                 </span>
                 {item.txid ? (
                   <div className="mini-actions">
