@@ -198,6 +198,13 @@ export default function ActivityPanel(props: ActivityPanelProps) {
           </button>
           <button
             className="tiny ghost"
+            onClick={() => setActivityFilter("approve")}
+            disabled={activityFilter === "approve"}
+          >
+            Approvals
+          </button>
+          <button
+            className="tiny ghost"
             onClick={() => setActivityFilter("add-liquidity")}
             disabled={activityFilter === "add-liquidity"}
           >
@@ -226,10 +233,24 @@ export default function ActivityPanel(props: ActivityPanelProps) {
           </button>
           <button
             className="tiny ghost"
+            onClick={() => setActivityFilter("confirmed")}
+            disabled={activityFilter === "confirmed"}
+          >
+            Confirmed
+          </button>
+          <button
+            className="tiny ghost"
             onClick={() => setActivityFilter("failed")}
             disabled={activityFilter === "failed"}
           >
             Failed
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("cancelled")}
+            disabled={activityFilter === "cancelled"}
+          >
+            Cancelled
           </button>
           <button
             className="tiny ghost"
