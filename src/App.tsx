@@ -1781,6 +1781,17 @@ function App() {
     );
   }, [activityItems, downloadTextFile]);
 
+  const clearActivityHistory = useCallback(() => {
+    setActivityItems([]);
+    setActivityFilter("all");
+    setActivitySearch("");
+    try {
+      localStorage.removeItem(activityKey);
+    } catch (error) {
+      console.warn("Activity history clear failed", error);
+    }
+  }, [activityKey, setActivityItems]);
+
   const lpFeeEstimates = useMemo(() => {
     const now = Date.now();
     const share = Math.max(0, Math.min(1, poolShare));
@@ -3864,6 +3875,43 @@ function App() {
         },
       },
       {
+        id: "copy-activity-csv",
+        label: "Copy activity CSV (filtered)",
+        keywords: "copy activity csv export transactions",
+        run: () => {
+          void copyToClipboard("CSV", activityCsv);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "download-activity-csv",
+        label: "Download activity CSV (filtered)",
+        keywords: "download activity csv export transactions",
+        run: () => {
+          downloadTextFile(
+            `activity-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+            activityCsv,
+            "text/csv",
+          );
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "clear-activity",
+        label: "Clear activity history",
+        keywords: "clear reset activity history",
+        run: () => {
+          if (activityItems.length > 0) {
+            const ok = window.confirm(
+              "Clear your local activity history for this pool?",
+            );
+            if (!ok) return;
+          }
+          clearActivityHistory();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "open-wallet",
         label: "Open Wallet menu",
         keywords: "wallet address disconnect",
@@ -3976,8 +4024,13 @@ function App() {
 
     return items;
   }, [
+    RESOLVED_STACKS_NETWORK,
+    activityCsv,
+    activityItems.length,
+    clearActivityHistory,
     closeCommandPalette,
     copyToClipboard,
+    downloadTextFile,
     handleCopySwapSnapshot,
     handleManualRefresh,
     openActivityDrawer,
@@ -4157,11 +4210,27 @@ function App() {
                 </button>
                 <button
                   className={`tiny ghost ${
+                    activityFilter === "confirmed" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("confirmed")}
+                >
+                  Confirmed
+                </button>
+                <button
+                  className={`tiny ghost ${
                     activityFilter === "failed" ? "is-active" : ""
                   }`}
                   onClick={() => setActivityFilter("failed")}
                 >
                   Failed
+                </button>
+                <button
+                  className={`tiny ghost ${
+                    activityFilter === "cancelled" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("cancelled")}
+                >
+                  Cancelled
                 </button>
                 <button
                   className={`tiny ghost ${
@@ -4209,7 +4278,7 @@ function App() {
                   className="activity-search"
                   value={activitySearch}
                   onChange={(e) => setActivitySearch(e.target.value)}
-                  placeholder="Search txid, status, message…"
+                  placeholder="Search txid, status, message..."
                   aria-label="Search activity"
                 />
                 <button
@@ -4294,14 +4363,7 @@ function App() {
                 <button
                   className="tiny ghost"
                   onClick={() => {
-                    setActivityItems([]);
-                    setActivityFilter("all");
-                    setActivitySearch("");
-                    try {
-                      localStorage.removeItem(activityKey);
-                    } catch (error) {
-                      console.warn("Activity history clear failed", error);
-                    }
+                    clearActivityHistory();
                   }}
                   disabled={activityItems.length === 0}
                 >
