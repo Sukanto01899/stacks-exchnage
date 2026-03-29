@@ -261,6 +261,7 @@ function App() {
     useState<ActivityFilter>("all");
   const [activitySearch, setActivitySearch] = useState("");
   const [activityLimit, setActivityLimit] = useState(10);
+  const [activityNow, setActivityNow] = useState(() => Date.now());
   const [deadlineMinutesInput, setDeadlineMinutesInput] = useState("30");
   const [targetPriceEnabled, setTargetPriceEnabled] = useState(false);
   const [targetPriceInput, setTargetPriceInput] = useState("");
@@ -300,6 +301,11 @@ function App() {
   useEffect(() => {
     setUnlimitedApprovalConfirmed(false);
   }, [approveUnlimited]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setActivityNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
@@ -375,6 +381,22 @@ function App() {
       }
     },
     [pushToast],
+  );
+
+  const formatRelativeTime = useCallback(
+    (timestampMs: number) => {
+      if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "Unknown";
+      const delta = Math.max(0, activityNow - timestampMs);
+      const minute = 60_000;
+      const hour = 60 * minute;
+      const day = 24 * hour;
+
+      if (delta < minute) return "<1m ago";
+      if (delta < hour) return `${Math.floor(delta / minute)}m ago`;
+      if (delta < day) return `${Math.floor(delta / hour)}h ago`;
+      return `${Math.floor(delta / day)}d ago`;
+    },
+    [activityNow],
   );
 
   // TODO: Update this if your contract uses a different network configuration
@@ -2084,7 +2106,9 @@ function App() {
     try {
       const raw = localStorage.getItem(activityUiKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { activityFilter?: unknown } | null;
+      const parsed = JSON.parse(raw) as
+        | { activityFilter?: unknown; activitySearch?: unknown }
+        | null;
       if (!parsed || typeof parsed !== "object") return;
       const next = parsed.activityFilter;
       if (
@@ -2100,6 +2124,9 @@ function App() {
         next === "all"
       ) {
         setActivityFilter(next);
+      }
+      if (typeof parsed.activitySearch === "string") {
+        setActivitySearch(parsed.activitySearch);
       }
     } catch (error) {
       console.warn("Activity UI load failed", error);
@@ -2120,11 +2147,14 @@ function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(activityUiKey, JSON.stringify({ activityFilter }));
+      localStorage.setItem(
+        activityUiKey,
+        JSON.stringify({ activityFilter, activitySearch }),
+      );
     } catch {
       // ignore storage errors
     }
-  }, [activityFilter, activityUiKey]);
+  }, [activityFilter, activitySearch, activityUiKey]);
 
   useEffect(() => {
     try {
@@ -4303,8 +4333,11 @@ function App() {
                       <strong>{item.message}</strong>
                     </div>
                     <div className="activity-drawer-meta">
-                      <span className="muted small">
-                        {new Date(item.ts).toLocaleString()}
+                      <span
+                        className="muted small"
+                        title={new Date(item.ts).toLocaleString()}
+                      >
+                        {formatRelativeTime(item.ts)}
                       </span>
                       {item.txid ? (
                         <div className="activity-chip-row">
