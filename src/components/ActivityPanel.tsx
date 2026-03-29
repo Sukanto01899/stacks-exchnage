@@ -8,7 +8,13 @@ type ActivityItem = {
   detail?: string;
 };
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 type ActivityFilter =
   | "swap"
@@ -48,10 +54,11 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   const [csvDownloaded, setCsvDownloaded] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
   const [now, setNow] = useState(() => Date.now());
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setVisibleCount(8);
-  }, [activityFilter, filteredActivityItems.length]);
+  }, [activityFilter, filteredActivityItems.length, searchQuery]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -99,8 +106,25 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     return lines.join("\n");
   };
 
+  const searchedActivityItems = useMemo(() => {
+    const needle = String(searchQuery || "").trim().toLowerCase();
+    if (!needle) return filteredActivityItems;
+    return filteredActivityItems.filter((item) => {
+      const haystack = [
+        item.kind,
+        item.status,
+        item.txid || "",
+        item.message,
+        item.detail || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [filteredActivityItems, searchQuery]);
+
   const copyCsv = async () => {
-    const csv = buildCsv(filteredActivityItems);
+    const csv = buildCsv(searchedActivityItems);
     try {
       await navigator.clipboard.writeText(csv);
       setCsvCopied(true);
@@ -110,7 +134,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   };
 
   const downloadCsv = () => {
-    const csv = buildCsv(filteredActivityItems);
+    const csv = buildCsv(searchedActivityItems);
     try {
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -211,7 +235,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
             className="tiny ghost"
             type="button"
             onClick={() => void copyCsv()}
-            disabled={filteredActivityItems.length === 0}
+            disabled={searchedActivityItems.length === 0}
           >
             {csvCopied ? "CSV copied" : "Copy CSV"}
           </button>
@@ -219,7 +243,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
             className="tiny ghost"
             type="button"
             onClick={downloadCsv}
-            disabled={filteredActivityItems.length === 0}
+            disabled={searchedActivityItems.length === 0}
           >
             {csvDownloaded ? "Downloaded" : "Download CSV"}
           </button>
@@ -241,20 +265,40 @@ export default function ActivityPanel(props: ActivityPanelProps) {
         </div>
       </div>
       {activityItems.length > 0 && (
+        <div className="activity-search-row">
+          <input
+            className="activity-search"
+            value={searchQuery}
+            placeholder="Search txid, status, message..."
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={() => setSearchQuery("")}
+            disabled={!String(searchQuery || "").trim()}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+      {activityItems.length > 0 && (
         <p className="muted small activity-summary">
-          Showing {Math.min(filteredActivityItems.length, visibleCount)} of{" "}
-          {filteredActivityItems.length} matching entries.
+          Showing {Math.min(searchedActivityItems.length, visibleCount)} of{" "}
+          {searchedActivityItems.length} matching entries.
         </p>
       )}
-      {filteredActivityItems.length === 0 ? (
+      {searchedActivityItems.length === 0 ? (
         <p className="muted small">
           {activityItems.length === 0
             ? "No activity yet."
-            : "No activity matches the current filter."}
+            : String(searchQuery || "").trim()
+              ? "No activity matches the current filter and search."
+              : "No activity matches the current filter."}
         </p>
       ) : (
         <div className="activity-list">
-          {filteredActivityItems.slice(0, visibleCount).map((item) => (
+          {searchedActivityItems.slice(0, visibleCount).map((item) => (
             <div className="activity-item" key={item.id}>
               <div className="activity-main">
                 <span className={`chip ghost status-${item.status}`}>
@@ -294,17 +338,17 @@ export default function ActivityPanel(props: ActivityPanelProps) {
               ) : null}
             </div>
           ))}
-          {filteredActivityItems.length > 8 && (
+          {searchedActivityItems.length > 8 && (
             <div className="mini-actions">
               <button
                 className="tiny ghost"
                 type="button"
                 onClick={() =>
                   setVisibleCount((prev) =>
-                    Math.min(filteredActivityItems.length, prev + 8),
+                    Math.min(searchedActivityItems.length, prev + 8),
                   )
                 }
-                disabled={visibleCount >= filteredActivityItems.length}
+                disabled={visibleCount >= searchedActivityItems.length}
               >
                 Show more
               </button>
