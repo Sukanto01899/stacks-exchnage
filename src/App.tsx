@@ -58,6 +58,7 @@ import {
   PRICE_IMPACT_CONFIRM_PCT,
   PRICE_IMPACT_TARGET_PCT,
   PRICE_IMPACT_WARN_PCT,
+  PRICE_MOVE_WARN_PCT,
   RESOLVED_STACKS_NETWORK,
   SNAPSHOT_INTERVAL_MS,
   STACKS_API,
@@ -247,6 +248,7 @@ function App() {
   const [swapConfirmDraft, setSwapConfirmDraft] = useState<SwapDraft | null>(
     null,
   );
+  const [swapConfirmRefreshing, setSwapConfirmRefreshing] = useState(false);
   const [swapConfirmAddressOverride, setSwapConfirmAddressOverride] = useState<
     string | null
   >(null);
@@ -2544,6 +2546,18 @@ function App() {
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
   const quoteLoading = poolPending;
 
+  const swapConfirmPriceMovePct = useMemo(() => {
+    if (!swapConfirmDraft) return null;
+    if (!Number.isFinite(swapConfirmDraft.outputPreview)) return null;
+    if (!Number.isFinite(liveSwapOutput)) return null;
+    if (!swapConfirmDraft.outputPreview) return null;
+    const delta = Math.abs(liveSwapOutput - swapConfirmDraft.outputPreview);
+    return (delta / swapConfirmDraft.outputPreview) * 100;
+  }, [liveSwapOutput, swapConfirmDraft]);
+  const swapConfirmPriceMoved =
+    Number.isFinite(swapConfirmPriceMovePct) &&
+    (swapConfirmPriceMovePct ?? 0) >= PRICE_MOVE_WARN_PCT;
+
   useEffect(() => {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
@@ -2784,6 +2798,18 @@ function App() {
     if (!draft) return;
     setSwapConfirmDraft(draft);
     setSwapConfirmAddressOverride(null);
+  };
+
+  const refreshSwapConfirmDraft = async () => {
+    if (!swapConfirmDraft) return;
+    try {
+      setSwapConfirmRefreshing(true);
+      const draft = await prepareSwapDraft(swapConfirmAddressOverride);
+      if (!draft) return;
+      setSwapConfirmDraft(draft);
+    } finally {
+      setSwapConfirmRefreshing(false);
+    }
   };
 
   const executeSwap = async (
@@ -5229,6 +5255,10 @@ function App() {
         fromLabel={swapDirection === "x-to-y" ? selectionLabels.x : selectionLabels.y}
         toLabel={swapDirection === "x-to-y" ? selectionLabels.y : selectionLabels.x}
         resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
+        priceMovePct={swapConfirmPriceMovePct}
+        priceMoved={swapConfirmPriceMoved}
+        refreshingQuote={swapConfirmRefreshing}
+        onRefreshQuote={() => void refreshSwapConfirmDraft()}
         onClose={closeSwapConfirm}
         onConfirm={() => void confirmSwapAndSign()}
         onCopy={(text) => void copyToClipboard("Swap details", text)}

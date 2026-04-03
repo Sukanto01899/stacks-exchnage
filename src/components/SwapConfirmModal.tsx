@@ -6,6 +6,10 @@ type SwapConfirmModalProps = {
   fromLabel: string;
   toLabel: string;
   resolvedStacksNetwork: string;
+  priceMovePct: number | null;
+  priceMoved: boolean;
+  refreshingQuote: boolean;
+  onRefreshQuote: () => void;
   onClose: () => void;
   onConfirm: () => void;
   onCopy: (text: string) => void;
@@ -19,6 +23,10 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
     fromLabel,
     toLabel,
     resolvedStacksNetwork,
+    priceMovePct,
+    priceMoved,
+    refreshingQuote,
+    onRefreshQuote,
     onClose,
     onConfirm,
     onCopy,
@@ -63,6 +71,25 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
         </div>
 
         <div className="confirm-modal-body">
+          {priceMoved && (
+            <div className="note warning">
+              <p className="muted small">Price moved</p>
+              <strong>
+                The quote moved {priceMovePct?.toFixed(2)}% since you opened this
+                review. Refresh for an updated estimate.
+              </strong>
+              <div className="confirm-modal-actions">
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={onRefreshQuote}
+                  disabled={refreshingQuote}
+                >
+                  {refreshingQuote ? "Updating..." : "Update quote"}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="confirm-modal-summary">
             <p className="muted small">You pay</p>
             <strong>
