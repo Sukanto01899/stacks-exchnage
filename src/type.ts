@@ -65,6 +65,9 @@ export type ActivityItem = {
   txid?: string;
   message: string;
   detail?: string;
+  submittedAt?: number;
+  lastCheckedAt?: number;
+  chainStatus?: string;
   meta?: {
     fee?: number | null;
     feeSymbol?: "X" | "Y";

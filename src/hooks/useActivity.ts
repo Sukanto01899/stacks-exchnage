@@ -49,10 +49,13 @@ export const useActivity = ({
 
   const pushActivity = useCallback(
     (item: Omit<ActivityItem, "id" | "ts">) => {
+      const now = Date.now();
       const nextItem: ActivityItem = {
         ...item,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        ts: Date.now(),
+        id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+        ts: now,
+        submittedAt:
+          item.submittedAt ?? (item.status === "submitted" ? now : undefined),
       };
       setActivityItems((prev) => {
         const next = [nextItem, ...prev].slice(0, 30);
@@ -70,7 +73,12 @@ export const useActivity = ({
   const patchActivityByTxid = useCallback(
     (
       txid: string,
-      patch: Partial<Pick<ActivityItem, "status" | "message" | "detail">>,
+      patch: Partial<
+        Pick<
+          ActivityItem,
+          "status" | "message" | "detail" | "lastCheckedAt" | "chainStatus"
+        >
+      >,
     ) => {
       if (!txid) return;
       setActivityItems((prev) => {
@@ -111,6 +119,7 @@ export const useActivity = ({
         uniquePending.map(async (item) => {
           if (!item.txid || cancelled) return;
           try {
+            const checkedAt = Date.now();
             const res = await fetch(
               `${stacksApi}/extended/v1/tx/${item.txid}`,
             );
@@ -124,6 +133,8 @@ export const useActivity = ({
                 status: "confirmed",
                 message: `${item.kind.replace(/-/g, " ")} confirmed`,
                 detail: "Confirmed on-chain",
+                lastCheckedAt: checkedAt,
+                chainStatus: "confirmed on-chain",
               });
               if (stacksAddress) {
                 await syncBalances(stacksAddress, { silent: true }).catch(
@@ -146,8 +157,16 @@ export const useActivity = ({
                 status: "failed",
                 message: `${item.kind.replace(/-/g, " ")} failed`,
                 detail: reason,
+                lastCheckedAt: checkedAt,
+                chainStatus: status.replaceAll("_", " "),
               });
+              return;
             }
+
+            patchActivityByTxid(item.txid, {
+              lastCheckedAt: checkedAt,
+              chainStatus: status.replaceAll("_", " "),
+            });
           } catch (error) {
             console.warn("Tx status polling failed", error);
           }

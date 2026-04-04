@@ -1,4 +1,4 @@
-ï»¿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Suspense, lazy } from "react";
 import { connect, openContractCall } from "@stacks/connect";
 import {
@@ -48,6 +48,7 @@ import {
   DAY_MS,
   FAUCET_AMOUNT,
   FAUCET_API,
+  FAUCET_COOLDOWN_MS,
   FEE_BPS,
   IS_MAINNET,
   MINIMUM_LIQUIDITY,
@@ -83,6 +84,7 @@ import {
 import { clamp, isFiniteNumber } from "./lib/number";
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
+const FAUCET_COOLDOWN_KEY = `faucet-cooldown-${RESOLVED_STACKS_NETWORK}`;
 const STX_SWAP_FEE_BUFFER = 0.1;
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
@@ -242,6 +244,8 @@ function App() {
   const [preflightPending, setPreflightPending] = useState(false);
   const [preflightMessage, setPreflightMessage] = useState<string | null>(null);
   const [frontendMessage, setFrontendMessage] = useState<string | null>(null);
+  const [lastFaucetAt, setLastFaucetAt] = useState<number | null>(null);
+  const [faucetCooldownRemainingMs, setFaucetCooldownRemainingMs] = useState(0);
   const [slippageInput, setSlippageInput] = useState("0.5");
   const [highSlippageConfirmed, setHighSlippageConfirmed] = useState(false);
   const [customTokenConfirmed, setCustomTokenConfirmed] = useState(false);
@@ -1071,6 +1075,17 @@ function App() {
     () => activityItems.filter((item) => item.status === "submitted"),
     [activityItems],
   );
+  const pendingTxSummary = useMemo(
+    () =>
+      pendingTxs.map((item) => ({
+        ...item,
+        trackerLabel:
+          item.chainStatus
+            ?.replace(/\b\w/g, (char) => char.toUpperCase())
+            .replace(" By ", " by ") || "Awaiting confirmation",
+      })),
+    [pendingTxs],
+  );
   const filteredActivityItems = useMemo(() => {
     if (activityFilter === "all") return activityItems;
     if (
@@ -1447,7 +1462,7 @@ function App() {
       const tokenYId = buildTokenId(entry.tokenYPrincipal, entry.tokenYIsStx);
       const tokenXLabel = resolveTokenLabel(tokenXId, entry.tokenXIsStx, "Token X");
       const tokenYLabel = resolveTokenLabel(tokenYId, entry.tokenYIsStx, "Token Y");
-      return { id, label: `${tokenXLabel} / ${tokenYLabel} Â· ${entry.label}` };
+      return { id, label: `${tokenXLabel} / ${tokenYLabel} · ${entry.label}` };
     });
   }, [buildTokenId, poolsDirectory, resolveTokenLabel]);
 
@@ -2559,6 +2574,38 @@ function App() {
     (swapConfirmPriceMovePct ?? 0) >= PRICE_MOVE_WARN_PCT;
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(FAUCET_COOLDOWN_KEY);
+      if (!raw) return;
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) {
+        setLastFaucetAt(parsed);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  useEffect(() => {
+    const computeRemaining = () => {
+      if (!lastFaucetAt) return 0;
+      return Math.max(0, lastFaucetAt + FAUCET_COOLDOWN_MS - Date.now());
+    };
+    setFaucetCooldownRemainingMs(computeRemaining());
+    if (!lastFaucetAt) return;
+    const timer = window.setInterval(() => {
+      setFaucetCooldownRemainingMs(computeRemaining());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [lastFaucetAt]);
+
+  const faucetCooldownActive = faucetCooldownRemainingMs > 0;
+  const faucetCooldownLabel = faucetCooldownActive
+    ? `${Math.ceil(faucetCooldownRemainingMs / 1000)}s`
+    : null;
+
+  useEffect(() => {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
 
@@ -3214,6 +3261,12 @@ function App() {
   };
 
   const handleFaucet = async (token?: "x" | "y") => {
+    if (faucetCooldownActive) {
+      setFaucetMessage(
+        `Faucet cooldown active. Try again in ${faucetCooldownLabel || "a moment"}.`,
+      );
+      return;
+    }
     try {
       setFaucetPending(true);
       setFaucetMessage(`Requesting ${RESOLVED_STACKS_NETWORK} faucet mint...`);
@@ -3252,6 +3305,13 @@ function App() {
           )} (click Refresh after confirmation to show on-chain balance).`,
         );
       }
+      const now = Date.now();
+      setLastFaucetAt(now);
+      try {
+        localStorage.setItem(FAUCET_COOLDOWN_KEY, String(now));
+      } catch {
+        // ignore storage errors
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Faucet failed. Try again.";
@@ -3282,7 +3342,11 @@ function App() {
           balances.tokenY > 0 ||
           faucetTxids.length > 0 ||
           activityItems.some((item) => item.kind === "faucet"),
-        actionLabel: faucetPending ? "Requesting..." : "Use faucet",
+        actionLabel: faucetPending
+          ? "Requesting..."
+          : faucetCooldownActive
+            ? `Cooldown ${faucetCooldownLabel}`
+            : "Use faucet",
         action: () => handleFaucet(),
       },
       {
@@ -3308,6 +3372,8 @@ function App() {
       activityItems,
       balances.tokenX,
       balances.tokenY,
+      faucetCooldownActive,
+      faucetCooldownLabel,
       faucetPending,
       faucetTxids.length,
       handleFaucet,
@@ -4213,7 +4279,7 @@ function App() {
                 aria-label="Close activity drawer"
                 onClick={closeActivityDrawer}
               >
-                Ã—
+                ×
               </button>
             </div>
             <div className="activity-drawer-controls">
@@ -4500,7 +4566,7 @@ function App() {
                 aria-label="Close menu"
                 onClick={closeNavDrawer}
               >
-                Ã—
+                ×
               </button>
             </div>
 
@@ -4810,7 +4876,7 @@ function App() {
                                 metadataByPrincipal[
                                   getTokenPrincipal(tokenDraft.xId)
                                 ]?.name
-                                  ? ` â€” ${
+                                  ? ` — ${
                                       metadataByPrincipal[
                                         getTokenPrincipal(tokenDraft.xId)
                                       ]?.name
@@ -4906,7 +4972,7 @@ function App() {
                                 metadataByPrincipal[
                                   getTokenPrincipal(tokenDraft.yId)
                                 ]?.name
-                                  ? ` â€” ${
+                                  ? ` — ${
                                       metadataByPrincipal[
                                         getTokenPrincipal(tokenDraft.yId)
                                       ]?.name
@@ -4945,7 +5011,7 @@ function App() {
                   <div className="note subtle">
                     <p className="muted small">Pool token mismatch</p>
                     <strong>
-                      Pool: {tokenMismatchWarning.pool} Â· Selected:{" "}
+                      Pool: {tokenMismatchWarning.pool} · Selected:{" "}
                       {tokenMismatchWarning.selected}
                     </strong>
                     <p className="muted small">
@@ -4974,7 +5040,7 @@ function App() {
               </div>
 
               {pendingTxs.length > 0 && (
-                <div className="note subtle">
+                <div className="note subtle pending-tracker">
                   <div className="activity-head">
                     <div>
                       <p className="eyebrow">Pending</p>
@@ -5007,6 +5073,52 @@ function App() {
                     We are polling the chain and will refresh balances on
                     confirmation.
                   </p>
+                  <div className="pending-tracker-list">
+                    {pendingTxSummary.map((item) => (
+                      <div className="pending-tracker-item" key={item.id}>
+                        <div className="pending-tracker-main">
+                          <div>
+                            <strong>{item.message}</strong>
+                            <p className="muted small">
+                              {item.trackerLabel}
+                              {item.lastCheckedAt
+                                ? ` · checked ${formatRelativeTime(item.lastCheckedAt)}`
+                                : ""}
+                            </p>
+                          </div>
+                          <span className="chip ghost status-submitted">
+                            tracking
+                          </span>
+                        </div>
+                        <div className="pending-tracker-meta">
+                          <span className="muted small">
+                            Submitted {formatRelativeTime(item.submittedAt || item.ts)}
+                          </span>
+                          {item.txid ? (
+                            <div className="mini-actions">
+                              <a
+                                className="tiny ghost"
+                                href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                              </a>
+                              <button
+                                className="tiny ghost"
+                                type="button"
+                                onClick={() =>
+                                  void copyToClipboard("Txid", item.txid || "")
+                                }
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

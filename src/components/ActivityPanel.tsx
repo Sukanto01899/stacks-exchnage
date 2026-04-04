@@ -6,6 +6,9 @@ type ActivityItem = {
   txid?: string;
   message: string;
   detail?: string;
+  submittedAt?: number;
+  lastCheckedAt?: number;
+  chainStatus?: string;
 };
 
 import {
@@ -380,6 +383,16 @@ export default function ActivityPanel(props: ActivityPanelProps) {
               </div>
               {item.detail ? (
                 <p className="muted small">{item.detail}</p>
+              ) : null}
+              {item.txid ? (
+                <p className="muted small">
+                  {item.chainStatus
+                    ? item.chainStatus.replace(/\b\w/g, (char) => char.toUpperCase())
+                    : "Awaiting chain update"}
+                  {item.lastCheckedAt
+                    ? ` · checked ${formatRelativeTime(item.lastCheckedAt)}`
+                    : ""}
+                </p>
               ) : null}
             </div>
           ))}

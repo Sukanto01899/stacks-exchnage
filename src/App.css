@@ -1746,6 +1746,30 @@ h3 {
   gap: 6px;
 }
 
+.pending-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pending-tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pending-tracker-item {
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(90, 156, 255, 0.24);
+  background: rgba(90, 156, 255, 0.08);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pending-tracker-main,
+.pending-tracker-meta,
 .activity-main,
 .activity-meta {
   display: flex;
