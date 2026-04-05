@@ -3747,8 +3747,18 @@ function App() {
         label: "Explorer",
         href: buildExplorerTxUrl(item.txid),
       });
+
+      if (browserAlertsEnabled && typeof Notification !== "undefined") {
+        try {
+          new Notification(`Clardex tx ${item.status}`, {
+            body: `${headline}${receipt}`,
+          });
+        } catch {
+          // ignore notification failures
+        }
+      }
     }
-  }, [activityItems, buildExplorerTxUrl, pushToast]);
+  }, [activityItems, browserAlertsEnabled, buildExplorerTxUrl, pushToast]);
 
   const handleManualRefresh = useCallback(async () => {
     setFrontendMessage(null);
