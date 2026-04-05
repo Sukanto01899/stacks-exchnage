@@ -35,6 +35,7 @@ import SwapConfirmModal from "./components/SwapConfirmModal";
 import WalletMenuModal from "./components/WalletMenuModal";
 import CommandPaletteModal, { type CommandItem } from "./components/CommandPaletteModal";
 import type {
+  ActivityItem,
   AppTab,
   OnboardingState,
   PriceAlert,
@@ -342,10 +343,29 @@ function App() {
   const activityDrawerTimer = useRef<number | null>(null);
   const tokenSelectRef = useRef<HTMLDivElement | null>(null);
   const tokenSelectHighlightTimer = useRef<number | null>(null);
+  const txToastInit = useRef(false);
+  const txToastByTxid = useRef<Record<string, ActivityItem["status"]>>({});
 
-  const pushToast = useCallback((message: string, tone: ToastTone) => {
+  const buildExplorerTxUrl = useCallback((txid: string) => {
+    return `https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`;
+  }, []);
+
+  const pushToast = useCallback((
+    message: string,
+    tone: ToastTone,
+    action?: { label: string; href: string },
+  ) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setToasts((prev) => [...prev.slice(-4), { id, message, tone }]);
+    setToasts((prev) => [
+      ...prev.slice(-4),
+      {
+        id,
+        message,
+        tone,
+        actionLabel: action?.label,
+        actionHref: action?.href,
+      },
+    ]);
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== id));
     }, 4200);
@@ -1462,7 +1482,7 @@ function App() {
       const tokenYId = buildTokenId(entry.tokenYPrincipal, entry.tokenYIsStx);
       const tokenXLabel = resolveTokenLabel(tokenXId, entry.tokenXIsStx, "Token X");
       const tokenYLabel = resolveTokenLabel(tokenYId, entry.tokenYIsStx, "Token Y");
-      return { id, label: `${tokenXLabel} / ${tokenYLabel} · ${entry.label}` };
+      return { id, label: `${tokenXLabel} / ${tokenYLabel} Â· ${entry.label}` };
     });
   }, [buildTokenId, poolsDirectory, resolveTokenLabel]);
 
@@ -2564,9 +2584,10 @@ function App() {
   const swapConfirmPriceMovePct = useMemo(() => {
     if (!swapConfirmDraft) return null;
     if (!Number.isFinite(swapConfirmDraft.outputPreview)) return null;
-    if (!Number.isFinite(liveSwapOutput)) return null;
+    const liveOut = liveSwapOutput;
+    if (!isFiniteNumber(liveOut)) return null;
     if (!swapConfirmDraft.outputPreview) return null;
-    const delta = Math.abs(liveSwapOutput - swapConfirmDraft.outputPreview);
+    const delta = Math.abs(liveOut - swapConfirmDraft.outputPreview);
     return (delta / swapConfirmDraft.outputPreview) * 100;
   }, [liveSwapOutput, swapConfirmDraft]);
   const swapConfirmPriceMoved =
@@ -2897,6 +2918,8 @@ function App() {
               feeSymbol: draft.feeSymbol,
               amountIn: draft.amount,
               amountOut: draft.outputPreview,
+              fromSymbol: draft.fromSymbol,
+              toSymbol: draft.toSymbol,
             },
           });
           setSwapPending(false);
@@ -3683,6 +3706,50 @@ function App() {
     swapMessage,
   ]);
 
+  useEffect(() => {
+    if (!txToastInit.current) {
+      for (const item of activityItems) {
+        if (!item.txid) continue;
+        txToastByTxid.current[item.txid] = item.status;
+      }
+      txToastInit.current = true;
+      return;
+    }
+
+    for (const item of activityItems) {
+      if (!item.txid) continue;
+      const last = txToastByTxid.current[item.txid];
+      if (last === item.status) continue;
+      txToastByTxid.current[item.txid] = item.status;
+
+      if (last !== "submitted") continue;
+      if (item.status !== "confirmed" && item.status !== "failed") continue;
+
+      const tone: ToastTone = item.status === "confirmed" ? "success" : "error";
+      const kindLabel = item.kind.replaceAll("-", " ");
+      const headline = `${kindLabel.charAt(0).toUpperCase()}${kindLabel.slice(1)} ${item.status}`;
+
+      let receipt = "";
+      const meta = item.meta;
+      const amountIn = meta?.amountIn;
+      const amountOut = meta?.amountOut;
+      if (
+        item.kind === "swap" &&
+        meta?.fromSymbol &&
+        meta?.toSymbol &&
+        isFiniteNumber(amountIn) &&
+        isFiniteNumber(amountOut)
+      ) {
+        receipt = ` | ${formatNumber(amountIn)} ${meta.fromSymbol} -> ~${formatNumber(amountOut)} ${meta.toSymbol}`;
+      }
+
+      pushToast(`${headline}${receipt}`, tone, {
+        label: "Explorer",
+        href: buildExplorerTxUrl(item.txid),
+      });
+    }
+  }, [activityItems, buildExplorerTxUrl, pushToast]);
+
   const handleManualRefresh = useCallback(async () => {
     setFrontendMessage(null);
     try {
@@ -4279,7 +4346,7 @@ function App() {
                 aria-label="Close activity drawer"
                 onClick={closeActivityDrawer}
               >
-                ×
+                Ã—
               </button>
             </div>
             <div className="activity-drawer-controls">
@@ -4497,38 +4564,78 @@ function App() {
                         <div className="activity-chip-row">
                           <a
                             className="chip ghost"
-                            href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                            href={buildExplorerTxUrl(item.txid)}
                             target="_blank"
                             rel="noreferrer"
                           >
                             {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
                           </a>
-                        <button
-                          className="chip ghost"
-                          type="button"
-                          onClick={() => void copyToClipboard("Txid", item.txid || "")}
-                          aria-label="Copy txid"
-                        >
-                          Copy
-                        </button>
-                        <button
-                          className="chip ghost"
-                          type="button"
-                          onClick={() =>
-                            void copyToClipboard(
-                              "Explorer link",
-                              `https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`,
-                            )
-                          }
-                          aria-label="Copy explorer link"
-                        >
-                          Copy link
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                  {item.detail ? (
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() =>
+                              void copyToClipboard("Txid", item.txid || "")
+                            }
+                            aria-label="Copy txid"
+                          >
+                            Copy
+                          </button>
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() =>
+                              void copyToClipboard(
+                                "Explorer link",
+                                buildExplorerTxUrl(item.txid || ""),
+                              )
+                            }
+                            aria-label="Copy explorer link"
+                          >
+                            Copy link
+                          </button>
+                        </div>
+                      ) : null}
+                      {(() => {
+                        if (item.kind !== "swap") return null;
+                        const meta = item.meta;
+                        const amountIn = meta?.amountIn;
+                        const amountOut = meta?.amountOut;
+                        const fee = meta?.fee;
+                        if (!meta?.fromSymbol || !meta?.toSymbol) return null;
+                        if (!isFiniteNumber(amountIn) || !isFiniteNumber(amountOut)) {
+                          return null;
+                        }
+                        return (
+                          <div className="activity-chip-row">
+                            <span className="chip ghost">
+                              In {formatNumber(amountIn)} {meta.fromSymbol}
+                            </span>
+                            <span className="chip ghost">
+                              Out ~{formatNumber(amountOut)} {meta.toSymbol}
+                            </span>
+                            {isFiniteNumber(fee) && meta.feeSymbol ? (
+                              <span className="chip ghost">
+                                Fee est {formatNumber(fee)} {meta.feeSymbol}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    {item.detail ? (
                       <p className="muted small">{item.detail}</p>
+                    ) : null}
+                    {item.txid ? (
+                      <p className="muted small">
+                        {item.chainStatus
+                          ? item.chainStatus.replace(/\b\w/g, (char) =>
+                              char.toUpperCase(),
+                            )
+                          : "Awaiting chain update"}
+                        {item.lastCheckedAt
+                          ? ` Â· checked ${formatRelativeTime(item.lastCheckedAt)}`
+                          : ""}
+                      </p>
                     ) : null}
                   </div>
                 ))}
@@ -4566,7 +4673,7 @@ function App() {
                 aria-label="Close menu"
                 onClick={closeNavDrawer}
               >
-                ×
+                Ã—
               </button>
             </div>
 
@@ -4876,7 +4983,7 @@ function App() {
                                 metadataByPrincipal[
                                   getTokenPrincipal(tokenDraft.xId)
                                 ]?.name
-                                  ? ` — ${
+                                  ? ` â€” ${
                                       metadataByPrincipal[
                                         getTokenPrincipal(tokenDraft.xId)
                                       ]?.name
@@ -4972,7 +5079,7 @@ function App() {
                                 metadataByPrincipal[
                                   getTokenPrincipal(tokenDraft.yId)
                                 ]?.name
-                                  ? ` — ${
+                                  ? ` â€” ${
                                       metadataByPrincipal[
                                         getTokenPrincipal(tokenDraft.yId)
                                       ]?.name
@@ -5011,7 +5118,7 @@ function App() {
                   <div className="note subtle">
                     <p className="muted small">Pool token mismatch</p>
                     <strong>
-                      Pool: {tokenMismatchWarning.pool} · Selected:{" "}
+                      Pool: {tokenMismatchWarning.pool} Â· Selected:{" "}
                       {tokenMismatchWarning.selected}
                     </strong>
                     <p className="muted small">
@@ -5082,7 +5189,7 @@ function App() {
                             <p className="muted small">
                               {item.trackerLabel}
                               {item.lastCheckedAt
-                                ? ` · checked ${formatRelativeTime(item.lastCheckedAt)}`
+                                ? ` Â· checked ${formatRelativeTime(item.lastCheckedAt)}`
                                 : ""}
                             </p>
                           </div>
@@ -5402,7 +5509,19 @@ function App() {
             className={`toast-item toast-${toast.tone}`}
             role="status"
           >
-            {toast.message}
+            <div className="toast-item-body">
+              <span className="toast-item-message">{toast.message}</span>
+              {toast.actionHref ? (
+                <a
+                  className="toast-action"
+                  href={toast.actionHref}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {toast.actionLabel || "View"}
+                </a>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>

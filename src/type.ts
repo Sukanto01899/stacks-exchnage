@@ -73,6 +73,8 @@ export type ActivityItem = {
     feeSymbol?: "X" | "Y";
     amountIn?: number | null;
     amountOut?: number | null;
+    fromSymbol?: "X" | "Y";
+    toSymbol?: "X" | "Y";
   };
 };
 
@@ -93,6 +95,8 @@ export type ToastItem = {
   id: string;
   message: string;
   tone: ToastTone;
+  actionLabel?: string;
+  actionHref?: string;
 };
 
 export type AppTab = "swap" | "liquidity" | "analytics" | "pools" | "prices";

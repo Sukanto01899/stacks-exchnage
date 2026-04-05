@@ -3674,6 +3674,36 @@ label {
   line-height: 1.4;
 }
 
+.toast-item-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toast-item-message {
+  flex: 1;
+}
+
+.toast-action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .toast-success {
   border-color: rgba(33, 195, 140, 0.5);
   background: linear-gradient(
