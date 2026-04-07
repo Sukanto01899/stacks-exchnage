@@ -2293,6 +2293,54 @@ function App() {
     setImpactConfirmed(false);
   }, []);
 
+  const resetAllLocalData = useCallback(() => {
+    const ok = window.confirm(
+      "This will clear your local UI data for Clardex (settings, favorites, activity, alerts, and portfolio history) and reload the page. Continue?",
+    );
+    if (!ok) return;
+
+    const keys = [
+      ONBOARDING_STORAGE_KEY,
+      poolContractStorageKey,
+      tokenSelectionKey,
+      portfolioHistoryKey,
+      poolHistoryKey,
+      activityKey,
+      activityUiKey,
+      priceAlertsKey,
+      favoritePoolsKey,
+      favoritePoolsOnlyKey,
+      poolUiStorageKey,
+      swapSettingsKey,
+      approvalSettingsKey,
+      targetSettingsKey,
+    ];
+
+    for (const key of keys) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    window.location.reload();
+  }, [
+    activityKey,
+    activityUiKey,
+    approvalSettingsKey,
+    favoritePoolsKey,
+    favoritePoolsOnlyKey,
+    poolContractStorageKey,
+    poolHistoryKey,
+    poolUiStorageKey,
+    portfolioHistoryKey,
+    priceAlertsKey,
+    swapSettingsKey,
+    targetSettingsKey,
+    tokenSelectionKey,
+  ]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
@@ -4081,6 +4129,15 @@ function App() {
         },
       },
       {
+        id: "reset-local",
+        label: "Reset local UI data",
+        keywords: "reset clear local storage ui settings favorites alerts portfolio",
+        run: () => {
+          resetAllLocalData();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "open-wallet",
         label: "Open Wallet menu",
         keywords: "wallet address disconnect",
@@ -4207,6 +4264,7 @@ function App() {
     poolContract.address,
     poolContract.contractName,
     resetSwapSettings,
+    resetAllLocalData,
     setActiveTab,
     setSwapPreset,
     stacksAddress,
@@ -4764,6 +4822,20 @@ function App() {
                   ))
                 )}
               </ul>
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">Local data</h3>
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  resetAllLocalData();
+                }}
+              >
+                Reset local UI data
+              </button>
             </div>
 
             <nav className="nav-drawer-links">
