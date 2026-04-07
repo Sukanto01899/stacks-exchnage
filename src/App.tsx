@@ -350,6 +350,10 @@ function App() {
     return `https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`;
   }, []);
 
+  const buildExplorerAddressUrl = useCallback((address: string) => {
+    return `https://explorer.hiro.so/address/${address}?chain=${RESOLVED_STACKS_NETWORK}`;
+  }, []);
+
   const pushToast = useCallback((
     message: string,
     tone: ToastTone,
@@ -4238,6 +4242,33 @@ function App() {
 
     if (stacksAddress) {
       items.unshift({
+        id: "view-address",
+        label: "View wallet on explorer",
+        keywords: "wallet address explorer view hiro",
+        run: () => {
+          window.open(
+            buildExplorerAddressUrl(stacksAddress),
+            "_blank",
+            "noopener,noreferrer",
+          );
+          closeCommandPalette();
+        },
+      });
+
+      items.unshift({
+        id: "copy-address-link",
+        label: "Copy wallet explorer link",
+        keywords: "copy wallet address explorer link hiro",
+        run: () => {
+          void copyToClipboard(
+            "Explorer link",
+            buildExplorerAddressUrl(stacksAddress),
+          );
+          closeCommandPalette();
+        },
+      });
+
+      items.unshift({
         id: "copy-address",
         label: "Copy wallet address",
         keywords: "copy address",
@@ -4256,6 +4287,7 @@ function App() {
     clearActivityHistory,
     closeCommandPalette,
     copyToClipboard,
+    buildExplorerAddressUrl,
     downloadTextFile,
     handleCopySwapSnapshot,
     handleManualRefresh,
@@ -4759,6 +4791,37 @@ function App() {
                 <span>LP shares</span>
                 <span>{formatNumber(balances.lpShares)}</span>
               </div>
+              {stacksAddress ? (
+                <div className="activity-chip-row" style={{ marginTop: 10 }}>
+                  <button
+                    className="chip ghost"
+                    type="button"
+                    onClick={() => void copyToClipboard("Address", stacksAddress)}
+                  >
+                    Copy address
+                  </button>
+                  <a
+                    className="chip ghost"
+                    href={buildExplorerAddressUrl(stacksAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View on explorer
+                  </a>
+                  <button
+                    className="chip ghost"
+                    type="button"
+                    onClick={() =>
+                      void copyToClipboard(
+                        "Explorer link",
+                        buildExplorerAddressUrl(stacksAddress),
+                      )
+                    }
+                  >
+                    Copy explorer link
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="drawer-section">
