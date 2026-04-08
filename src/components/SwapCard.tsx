@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 
+const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"] as const;
+
 export default function SwapCard(props: any) {
   const {
     showMinimalSwapLayout,
@@ -141,6 +143,9 @@ export default function SwapCard(props: any) {
     suggestedSlippage !== null &&
     Number.isFinite(parsedSlippage) &&
     Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
+  const slippageOutsideRange =
+    Number.isFinite(parsedSlippage) &&
+    (parsedSlippage < 0 || parsedSlippage > 50);
 
   const swapPercent =
     maxAvailable > 0 && swapAmountIsFinite
@@ -652,39 +657,40 @@ export default function SwapCard(props: any) {
             value={slippageInput}
             onChange={(e) => setSlippageInput(e.target.value)}
           />
-          {suggestedSlippage !== null && (
-            <p className="muted small">Suggested for this trade: {suggestedSlippage}%</p>
-          )}
-          <div className="mini-actions">
-            <button
-              className="tiny ghost"
-              onClick={() => setSlippageInput("0.1")}
-            >
-              0.1%
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={() => setSlippageInput("0.5")}
-            >
-              0.5%
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={() => setSlippageInput("1")}
-            >
-              1%
-            </button>
+          <div className="swap-setting-pills" aria-label="Slippage presets">
+            {SLIPPAGE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                className={`tiny ghost ${slippageInput === preset ? "is-active" : ""}`}
+                onClick={() => setSlippageInput(preset)}
+                aria-pressed={slippageInput === preset}
+                type="button"
+              >
+                {preset}%
+              </button>
+            ))}
             {suggestedSlippage !== null && (
               <button
-                className="tiny ghost"
+                className={`tiny ghost ${slippageMatchesSuggestion ? "is-active" : ""}`}
                 onClick={() => setSlippageInput(String(suggestedSlippage))}
                 disabled={slippageMatchesSuggestion}
+                type="button"
               >
-                Use suggested
+                Auto {suggestedSlippage}%
               </button>
             )}
+          </div>
+          {suggestedSlippage !== null && (
+            <p className="muted small">
+              Suggested for this trade: {suggestedSlippage}%
+            </p>
+          )}
+          {slippageOutsideRange && (
+            <p className="muted small">Slippage must stay between 0% and 50%.</p>
+          )}
+          <div className="mini-actions">
             {onResetSwapSettings ? (
-              <button className="tiny ghost" onClick={onResetSwapSettings}>
+              <button className="tiny ghost" onClick={onResetSwapSettings} type="button">
                 Reset
               </button>
             ) : null}
