@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 
 const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"] as const;
+const DEADLINE_PRESETS = ["10", "30", "60"] as const;
 
 export default function SwapCard(props: any) {
   const {
@@ -146,6 +147,10 @@ export default function SwapCard(props: any) {
   const slippageOutsideRange =
     Number.isFinite(parsedSlippage) &&
     (parsedSlippage < 0 || parsedSlippage > 50);
+  const parsedDeadline = Number(deadlineMinutesInput);
+  const deadlineOutsideRange =
+    Number.isFinite(parsedDeadline) &&
+    (parsedDeadline < 1 || parsedDeadline > 1440);
 
   const swapPercent =
     maxAvailable > 0 && swapAmountIsFinite
@@ -706,26 +711,22 @@ export default function SwapCard(props: any) {
             value={deadlineMinutesInput}
             onChange={(e) => setDeadlineMinutesInput(e.target.value)}
           />
-          <div className="mini-actions">
-            <button
-              className="tiny ghost"
-              onClick={() => setDeadlineMinutesInput("10")}
-            >
-              10m
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={() => setDeadlineMinutesInput("30")}
-            >
-              30m
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={() => setDeadlineMinutesInput("60")}
-            >
-              60m
-            </button>
+          <div className="swap-setting-pills" aria-label="Deadline presets">
+            {DEADLINE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                className={`tiny ghost ${deadlineMinutesInput === preset ? "is-active" : ""}`}
+                onClick={() => setDeadlineMinutesInput(preset)}
+                aria-pressed={deadlineMinutesInput === preset}
+                type="button"
+              >
+                {preset}m
+              </button>
+            ))}
           </div>
+          {deadlineOutsideRange && (
+            <p className="muted small">Deadline must stay between 1 and 1440 minutes.</p>
+          )}
         </div>
       </div>
 
