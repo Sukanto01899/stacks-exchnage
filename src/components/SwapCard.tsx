@@ -164,6 +164,26 @@ export default function SwapCard(props: any) {
     }
   };
 
+  const normalizeSlippageInput = () => {
+    const raw = String(slippageInput ?? "").trim();
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.min(50, Math.max(0, parsed));
+    const normalized = clamped.toFixed(2).replace(/\.?0+$/, "");
+    setSlippageInput(normalized);
+  };
+
+  const normalizeDeadlineMinutesInput = () => {
+    const raw = String(deadlineMinutesInput ?? "").trim();
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const rounded = Math.round(parsed);
+    const clamped = Math.min(1440, Math.max(1, rounded));
+    setDeadlineMinutesInput(String(clamped));
+  };
+
   const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
     if (iconUrl) {
       return <img className="token-icon" src={iconUrl} alt="" />;
@@ -661,6 +681,7 @@ export default function SwapCard(props: any) {
             step="0.1"
             value={slippageInput}
             onChange={(e) => setSlippageInput(e.target.value)}
+            onBlur={normalizeSlippageInput}
           />
           <div className="swap-setting-pills" aria-label="Slippage presets">
             {SLIPPAGE_PRESETS.map((preset) => (
@@ -710,6 +731,7 @@ export default function SwapCard(props: any) {
             step="1"
             value={deadlineMinutesInput}
             onChange={(e) => setDeadlineMinutesInput(e.target.value)}
+            onBlur={normalizeDeadlineMinutesInput}
           />
           <div className="swap-setting-pills" aria-label="Deadline presets">
             {DEADLINE_PRESETS.map((preset) => (

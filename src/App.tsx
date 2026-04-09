@@ -3867,6 +3867,7 @@ function App() {
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
     if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
+    if (parsed > 50) return 0.5;
     return parsed / 100;
   }, [slippageInput]);
 
