@@ -125,6 +125,9 @@ export default function SwapCard(props: any) {
   const swapAmountInvalid = hasSwapInput && (!swapAmountIsFinite || swapAmount <= 0);
   const insufficientBalance = swapAmountTooLarge;
   const noLiquidity = pool.reserveX <= 0 || pool.reserveY <= 0;
+  const swapSafetyKey = `swap-safety-${resolvedStacksNetwork}`;
+  const [largeSwapConfirmAtInput, setLargeSwapConfirmAtInput] = useState("80");
+  const [largeSwapConfirmed, setLargeSwapConfirmed] = useState(false);
   const missingRiskConfirm =
     (customTokenRequired && !customTokenConfirmed) ||
     (highSlippageRequired && !highSlippageConfirmed);
@@ -157,6 +160,73 @@ export default function SwapCard(props: any) {
     maxAvailable > 0 && swapAmountIsFinite
       ? Math.min(100, Math.max(0, (swapAmount / maxAvailable) * 100))
       : 0;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(swapSafetyKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object") return;
+      const value = (parsed as { largeSwapConfirmAt?: unknown }).largeSwapConfirmAt;
+      if (typeof value === "number" && Number.isFinite(value)) {
+        setLargeSwapConfirmAtInput(
+          String(Math.min(100, Math.max(0, Math.round(value)))),
+        );
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [swapSafetyKey]);
+
+  useEffect(() => {
+    try {
+      const parsed = Number(largeSwapConfirmAtInput);
+      const value = Number.isFinite(parsed)
+        ? Math.min(100, Math.max(0, Math.round(parsed)))
+        : 80;
+      localStorage.setItem(
+        swapSafetyKey,
+        JSON.stringify({ largeSwapConfirmAt: value }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [largeSwapConfirmAtInput, swapSafetyKey]);
+
+  useEffect(() => {
+    setLargeSwapConfirmed(false);
+  }, [largeSwapConfirmAtInput, swapDirection, swapInput]);
+
+  const normalizeLargeSwapConfirmAtInput = () => {
+    const raw = String(largeSwapConfirmAtInput ?? "").trim();
+    if (raw === "") {
+      setLargeSwapConfirmAtInput("80");
+      return;
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      setLargeSwapConfirmAtInput("80");
+      return;
+    }
+    setLargeSwapConfirmAtInput(
+      String(Math.min(100, Math.max(0, Math.round(parsed)))),
+    );
+  };
+
+  const parsedLargeSwapConfirmAt = Number(largeSwapConfirmAtInput);
+  const largeSwapConfirmAt =
+    Number.isFinite(parsedLargeSwapConfirmAt)
+      ? Math.min(100, Math.max(0, parsedLargeSwapConfirmAt))
+      : 80;
+  const largeSwapConfirmOutsideRange =
+    Number.isFinite(parsedLargeSwapConfirmAt) &&
+    (parsedLargeSwapConfirmAt < 0 || parsedLargeSwapConfirmAt > 100);
+  const largeSwapNeedsConfirm =
+    largeSwapConfirmAt > 0 &&
+    swapAmountIsFinite &&
+    swapAmount > 0 &&
+    swapPercent >= largeSwapConfirmAt;
+  const missingLargeSwapConfirm = largeSwapNeedsConfirm && !largeSwapConfirmed;
 
   const handleSwapAmountBlur = () => {
     if (!hasSwapInput || !swapAmountIsFinite) return;
@@ -761,6 +831,27 @@ export default function SwapCard(props: any) {
             <p className="muted small">Deadline must stay between 1 and 1440 minutes.</p>
           )}
         </div>
+        <div>
+          <label>Safety: confirm above (% balance)</label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            value={largeSwapConfirmAtInput}
+            onChange={(e) => setLargeSwapConfirmAtInput(e.target.value)}
+            onBlur={normalizeLargeSwapConfirmAtInput}
+          />
+          <p className="muted small">
+            Set 0 to disable. Triggers when swap size is at least this percent
+            of your available balance.
+          </p>
+          {largeSwapConfirmOutsideRange && (
+            <p className="muted small">
+              Safety confirm must be between 0 and 100.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="target-panel">
@@ -1047,6 +1138,30 @@ export default function SwapCard(props: any) {
         </div>
       )}
 
+      {largeSwapNeedsConfirm && (
+        <div className="note warning">
+          <p className="muted small">Large swap confirmation</p>
+          <strong>
+            This swap uses {Math.round(swapPercent)}% of your {fromLabel} balance.
+          </strong>
+          <div className="note-actions">
+            <label className="target-toggle">
+              <input
+                type="checkbox"
+                checked={!!largeSwapConfirmed}
+                onChange={(e) => setLargeSwapConfirmed(e.target.checked)}
+              />
+              I confirm this size
+            </label>
+          </div>
+          {missingLargeSwapConfirm && (
+            <p className="muted small">
+              Swap stays disabled until you confirm this large size.
+            </p>
+          )}
+        </div>
+      )}
+
       {renderApprovalManager("swap")}
 
       <button
@@ -1062,6 +1177,7 @@ export default function SwapCard(props: any) {
             networkMismatch ||
             missingRiskConfirm ||
             missingImpactConfirm ||
+            missingLargeSwapConfirm ||
             impactBlocked ||
             swapAmountInvalid ||
             swapAmountTooSmall
