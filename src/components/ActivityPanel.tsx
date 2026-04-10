@@ -312,6 +312,12 @@ export default function ActivityPanel(props: ActivityPanelProps) {
             value={searchQuery}
             placeholder="Search txid, status, message..."
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && String(searchQuery || "").trim()) {
+                e.preventDefault();
+                setSearchQuery("");
+              }
+            }}
           />
           <button
             className="tiny ghost"
@@ -390,7 +396,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                     ? item.chainStatus.replace(/\b\w/g, (char) => char.toUpperCase())
                     : "Awaiting chain update"}
                   {item.lastCheckedAt
-                    ? ` · checked ${formatRelativeTime(item.lastCheckedAt)}`
+                    ? ` Â· checked ${formatRelativeTime(item.lastCheckedAt)}`
                     : ""}
                 </p>
               ) : null}

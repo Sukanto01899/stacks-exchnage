@@ -407,6 +407,12 @@ export default function SwapCard(props: any) {
             type="number"
             value={swapInput}
             onChange={(e) => setSwapInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && String(swapInput || "").trim()) {
+                e.preventDefault();
+                clearSwapInput();
+              }
+            }}
             onBlur={handleSwapAmountBlur}
             min="0"
             step="0.000001"
