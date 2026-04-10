@@ -11,6 +11,14 @@ type PoolListItem = {
   apr: number | null;
 };
 
+type RecentPoolItem = {
+  id: string;
+  label: string;
+  tokenXLabel: string;
+  tokenYLabel: string;
+  target: "swap" | "liquidity";
+};
+
 type PoolListPanelProps = {
   pools: PoolListItem[];
   search: string;
@@ -24,6 +32,8 @@ type PoolListPanelProps = {
   favorites: string[];
   toggleFavorite: (poolId: string) => void;
   clearFavorites: () => void;
+  recentPools: RecentPoolItem[];
+  clearRecentPools: () => void;
   onResetFilters: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
@@ -46,6 +56,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     favorites,
     toggleFavorite,
     clearFavorites,
+    recentPools,
+    clearRecentPools,
     onResetFilters,
     onOpenPool,
     onCopyPoolId,
@@ -148,6 +160,40 @@ export default function PoolListPanel(props: PoolListPanelProps) {
           </button>
         </div>
       </div>
+
+      {recentPools.length > 0 && (
+        <div className="note subtle" aria-label="Recent pools">
+          <p className="muted small">Recent pools</p>
+          <div className="chip-row">
+            {recentPools.map((pool) => (
+              <button
+                key={`${pool.id}-${pool.target}`}
+                className="chip ghost"
+                type="button"
+                onClick={() => onOpenPool(pool.id, pool.target)}
+                title={
+                  pool.target === "swap"
+                    ? "Open in Trade"
+                    : "Open in Liquidity"
+                }
+              >
+                {pool.tokenXLabel} / {pool.tokenYLabel}
+                <span className="muted small">
+                  {" "}
+                  · {pool.target === "swap" ? "Trade" : "Liquidity"}
+                </span>
+              </button>
+            ))}
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={clearRecentPools}
+            >
+              Clear recent
+            </button>
+          </div>
+        </div>
+      )}
 
       {pools.length === 0 ? (
         <p className="muted small">No pools match your search.</p>

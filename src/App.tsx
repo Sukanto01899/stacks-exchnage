@@ -213,6 +213,12 @@ type ActivityFilter =
   | "cancelled"
   | "all";
 
+type RecentPoolEntry = {
+  id: string;
+  target: "swap" | "liquidity";
+  openedAt: number;
+};
+
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
@@ -338,6 +344,7 @@ function App() {
   const [poolSortDir, setPoolSortDir] = useState<"asc" | "desc">("desc");
   const [favoritePools, setFavoritePools] = useState<string[]>([]);
   const [poolFavoritesOnly, setPoolFavoritesOnly] = useState(false);
+  const [recentPools, setRecentPools] = useState<RecentPoolEntry[]>([]);
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
@@ -1064,6 +1071,10 @@ function App() {
       `pool-favorites-only-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const recentPoolsKey = useMemo(
+    () => `pool-recent-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
   const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
     network,
     poolContract,
@@ -1489,6 +1500,32 @@ function App() {
       return { id, label: `${tokenXLabel} / ${tokenYLabel} · ${entry.label}` };
     });
   }, [buildTokenId, poolsDirectory, resolveTokenLabel]);
+
+  const recentPoolsForPanel = useMemo(() => {
+    if (recentPools.length === 0) return [];
+    const byId = new Map(poolsDirectory.map((pool) => [pool.id, pool]));
+    return recentPools
+      .map((entry) => {
+        const pool = byId.get(entry.id);
+        if (!pool) return null;
+        const tokenXId = buildTokenId(pool.tokenXPrincipal, pool.tokenXIsStx);
+        const tokenYId = buildTokenId(pool.tokenYPrincipal, pool.tokenYIsStx);
+        return {
+          id: pool.id,
+          label: pool.label,
+          tokenXLabel: resolveTokenLabel(tokenXId, pool.tokenXIsStx, "Token X"),
+          tokenYLabel: resolveTokenLabel(tokenYId, pool.tokenYIsStx, "Token Y"),
+          target: entry.target,
+        };
+      })
+      .filter(Boolean) as {
+      id: string;
+      label: string;
+      tokenXLabel: string;
+      tokenYLabel: string;
+      target: "swap" | "liquidity";
+    }[];
+  }, [buildTokenId, poolsDirectory, recentPools, resolveTokenLabel]);
 
   const priceBoardStorageKey = useMemo(
     () => `price-board-watchlist-${RESOLVED_STACKS_NETWORK}`,
@@ -2020,6 +2057,45 @@ function App() {
       setFavoritePools([]);
     }
   }, [favoritePoolsKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(recentPoolsKey);
+      if (!raw) {
+        setRecentPools([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) {
+        setRecentPools([]);
+        return;
+      }
+      const migrated = parsed
+        .map((item): RecentPoolEntry | null => {
+          if (typeof item === "string") {
+            return { id: item, target: "swap", openedAt: 0 };
+          }
+          if (!item || typeof item !== "object") return null;
+          const record = item as Partial<RecentPoolEntry>;
+          if (typeof record.id !== "string") return null;
+          const target =
+            record.target === "liquidity" || record.target === "swap"
+              ? record.target
+              : "swap";
+          const openedAt =
+            typeof record.openedAt === "number" &&
+            Number.isFinite(record.openedAt)
+              ? record.openedAt
+              : 0;
+          return { id: record.id, target, openedAt };
+        })
+        .filter(Boolean) as RecentPoolEntry[];
+
+      setRecentPools(migrated.slice(0, 6));
+    } catch {
+      setRecentPools([]);
+    }
+  }, [recentPoolsKey]);
 
   useEffect(() => {
     try {
@@ -3533,6 +3609,19 @@ function App() {
     target: "swap" | "liquidity",
   ) => {
     if (!poolId) return;
+    setRecentPools((prev) => {
+      const now = Date.now();
+      const next = [
+        { id: poolId, target, openedAt: now },
+        ...prev.filter((item) => item.id !== poolId),
+      ].slice(0, 6);
+      try {
+        localStorage.setItem(recentPoolsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
     setPoolContractId(poolId);
     setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
     setTokenSelectMessage("Switching pool...");
@@ -3558,6 +3647,15 @@ function App() {
     setFavoritePools([]);
     try {
       localStorage.setItem(favoritePoolsKey, JSON.stringify([]));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const clearRecentPools = () => {
+    setRecentPools([]);
+    try {
+      localStorage.setItem(recentPoolsKey, JSON.stringify([]));
     } catch {
       // ignore storage errors
     }
@@ -5544,6 +5642,8 @@ function App() {
                   favorites={favoritePools}
                   toggleFavorite={toggleFavoritePool}
                   clearFavorites={clearFavoritePools}
+                  recentPools={recentPoolsForPanel}
+                  clearRecentPools={clearRecentPools}
                   onResetFilters={() => {
                     setPoolSearch("");
                     setPoolFavoritesOnly(false);
