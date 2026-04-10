@@ -33,6 +33,7 @@ export default function SwapCard(props: any) {
     pool,
     handleManualRefresh,
     poolPending,
+    lastPoolRefreshAt,
     handleCopySwapSnapshot,
     priceImpact,
     slippageRatio,
@@ -197,6 +198,13 @@ export default function SwapCard(props: any) {
   };
 
   const [poolCopied, setPoolCopied] = useState(false);
+
+  const refreshLabel = lastPoolRefreshAt
+    ? `Updated ${new Date(lastPoolRefreshAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : "Not updated yet";
 
   useEffect(() => {
     if (!poolCopied) return;
@@ -457,6 +465,9 @@ export default function SwapCard(props: any) {
 
       {showMinimalSwapLayout && (
         <div className="swap-quick-actions">
+          <span className="muted small" aria-label="Last updated">
+            {refreshLabel}
+          </span>
           <button
             className="tiny ghost"
             onClick={() => void handleManualRefresh()}

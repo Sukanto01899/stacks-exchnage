@@ -5504,6 +5504,7 @@ function App() {
                   pool={pool}
                   handleManualRefresh={handleManualRefresh}
                   poolPending={poolPending}
+                  lastPoolRefreshAt={lastPoolRefreshAt}
                   handleCopySwapSnapshot={handleCopySwapSnapshot}
                   priceImpact={priceImpact}
                   slippageRatio={slippageRatio}
