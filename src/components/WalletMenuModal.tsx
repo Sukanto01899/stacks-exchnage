@@ -25,12 +25,19 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
   if (!open || !address) return null;
 
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     if (!copied) return;
     const timer = window.setTimeout(() => setCopied(false), 1200);
     return () => window.clearTimeout(timer);
   }, [copied]);
+
+  useEffect(() => {
+    if (!copiedLink) return;
+    const timer = window.setTimeout(() => setCopiedLink(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedLink]);
 
   return (
     <div
@@ -88,6 +95,21 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
             >
               View on explorer
             </a>
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                const url = buildExplorerAddressUrl(address, resolvedStacksNetwork);
+                void navigator.clipboard
+                  .writeText(url)
+                  .then(() => setCopiedLink(true))
+                  .catch(() => {
+                    // ignore clipboard errors
+                  });
+              }}
+            >
+              {copiedLink ? "Link copied" : "Copy explorer link"}
+            </button>
           </div>
 
           <button className="tiny ghost" type="button" onClick={onDisconnect}>
