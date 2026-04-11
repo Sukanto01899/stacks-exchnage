@@ -83,6 +83,10 @@ import {
   unwrapReadOnlyOk,
 } from "./lib/clarity";
 import { clamp, isFiniteNumber } from "./lib/number";
+import {
+  buildExplorerAddressUrl as buildExplorerAddressUrlBase,
+  buildExplorerTxUrl as buildExplorerTxUrlBase,
+} from "./lib/explorer";
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
 const FAUCET_COOLDOWN_KEY = `faucet-cooldown-${RESOLVED_STACKS_NETWORK}`;
@@ -354,11 +358,11 @@ function App() {
   const txToastByTxid = useRef<Record<string, ActivityItem["status"]>>({});
 
   const buildExplorerTxUrl = useCallback((txid: string) => {
-    return `https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`;
+    return buildExplorerTxUrlBase(txid, RESOLVED_STACKS_NETWORK);
   }, []);
 
   const buildExplorerAddressUrl = useCallback((address: string) => {
-    return `https://explorer.hiro.so/address/${address}?chain=${RESOLVED_STACKS_NETWORK}`;
+    return buildExplorerAddressUrlBase(address, RESOLVED_STACKS_NETWORK);
   }, []);
 
   const pushToast = useCallback((
@@ -4949,7 +4953,7 @@ function App() {
                         <div className="activity-chip-row">
                           <a
                             className="chip ghost"
-                            href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                            href={buildExplorerTxUrl(item.txid)}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -4971,7 +4975,7 @@ function App() {
                             onClick={() =>
                               void copyToClipboard(
                                 "Explorer link",
-                                `https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`,
+                                buildExplorerTxUrl(item.txid!),
                               )
                             }
                             aria-label="Copy explorer link"
@@ -5411,7 +5415,7 @@ function App() {
                       {pendingTxs[0]?.txid ? (
                         <a
                           className="tiny ghost"
-                          href={`https://explorer.hiro.so/txid/${pendingTxs[0].txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                          href={buildExplorerTxUrl(pendingTxs[0]!.txid!)}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -5449,7 +5453,7 @@ function App() {
                             <div className="mini-actions">
                               <a
                                 className="tiny ghost"
-                                href={`https://explorer.hiro.so/txid/${item.txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                                href={buildExplorerTxUrl(item.txid)}
                                 target="_blank"
                                 rel="noreferrer"
                               >
@@ -5463,6 +5467,18 @@ function App() {
                                 }
                               >
                                 Copy
+                              </button>
+                              <button
+                                className="tiny ghost"
+                                type="button"
+                                onClick={() =>
+                                  void copyToClipboard(
+                                    "Explorer link",
+                                    buildExplorerTxUrl(item.txid || ""),
+                                  )
+                                }
+                              >
+                                Copy link
                               </button>
                             </div>
                           ) : null}
@@ -5692,7 +5708,7 @@ function App() {
                       <a
                         key={txid}
                         className="chip ghost"
-                        href={`https://explorer.hiro.so/txid/${txid}?chain=${RESOLVED_STACKS_NETWORK}`}
+                        href={buildExplorerTxUrl(txid)}
                         target="_blank"
                         rel="noreferrer"
                       >

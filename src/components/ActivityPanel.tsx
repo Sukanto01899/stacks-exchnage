@@ -18,6 +18,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { buildExplorerTxUrl } from "../lib/explorer";
 
 type ActivityFilter =
   | "swap"
@@ -172,7 +173,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   };
 
   const copyTxLink = async (txid: string) => {
-    const url = `https://explorer.hiro.so/txid/${txid}?chain=${resolvedStacksNetwork}`;
+    const url = buildExplorerTxUrl(txid, resolvedStacksNetwork);
     try {
       await navigator.clipboard.writeText(url);
       setCopiedTxLink(txid);
@@ -364,7 +365,7 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                   <div className="mini-actions">
                     <a
                       className="chip ghost"
-                      href={`https://explorer.hiro.so/txid/${item.txid}?chain=${resolvedStacksNetwork}`}
+                      href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
                       target="_blank"
                       rel="noreferrer"
                     >

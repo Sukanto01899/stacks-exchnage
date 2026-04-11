@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildExplorerAddressUrl } from "../lib/explorer";
 
 type WalletMenuModalProps = {
   open: boolean;
@@ -81,7 +82,7 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
             </button>
             <a
               className="secondary"
-              href={`https://explorer.hiro.so/address/${address}?chain=${resolvedStacksNetwork}`}
+              href={buildExplorerAddressUrl(address, resolvedStacksNetwork)}
               target="_blank"
               rel="noreferrer"
             >

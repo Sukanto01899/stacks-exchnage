@@ -1,4 +1,6 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+import { buildExplorerTxUrl } from "../lib/explorer";
+
 export default function LiquidityCard(props: any) {
   const {
     handleSyncToPoolRatio,
@@ -328,7 +330,7 @@ export default function LiquidityCard(props: any) {
                   {item.txid ? (
                     <a
                       className="chip ghost"
-                      href={`https://explorer.hiro.so/txid/${item.txid}?chain=${resolvedStacksNetwork}`}
+                      href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
                       target="_blank"
                       rel="noreferrer"
                     >
