@@ -1,4 +1,5 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { buildExplorerTxUrl } from "../lib/explorer";
 
 export default function LiquidityCard(props: any) {
@@ -50,6 +51,41 @@ export default function LiquidityCard(props: any) {
     typeof activityCount === "number" && Number.isFinite(activityCount)
       ? activityCount
       : 0;
+
+  const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
+  const [copiedTxLink, setCopiedTxLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!copiedTxid) return;
+    const timer = window.setTimeout(() => setCopiedTxid(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedTxid]);
+
+  useEffect(() => {
+    if (!copiedTxLink) return;
+    const timer = window.setTimeout(() => setCopiedTxLink(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedTxLink]);
+
+  const copyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const copyTx = async (txid: string) => {
+    const ok = await copyText(txid);
+    if (ok) setCopiedTxid(txid);
+  };
+
+  const copyTxLink = async (txid: string) => {
+    const url = buildExplorerTxUrl(txid, resolvedStacksNetwork);
+    const ok = await copyText(url);
+    if (ok) setCopiedTxLink(txid);
+  };
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
@@ -328,14 +364,30 @@ export default function LiquidityCard(props: any) {
                     {new Date(item.ts).toLocaleString()}
                   </span>
                   {item.txid ? (
-                    <a
-                      className="chip ghost"
-                      href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                    </a>
+                    <div className="mini-actions">
+                      <a
+                        className="chip ghost"
+                        href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                      </a>
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() => void copyTx(item.txid || "")}
+                      >
+                        {copiedTxid === item.txid ? "Copied" : "Copy"}
+                      </button>
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() => void copyTxLink(item.txid || "")}
+                      >
+                        {copiedTxLink === item.txid ? "Link copied" : "Copy link"}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               </div>
