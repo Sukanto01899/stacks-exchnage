@@ -5705,15 +5705,32 @@ function App() {
                   <p className="muted small">Recent faucet tx</p>
                   <div className="chip-row">
                     {faucetTxids.map((txid) => (
-                      <a
-                        key={txid}
-                        className="chip ghost"
-                        href={buildExplorerTxUrl(txid)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {txid.slice(0, 6)}...{txid.slice(-6)}
-                      </a>
+                      <div className="mini-actions" key={txid}>
+                        <a
+                          className="chip ghost"
+                          href={buildExplorerTxUrl(txid)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {txid.slice(0, 6)}...{txid.slice(-6)}
+                        </a>
+                        <button
+                          className="chip ghost"
+                          type="button"
+                          onClick={() => void copyToClipboard("Txid", txid)}
+                        >
+                          Copy
+                        </button>
+                        <button
+                          className="chip ghost"
+                          type="button"
+                          onClick={() =>
+                            void copyToClipboard("Explorer link", buildExplorerTxUrl(txid))
+                          }
+                        >
+                          Copy link
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
