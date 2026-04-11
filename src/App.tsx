@@ -3438,7 +3438,21 @@ function App() {
           detail: "Waiting for on-chain confirmation",
         });
       }
-      setFaucetTxids(results.map((entry) => entry.split(": ")[1] || entry));
+      const nextTxids = results
+        .map((entry) => entry.split(": ")[1] || entry)
+        .map((txid) => String(txid || "").trim())
+        .filter(Boolean);
+      setFaucetTxids((prev) => {
+        const seen = new Set<string>();
+        const merged = [...nextTxids, ...(Array.isArray(prev) ? prev : [])].filter(
+          (txid) => {
+            if (!txid || seen.has(txid)) return false;
+            seen.add(txid);
+            return true;
+          },
+        );
+        return merged.slice(0, 8);
+      });
       setBalances((prev) => ({
         tokenX: prev.tokenX + (targets.includes("x") ? FAUCET_AMOUNT : 0),
         tokenY: prev.tokenY + (targets.includes("y") ? FAUCET_AMOUNT : 0),
@@ -5702,7 +5716,30 @@ function App() {
 
               {!showMinimalSwapLayout && faucetTxids.length > 0 && (
                 <div className="note subtle">
-                  <p className="muted small">Recent faucet tx</p>
+                  <div className="activity-head">
+                    <p className="muted small">Recent faucet tx</p>
+                    <div className="mini-actions">
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() =>
+                          void copyToClipboard("Faucet txids", faucetTxids.join("\n"))
+                        }
+                      >
+                        Copy all
+                      </button>
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() => {
+                          setFaucetTxids([]);
+                          pushToast("Cleared faucet tx list.", "success");
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
                   <div className="chip-row">
                     {faucetTxids.map((txid) => (
                       <div className="mini-actions" key={txid}>
