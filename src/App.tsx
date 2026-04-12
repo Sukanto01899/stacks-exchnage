@@ -5710,6 +5710,8 @@ function App() {
                   onMintFaucet={() => handleFaucet()}
                   onOpenTokenSelector={handleOpenTokenSelector}
                   faucetPending={faucetPending}
+                  faucetCooldownActive={faucetCooldownActive}
+                  faucetCooldownLabel={faucetCooldownLabel}
                 />
               ) : activeTab === "prices" ? (
                 <div className="prices-stack">
@@ -5970,16 +5972,50 @@ function App() {
         <button
           className="chip"
           onClick={() => handleFaucet("x")}
-          disabled={faucetPending}
+          disabled={faucetPending || faucetCooldownActive}
+          title={
+            faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "Mint token X from faucet"
+          }
         >
-          {faucetPending ? "Loading..." : "X Faucet"}
+          {faucetPending
+            ? "Loading..."
+            : faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "X Faucet"}
         </button>
         <button
           className="chip"
           onClick={() => handleFaucet("y")}
-          disabled={faucetPending}
+          disabled={faucetPending || faucetCooldownActive}
+          title={
+            faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "Mint token Y from faucet"
+          }
         >
-          {faucetPending ? "Loading..." : "Y Faucet"}
+          {faucetPending
+            ? "Loading..."
+            : faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "Y Faucet"}
+        </button>
+        <button
+          className="chip"
+          onClick={() => handleFaucet()}
+          disabled={faucetPending || faucetCooldownActive}
+          title={
+            faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "Mint token X and Y from faucet"
+          }
+        >
+          {faucetPending
+            ? "Loading..."
+            : faucetCooldownActive
+              ? `Cooldown ${faucetCooldownLabel}`
+              : "XY Faucet"}
         </button>
       </div>
       {poolPending && <span className="sr-only">Loading pool data</span>}

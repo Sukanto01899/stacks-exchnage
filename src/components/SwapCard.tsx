@@ -87,7 +87,9 @@ export default function SwapCard(props: any) {
     onGoToPool,
     onMintFaucet,
     onOpenTokenSelector,
-    faucetPending
+    faucetPending,
+    faucetCooldownActive,
+    faucetCooldownLabel
   } = props;
 
   const tokenXLabel = tokenLabels?.x || "Token X";
@@ -344,9 +346,13 @@ export default function SwapCard(props: any) {
               <button
                 className="tiny"
                 onClick={() => onMintFaucet()}
-                disabled={faucetPending}
+                disabled={faucetPending || faucetCooldownActive}
               >
-                {faucetPending ? "Minting..." : "Mint from Faucet"}
+                {faucetPending
+                  ? "Minting..."
+                  : faucetCooldownActive
+                    ? `Cooldown ${faucetCooldownLabel || ""}`.trim()
+                    : "Mint X & Y from Faucet"}
               </button>
             ) : null}
           </div>
