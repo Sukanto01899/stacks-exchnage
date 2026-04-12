@@ -303,6 +303,20 @@ function App() {
   );
   const [approvePending, setApprovePending] = useState<TokenKey | null>(null);
   const [approveUnlimited, setApproveUnlimited] = useState(true);
+  const [networkHealthChecking, setNetworkHealthChecking] = useState(false);
+  const [networkHealth, setNetworkHealth] = useState<{
+    ok: boolean;
+    tipHeight: number | null;
+    latencyMs: number | null;
+    lastCheckedAt: number | null;
+    error: string | null;
+  }>({
+    ok: false,
+    tipHeight: null,
+    latencyMs: null,
+    lastCheckedAt: null,
+    error: null,
+  });
   const [unlimitedApprovalConfirmed, setUnlimitedApprovalConfirmed] =
     useState(false);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
@@ -1924,6 +1938,75 @@ function App() {
     const data = await res.json().catch(() => ({}));
     return Number(data?.stacks_tip_height || 0);
   };
+
+  const refreshNetworkHealth = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 6_000);
+    const startedAt = typeof performance !== "undefined" ? performance.now() : 0;
+
+    setNetworkHealthChecking(true);
+    try {
+      const res = await fetch(`${STACKS_API}/extended/v1/info`, {
+        signal: controller.signal,
+      });
+      const latencyMs =
+        typeof performance !== "undefined"
+          ? Math.max(0, Math.round(performance.now() - startedAt))
+          : null;
+      if (!res.ok) {
+        setNetworkHealth({
+          ok: false,
+          tipHeight: null,
+          latencyMs,
+          lastCheckedAt: Date.now(),
+          error: `HTTP ${res.status}`,
+        });
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      const tip = Number(data?.stacks_tip_height || 0);
+      setNetworkHealth({
+        ok: Number.isFinite(tip) && tip > 0,
+        tipHeight: Number.isFinite(tip) && tip > 0 ? tip : null,
+        latencyMs,
+        lastCheckedAt: Date.now(),
+        error: null,
+      });
+    } catch (error) {
+      const latencyMs =
+        typeof performance !== "undefined"
+          ? Math.max(0, Math.round(performance.now() - startedAt))
+          : null;
+      setNetworkHealth({
+        ok: false,
+        tipHeight: null,
+        latencyMs,
+        lastCheckedAt: Date.now(),
+        error: error instanceof Error ? error.message : "Fetch failed",
+      });
+    } finally {
+      window.clearTimeout(timeout);
+      setNetworkHealthChecking(false);
+    }
+  }, [STACKS_API]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const run = async () => {
+      await refreshNetworkHealth();
+      if (cancelled) return;
+    };
+    void run();
+    const timer = window.setInterval(() => {
+      void refreshNetworkHealth();
+    }, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [refreshNetworkHealth]);
 
   // TODO: Update this function if your contract uses a different approval mechanism, such as separate allowance functions for each token, or if you want to implement more detailed error handling and user feedback based on your contract's specific response structure and error codes
   const detectApprovalSupport = useCallback(
@@ -3931,6 +4014,7 @@ function App() {
   const handleManualRefresh = useCallback(async () => {
     setFrontendMessage(null);
     try {
+      void refreshNetworkHealth();
       if (stacksAddress) {
         await syncBalances(stacksAddress);
       } else {
@@ -3942,7 +4026,7 @@ function App() {
         error instanceof Error ? error.message : "Could not refresh pool data.",
       );
     }
-  }, [fetchPoolState, stacksAddress, syncBalances]);
+  }, [fetchPoolState, refreshNetworkHealth, stacksAddress, syncBalances]);
 
   const handleCopySwapSnapshot = useCallback(async () => {
     const fromSymbol = swapDirection === "x-to-y" ? "X" : "Y";
@@ -4482,6 +4566,43 @@ function App() {
             <span className="nav-search-hint">Ctrl/Cmd+K</span>
           </button>
           <div className="nav-actions">
+            {STACKS_API && (
+              <button
+                className={`tiny ${
+                  networkHealthChecking
+                    ? "neutral"
+                    : networkHealth.ok &&
+                        networkHealth.lastCheckedAt !== null &&
+                        activityNow - networkHealth.lastCheckedAt <= 120_000
+                      ? "success"
+                      : "warn"
+                }`}
+                type="button"
+                onClick={() => void refreshNetworkHealth()}
+                aria-label="Stacks API status"
+                title={[
+                  `Stacks API: ${STACKS_API}`,
+                  networkHealth.lastCheckedAt
+                    ? `Last check: ${new Date(networkHealth.lastCheckedAt).toLocaleTimeString()}`
+                    : "Last check: never",
+                  networkHealth.latencyMs !== null
+                    ? `Latency: ~${networkHealth.latencyMs}ms`
+                    : null,
+                  networkHealth.error ? `Error: ${networkHealth.error}` : null,
+                ]
+                  .filter(Boolean)
+                  .join("\n")}
+              >
+                {networkHealthChecking
+                  ? "API checking"
+                  : networkHealth.ok
+                    ? "API ok"
+                    : "API down"}
+                {networkHealth.tipHeight !== null
+                  ? ` · h ${formatCompactNumber(networkHealth.tipHeight)}`
+                  : ""}
+              </button>
+            )}
             {poolSelectorOptions.length > 0 && (
               <label className="pool-select" title="Select pool contract">
                 <span className="pool-select-label">Pool</span>

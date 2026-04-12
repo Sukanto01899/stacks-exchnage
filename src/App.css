@@ -3590,6 +3590,24 @@ h3 {
   background: transparent;
 }
 
+.tiny.success {
+  background: rgba(var(--ok-rgb), 0.14);
+  border-color: rgba(var(--ok-rgb), 0.46);
+  color: #dffbe9;
+}
+
+.tiny.warn {
+  background: rgba(var(--accent-strong-rgb), 0.14);
+  border-color: rgba(var(--accent-strong-rgb), 0.46);
+  color: #fff2d8;
+}
+
+.tiny.neutral {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+}
+
 .dual-input {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
