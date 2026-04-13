@@ -2845,6 +2845,19 @@ h3 {
   background: rgba(var(--accent-rgb), 0.18);
 }
 
+.activity-limit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-limit-row .tiny.is-active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  color: #fff;
+  background: rgba(var(--accent-rgb), 0.18);
+}
+
 .activity-drawer-summary {
   margin-top: -4px;
 }

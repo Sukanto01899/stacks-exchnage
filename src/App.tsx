@@ -2322,7 +2322,7 @@ function App() {
       const raw = localStorage.getItem(activityUiKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as
-        | { activityFilter?: unknown; activitySearch?: unknown }
+        | { activityFilter?: unknown; activitySearch?: unknown; activityLimit?: unknown }
         | null;
       if (!parsed || typeof parsed !== "object") return;
       const next = parsed.activityFilter;
@@ -2342,6 +2342,10 @@ function App() {
       }
       if (typeof parsed.activitySearch === "string") {
         setActivitySearch(parsed.activitySearch);
+      }
+      const limit = parsed.activityLimit;
+      if (typeof limit === "number" && Number.isFinite(limit)) {
+        setActivityLimit(Math.max(10, Math.min(200, Math.round(limit))));
       }
     } catch (error) {
       console.warn("Activity UI load failed", error);
@@ -2364,12 +2368,12 @@ function App() {
     try {
       localStorage.setItem(
         activityUiKey,
-        JSON.stringify({ activityFilter, activitySearch }),
+        JSON.stringify({ activityFilter, activitySearch, activityLimit }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [activityFilter, activitySearch, activityUiKey]);
+  }, [activityFilter, activityLimit, activitySearch, activityUiKey]);
 
   useEffect(() => {
     try {
@@ -4846,6 +4850,20 @@ function App() {
                 >
                   Clear search
                 </button>
+              </div>
+              <div className="activity-limit-row" aria-label="Activity list size">
+                <span className="muted small">Show</span>
+                {[10, 25, 50, 100].map((limit) => (
+                  <button
+                    key={limit}
+                    className={`tiny ghost ${activityLimit === limit ? "is-active" : ""}`}
+                    type="button"
+                    onClick={() => setActivityLimit(limit)}
+                    aria-pressed={activityLimit === limit}
+                  >
+                    {limit}
+                  </button>
+                ))}
               </div>
               <div className="mini-actions">
                 <button
