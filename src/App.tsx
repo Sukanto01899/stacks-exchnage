@@ -4651,6 +4651,39 @@ function App() {
                 )}
               </label>
             )}
+            {poolSelectorOptions.length > 0 && poolContract.address && poolContract.contractName && (
+              <>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() =>
+                    void copyToClipboard(
+                      "Pool contract",
+                      `${poolContract.address}.${poolContract.contractName}`,
+                    )
+                  }
+                  aria-label="Copy pool contract ID"
+                  title="Copy pool contract ID"
+                >
+                  Copy pool
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      `https://explorer.hiro.so/contract/${poolContract.address}/${poolContract.contractName}?chain=${RESOLVED_STACKS_NETWORK}`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                  aria-label="View pool contract on explorer"
+                  title="View pool contract on explorer"
+                >
+                  Explorer
+                </button>
+              </>
+            )}
             <button
               className="activity-pill"
               type="button"
