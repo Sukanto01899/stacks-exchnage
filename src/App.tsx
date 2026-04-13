@@ -4603,6 +4603,20 @@ function App() {
                   : ""}
               </button>
             )}
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void handleManualRefresh()}
+              disabled={poolPending}
+              aria-label="Refresh pool data"
+              title={
+                lastPoolRefreshAt
+                  ? `Refresh pool/balances\nLast pool refresh: ${new Date(lastPoolRefreshAt).toLocaleTimeString()}`
+                  : "Refresh pool/balances"
+              }
+            >
+              {poolPending ? "Refreshing" : "Refresh"}
+            </button>
             {poolSelectorOptions.length > 0 && (
               <label className="pool-select" title="Select pool contract">
                 <span className="pool-select-label">Pool</span>
