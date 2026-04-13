@@ -2714,8 +2714,30 @@ function App() {
 
   useEffect(() => {
     if (directionalPrice <= 0) return;
+    const hits = priceAlerts
+      .filter((item) => item.status === "active")
+      .map((item) => {
+        const price =
+          item.pairDirection === "x-to-y"
+            ? currentPrice
+            : currentPrice > 0
+              ? 1 / currentPrice
+              : 0;
+        if (!price) return null;
+        const hit =
+          item.condition === ">="
+            ? price >= item.targetPrice
+            : price <= item.targetPrice;
+        if (!hit) return null;
+        return { item, price };
+      })
+      .filter(Boolean) as Array<{ item: PriceAlert; price: number }>;
+
+    if (hits.length === 0) return;
+
     const now = Date.now();
-    const triggeredIds: string[] = [];
+    const first = hits[0];
+    const suffix = hits.length > 1 ? ` (+${hits.length - 1} more)` : "";
 
     setPriceAlerts((prev) => {
       let changed = false;
@@ -2734,7 +2756,6 @@ function App() {
             : price <= item.targetPrice;
         if (!hit) return item;
         changed = true;
-        triggeredIds.push(item.id);
         return {
           ...item,
           status: "triggered" as const,
@@ -2747,28 +2768,20 @@ function App() {
       return next;
     });
 
-    if (triggeredIds.length === 0) return;
+    const unitFrom = first.item.pairDirection === "x-to-y" ? "X" : "Y";
+    const unitTo = first.item.pairDirection === "x-to-y" ? "Y" : "X";
 
-    const triggeredAlerts = priceAlerts.filter((item) =>
-      triggeredIds.includes(item.id),
+    setAlertMessage(
+      `Price alert triggered${suffix}: 1 ${unitFrom} ${first.item.condition} ${formatNumber(first.item.targetPrice)} ${unitTo}.`,
     );
-    const first = triggeredAlerts[0];
-    if (first) {
-      const unitFrom = first.pairDirection === "x-to-y" ? "X" : "Y";
-      const unitTo = first.pairDirection === "x-to-y" ? "Y" : "X";
-      setAlertMessage(
-        `Price alert triggered: 1 ${unitFrom} ${first.condition} ${formatNumber(first.targetPrice)} ${unitTo}.`,
-      );
-      if (browserAlertsEnabled && typeof Notification !== "undefined") {
-        const livePrice =
-          first.pairDirection === "x-to-y"
-            ? currentPrice
-            : currentPrice > 0
-              ? 1 / currentPrice
-              : 0;
+
+    if (browserAlertsEnabled && typeof Notification !== "undefined") {
+      try {
         new Notification("Clardex price alert", {
-          body: `1 ${unitFrom} is now ${formatNumber(livePrice)} ${unitTo}.`,
+          body: `1 ${unitFrom} is now ${formatNumber(first.price)} ${unitTo}.${suffix}`,
         });
+      } catch {
+        // ignore notification failures (permission denied, insecure context, etc.)
       }
     }
   }, [
