@@ -1881,12 +1881,19 @@ function App() {
     setActivityItems([]);
     setActivityFilter("all");
     setActivitySearch("");
+    setActivityLimit(10);
     try {
       localStorage.removeItem(activityKey);
     } catch (error) {
       console.warn("Activity history clear failed", error);
     }
   }, [activityKey, setActivityItems]);
+
+  const resetActivityView = useCallback(() => {
+    setActivityFilter("all");
+    setActivitySearch("");
+    setActivityLimit(10);
+  }, []);
 
   const lpFeeEstimates = useMemo(() => {
     const now = Date.now();
@@ -4872,6 +4879,18 @@ function App() {
                 ))}
               </div>
               <div className="mini-actions">
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={resetActivityView}
+                  disabled={
+                    activityFilter === "all" &&
+                    !activitySearch.trim() &&
+                    activityLimit === 10
+                  }
+                >
+                  Reset view
+                </button>
                 <button
                   className="tiny ghost"
                   type="button"
