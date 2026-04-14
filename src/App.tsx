@@ -4277,6 +4277,29 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isTyping) return;
+      if (event.key.toLowerCase() !== "r") return;
+      if (poolPending) return;
+
+      event.preventDefault();
+      void handleManualRefresh();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleManualRefresh, poolPending]);
+
   const commandItems = useMemo<CommandItem[]>(() => {
     const items: CommandItem[] = [
       {
@@ -4397,6 +4420,7 @@ function App() {
         id: "refresh-pool",
         label: "Refresh pool data",
         keywords: "refresh reload pool balances",
+        hotkey: "R",
         run: () => {
           void handleManualRefresh();
           closeCommandPalette();
