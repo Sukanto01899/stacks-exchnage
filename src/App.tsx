@@ -4201,6 +4201,16 @@ function App() {
       }
 
       if (activityDrawerOpen || activityDrawerClosing) {
+        const el = typeof document === "undefined" ? null : document.activeElement;
+        if (
+          activitySearch.trim() &&
+          el instanceof HTMLInputElement &&
+          el.classList.contains("activity-search")
+        ) {
+          event.preventDefault();
+          setActivitySearch("");
+          return;
+        }
         event.preventDefault();
         closeActivityDrawer();
         return;
@@ -4217,6 +4227,7 @@ function App() {
   }, [
     activityDrawerClosing,
     activityDrawerOpen,
+    activitySearch,
     closeActivityDrawer,
     closeCommandPalette,
     closeNavDrawer,
@@ -4226,6 +4237,7 @@ function App() {
     commandPaletteOpen,
     drawerClosing,
     drawerOpen,
+    setActivitySearch,
     showOnboarding,
     swapConfirmDraft,
     walletMenuOpen,
