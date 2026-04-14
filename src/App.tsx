@@ -4045,6 +4045,12 @@ function App() {
     }
   }, [fetchPoolState, refreshNetworkHealth, stacksAddress, syncBalances]);
 
+  const poolRefreshAgeMs = useMemo(() => {
+    if (!lastPoolRefreshAt) return null;
+    return Math.max(0, activityNow - lastPoolRefreshAt);
+  }, [activityNow, lastPoolRefreshAt]);
+  const poolIsStale = poolRefreshAgeMs === null || poolRefreshAgeMs > 120_000;
+
   const handleCopySwapSnapshot = useCallback(async () => {
     const fromSymbol = swapDirection === "x-to-y" ? "X" : "Y";
     const toSymbol = swapDirection === "x-to-y" ? "Y" : "X";
@@ -4621,7 +4627,7 @@ function App() {
               </button>
             )}
             <button
-              className="tiny ghost"
+              className={poolIsStale ? "tiny warn" : "tiny ghost"}
               type="button"
               onClick={() => void handleManualRefresh()}
               disabled={poolPending}
@@ -4629,7 +4635,7 @@ function App() {
               title={
                 lastPoolRefreshAt
                   ? `Refresh pool/balances\nLast pool refresh: ${new Date(lastPoolRefreshAt).toLocaleTimeString()}`
-                  : "Refresh pool/balances"
+                  : "Refresh pool/balances\nLast pool refresh: never"
               }
             >
               {poolPending ? "Refreshing" : "Refresh"}
