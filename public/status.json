@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "id": "example-2026-04-15",
+  "variant": "info",
+  "message": "Example status banner. Edit frontend/public/status.json to announce maintenance or incidents.",
+  "linkUrl": "",
+  "linkText": "Details",
+  "dismissible": true
+}
+

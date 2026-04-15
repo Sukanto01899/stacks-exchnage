@@ -34,6 +34,7 @@ import AddressPill from "./components/AddressPill";
 import SwapConfirmModal from "./components/SwapConfirmModal";
 import WalletMenuModal from "./components/WalletMenuModal";
 import CommandPaletteModal, { type CommandItem } from "./components/CommandPaletteModal";
+import StatusBanner from "./components/StatusBanner";
 import type {
   ActivityItem,
   AppTab,
@@ -4573,6 +4574,7 @@ function App() {
     <div
       className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}
     >
+      <StatusBanner />
       <header className="nav">
         <div className="nav-inner">
           <div className="nav-cluster">
