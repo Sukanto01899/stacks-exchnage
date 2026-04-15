@@ -37,6 +37,7 @@ type PoolListPanelProps = {
   onResetFilters: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
+  onCopyPoolLink: (poolId: string, target: "swap" | "liquidity") => void;
   resolvedStacksNetwork: string;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
@@ -61,6 +62,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onResetFilters,
     onOpenPool,
     onCopyPoolId,
+    onCopyPoolLink,
     resolvedStacksNetwork,
     formatCompactNumber,
     formatNumber,
@@ -249,6 +251,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                   onClick={() => onCopyPoolId(pool.id)}
                 >
                   Copy contract
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => onCopyPoolLink(pool.id, "swap")}
+                  title="Copy a link that opens this pool in Trade"
+                >
+                  Copy trade link
                 </button>
                 {toContractExplorerUrl(pool.id) && (
                   <a

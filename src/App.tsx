@@ -227,6 +227,7 @@ type RecentPoolEntry = {
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
+  const urlInitApplied = useRef(false);
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (typeof window === "undefined") return "swap";
@@ -416,6 +417,18 @@ function App() {
     [pushToast],
   );
 
+  const buildPoolDeepLink = useCallback((poolId: string, tab: AppTab) => {
+    if (typeof window === "undefined") return null;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("pool", poolId);
+      url.searchParams.set("tab", tab);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }, []);
+
   const downloadTextFile = useCallback(
     (filename: string, text: string, mime = "text/plain") => {
       try {
@@ -480,6 +493,34 @@ function App() {
     }
     return POOL_CONTRACT_IDS[0] ?? "";
   });
+
+  useEffect(() => {
+    if (urlInitApplied.current) return;
+    urlInitApplied.current = true;
+    if (typeof window === "undefined") return;
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const pool = params.get("pool");
+      const tab = params.get("tab");
+
+      if (pool && POOL_CONTRACT_IDS.includes(pool)) {
+        setPoolContractId(pool);
+      }
+
+      if (
+        tab === "swap" ||
+        tab === "prices" ||
+        tab === "pools" ||
+        tab === "analytics" ||
+        tab === "liquidity"
+      ) {
+        setActiveTab(tab);
+      }
+    } catch {
+      // ignore url parse errors
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -5947,6 +5988,14 @@ function App() {
                   }}
                   onOpenPool={handleOpenPoolFromList}
                   onCopyPoolId={(id) => void copyToClipboard("Pool contract", id)}
+                  onCopyPoolLink={(id) => {
+                    const url = buildPoolDeepLink(id, "swap");
+                    if (!url) {
+                      pushToast("Unable to build link.", "error");
+                      return;
+                    }
+                    void copyToClipboard("Trade link", url);
+                  }}
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}
