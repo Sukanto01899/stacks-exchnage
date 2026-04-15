@@ -1627,6 +1627,16 @@ h3 {
   gap: 10px;
 }
 
+.palette-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.palette-recent-hint {
+  margin-top: 10px;
+}
+
 .palette-search {
   margin-top: 12px;
   width: 100%;
