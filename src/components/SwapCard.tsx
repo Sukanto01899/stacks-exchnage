@@ -36,6 +36,10 @@ export default function SwapCard(props: any) {
     lastPoolRefreshAt,
     handleCopySwapSnapshot,
     handleCopySwapLink,
+    autoRefreshEnabled,
+    setAutoRefreshEnabled,
+    autoRefreshIntervalSec,
+    setAutoRefreshIntervalSec,
     priceImpact,
     slippageRatio,
     PRICE_IMPACT_WARN_PCT,
@@ -551,6 +555,29 @@ export default function SwapCard(props: any) {
           <span className="muted small" aria-label="Last updated">
             {refreshLabel}
           </span>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={() => setAutoRefreshEnabled?.((prev: boolean) => !prev)}
+            title="Automatically refresh pool data"
+          >
+            Auto: {autoRefreshEnabled ? `${autoRefreshIntervalSec || 30}s` : "Off"}
+          </button>
+          {autoRefreshEnabled && setAutoRefreshIntervalSec ? (
+            <>
+              {[15, 30, 60].map((seconds) => (
+                <button
+                  key={seconds}
+                  className={`tiny ghost ${autoRefreshIntervalSec === seconds ? "is-active" : ""}`}
+                  type="button"
+                  onClick={() => setAutoRefreshIntervalSec(seconds)}
+                  aria-pressed={autoRefreshIntervalSec === seconds}
+                >
+                  {seconds}s
+                </button>
+              ))}
+            </>
+          ) : null}
           <button
             className="tiny ghost"
             onClick={() => void handleManualRefresh()}

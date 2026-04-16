@@ -235,6 +235,7 @@ function App() {
     deadlineMinutesInput?: string;
   } | null>(null);
   const swapUrlApplied = useRef(false);
+  const autoRefreshApplied = useRef(false);
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (typeof window === "undefined") return "swap";
@@ -2365,6 +2366,11 @@ function App() {
     () => `swap-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [RESOLVED_STACKS_NETWORK, stacksAddress],
   );
+  const autoRefreshKey = useMemo(
+    () =>
+      `auto-refresh-${RESOLVED_STACKS_NETWORK}-${poolContractId || "unknown"}`,
+    [RESOLVED_STACKS_NETWORK, poolContractId],
+  );
   const approvalSettingsKey = useMemo(
     () =>
       `approval-settings-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
@@ -2423,6 +2429,46 @@ function App() {
     swapUrlApplied.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [swapSettingsKey]);
+
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [autoRefreshIntervalSec, setAutoRefreshIntervalSec] = useState(30);
+
+  useEffect(() => {
+    if (autoRefreshApplied.current) return;
+    autoRefreshApplied.current = true;
+    try {
+      const raw = localStorage.getItem(autoRefreshKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as
+        | { enabled?: unknown; intervalSec?: unknown }
+        | null;
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.enabled === "boolean") {
+        setAutoRefreshEnabled(parsed.enabled);
+      }
+      if (typeof parsed.intervalSec === "number" && Number.isFinite(parsed.intervalSec)) {
+        setAutoRefreshIntervalSec(
+          Math.max(10, Math.min(300, Math.round(parsed.intervalSec))),
+        );
+      }
+    } catch (error) {
+      console.warn("Auto refresh load failed", error);
+    }
+  }, [autoRefreshKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        autoRefreshKey,
+        JSON.stringify({
+          enabled: autoRefreshEnabled,
+          intervalSec: autoRefreshIntervalSec,
+        }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [autoRefreshEnabled, autoRefreshIntervalSec, autoRefreshKey]);
 
   useEffect(() => {
     try {
@@ -4187,6 +4233,38 @@ function App() {
   }, [activityNow, lastPoolRefreshAt]);
   const poolIsStale = poolRefreshAgeMs === null || poolRefreshAgeMs > 120_000;
 
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+    if (typeof window === "undefined") return;
+
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      if (poolPending) return;
+      if (activeTab !== "swap" && activeTab !== "prices" && activeTab !== "liquidity") {
+        return;
+      }
+      const age = lastPoolRefreshAt ? Date.now() - lastPoolRefreshAt : Infinity;
+      if (age < autoRefreshIntervalSec * 800) return;
+      void handleManualRefresh();
+    };
+
+    tick();
+    const timer = window.setInterval(
+      tick,
+      Math.max(10, Math.min(300, autoRefreshIntervalSec)) * 1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [
+    activeTab,
+    autoRefreshEnabled,
+    autoRefreshIntervalSec,
+    handleManualRefresh,
+    lastPoolRefreshAt,
+    poolPending,
+  ]);
+
   const handleCopySwapSnapshot = useCallback(async () => {
     const fromSymbol = swapDirection === "x-to-y" ? "X" : "Y";
     const toSymbol = swapDirection === "x-to-y" ? "Y" : "X";
@@ -4591,6 +4669,15 @@ function App() {
         hotkey: "R",
         run: () => {
           void handleManualRefresh();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "toggle-auto-refresh",
+        label: autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh",
+        keywords: "auto refresh polling",
+        run: () => {
+          setAutoRefreshEnabled((prev) => !prev);
           closeCommandPalette();
         },
       },
@@ -5975,6 +6062,10 @@ function App() {
                   lastPoolRefreshAt={lastPoolRefreshAt}
                   handleCopySwapSnapshot={handleCopySwapSnapshot}
                   handleCopySwapLink={handleCopySwapLink}
+                  autoRefreshEnabled={autoRefreshEnabled}
+                  setAutoRefreshEnabled={setAutoRefreshEnabled}
+                  autoRefreshIntervalSec={autoRefreshIntervalSec}
+                  setAutoRefreshIntervalSec={setAutoRefreshIntervalSec}
                   priceImpact={priceImpact}
                   slippageRatio={slippageRatio}
                   PRICE_IMPACT_WARN_PCT={PRICE_IMPACT_WARN_PCT}
