@@ -35,6 +35,7 @@ export default function SwapCard(props: any) {
     poolPending,
     lastPoolRefreshAt,
     handleCopySwapSnapshot,
+    handleCopySwapLink,
     priceImpact,
     slippageRatio,
     PRICE_IMPACT_WARN_PCT,
@@ -562,6 +563,13 @@ export default function SwapCard(props: any) {
             onClick={() => void handleCopySwapSnapshot()}
           >
             Copy snapshot
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => void handleCopySwapLink?.()}
+            disabled={!handleCopySwapLink}
+          >
+            Copy link
           </button>
         </div>
       )}

@@ -228,6 +228,13 @@ type RecentPoolEntry = {
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
   const urlInitApplied = useRef(false);
+  const swapUrlOverrides = useRef<{
+    swapDirection?: "x-to-y" | "y-to-x";
+    swapInput?: string;
+    slippageInput?: string;
+    deadlineMinutesInput?: string;
+  } | null>(null);
+  const swapUrlApplied = useRef(false);
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (typeof window === "undefined") return "swap";
@@ -503,6 +510,10 @@ function App() {
       const params = new URLSearchParams(window.location.search);
       const pool = params.get("pool");
       const tab = params.get("tab");
+      const dir = params.get("dir");
+      const amount = params.get("amount");
+      const slippage = params.get("slippage");
+      const deadline = params.get("deadline");
 
       if (pool && POOL_CONTRACT_IDS.includes(pool)) {
         setPoolContractId(pool);
@@ -517,6 +528,32 @@ function App() {
       ) {
         setActiveTab(tab);
       }
+
+      const overrides: NonNullable<(typeof swapUrlOverrides)["current"]> = {};
+      if (dir === "x-to-y" || dir === "y-to-x") {
+        overrides.swapDirection = dir;
+        setSwapDirection(dir);
+      }
+      if (typeof amount === "string" && amount.trim().length > 0) {
+        const parsed = Number(amount);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          overrides.swapInput = amount.trim();
+          setSwapInput(amount.trim());
+        }
+      }
+      if (typeof slippage === "string" && slippage.trim().length > 0) {
+        overrides.slippageInput = slippage.trim();
+        setSlippageInput(slippage.trim());
+      }
+      if (typeof deadline === "string" && deadline.trim().length > 0) {
+        const parsed = Number(deadline);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          overrides.deadlineMinutesInput = deadline.trim();
+          setDeadlineMinutesInput(deadline.trim());
+        }
+      }
+      swapUrlOverrides.current =
+        Object.keys(overrides).length > 0 ? overrides : null;
     } catch {
       // ignore url parse errors
     }
@@ -2342,27 +2379,48 @@ function App() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(swapSettingsKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as
-        | {
-            slippageInput?: unknown;
-            deadlineMinutesInput?: unknown;
-            swapDirection?: unknown;
+      if (raw) {
+        const parsed = JSON.parse(raw) as
+          | {
+              slippageInput?: unknown;
+              deadlineMinutesInput?: unknown;
+              swapDirection?: unknown;
+            }
+          | null;
+        if (parsed && typeof parsed === "object") {
+          if (typeof parsed.slippageInput === "string") {
+            setSlippageInput(parsed.slippageInput);
           }
-        | null;
-      if (!parsed || typeof parsed !== "object") return;
-      if (typeof parsed.slippageInput === "string") {
-        setSlippageInput(parsed.slippageInput);
-      }
-      if (typeof parsed.deadlineMinutesInput === "string") {
-        setDeadlineMinutesInput(parsed.deadlineMinutesInput);
-      }
-      if (parsed.swapDirection === "x-to-y" || parsed.swapDirection === "y-to-x") {
-        setSwapDirection(parsed.swapDirection);
+          if (typeof parsed.deadlineMinutesInput === "string") {
+            setDeadlineMinutesInput(parsed.deadlineMinutesInput);
+          }
+          if (
+            parsed.swapDirection === "x-to-y" ||
+            parsed.swapDirection === "y-to-x"
+          ) {
+            setSwapDirection(parsed.swapDirection);
+          }
+        }
       }
     } catch (error) {
       console.warn("Swap settings load failed", error);
     }
+
+    if (swapUrlApplied.current) return;
+    if (typeof window === "undefined") return;
+    const overrides = swapUrlOverrides.current;
+    if (!overrides) return;
+    if (overrides.swapDirection) setSwapDirection(overrides.swapDirection);
+    if (typeof overrides.slippageInput === "string") {
+      setSlippageInput(overrides.slippageInput);
+    }
+    if (typeof overrides.deadlineMinutesInput === "string") {
+      setDeadlineMinutesInput(overrides.deadlineMinutesInput);
+    }
+    if (typeof overrides.swapInput === "string") {
+      setSwapInput(overrides.swapInput);
+    }
+    swapUrlApplied.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [swapSettingsKey]);
 
@@ -4165,6 +4223,45 @@ function App() {
     swapDirection,
   ]);
 
+  const handleCopySwapLink = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      if (poolContractId) url.searchParams.set("pool", poolContractId);
+      url.searchParams.set("tab", "swap");
+      url.searchParams.set("dir", swapDirection);
+      if (String(swapInput || "").trim()) {
+        url.searchParams.set("amount", String(swapInput).trim());
+      } else {
+        url.searchParams.delete("amount");
+      }
+      if (String(slippageInput || "").trim()) {
+        url.searchParams.set("slippage", String(slippageInput).trim());
+      } else {
+        url.searchParams.delete("slippage");
+      }
+      if (String(deadlineMinutesInput || "").trim()) {
+        url.searchParams.set("deadline", String(deadlineMinutesInput).trim());
+      } else {
+        url.searchParams.delete("deadline");
+      }
+      await navigator.clipboard.writeText(url.toString());
+      setFrontendMessage("Swap link copied.");
+    } catch (error) {
+      setFrontendMessage(
+        error instanceof Error
+          ? error.message
+          : "Clipboard access is not available.",
+      );
+    }
+  }, [
+    deadlineMinutesInput,
+    poolContractId,
+    slippageInput,
+    swapDirection,
+    swapInput,
+  ]);
+
   const slippageRatio = useMemo(() => {
     const parsed = Number(slippageInput);
     if (!Number.isFinite(parsed) || parsed < 0) return 0.005;
@@ -4503,6 +4600,15 @@ function App() {
         keywords: "copy snapshot quote impact",
         run: () => {
           void handleCopySwapSnapshot();
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "copy-swap-link",
+        label: "Copy swap link",
+        keywords: "copy link share url swap",
+        run: () => {
+          void handleCopySwapLink();
           closeCommandPalette();
         },
       },
@@ -5868,6 +5974,7 @@ function App() {
                   poolPending={poolPending}
                   lastPoolRefreshAt={lastPoolRefreshAt}
                   handleCopySwapSnapshot={handleCopySwapSnapshot}
+                  handleCopySwapLink={handleCopySwapLink}
                   priceImpact={priceImpact}
                   slippageRatio={slippageRatio}
                   PRICE_IMPACT_WARN_PCT={PRICE_IMPACT_WARN_PCT}
