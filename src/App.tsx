@@ -2859,7 +2859,7 @@ function App() {
     if (!amount || amount <= 0) return null;
     const output = quoteSwap(amount, swapDirection === "x-to-y");
     return output > 0 ? output : 0;
-  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
+  }, [swapInput, swapDirection, pool.reserveX, pool.reserveY, FEE_BPS]);
   const quoteLoading = poolPending;
 
   const swapConfirmPriceMovePct = useMemo(() => {
@@ -3856,9 +3856,38 @@ function App() {
 
   const priceImpact = useMemo(() => {
     const amount = Number(swapInput || 0);
-    const reserve = swapDirection === "x-to-y" ? pool.reserveX : pool.reserveY;
-    if (!amount || reserve <= 0) return 0;
-    return (amount / reserve) * 100;
+    if (!isFiniteNumber(amount) || amount <= 0) return 0;
+
+    const fromX = swapDirection === "x-to-y";
+    const reserveIn = fromX ? pool.reserveX : pool.reserveY;
+    const reserveOut = fromX ? pool.reserveY : pool.reserveX;
+    if (
+      !isFiniteNumber(reserveIn) ||
+      !isFiniteNumber(reserveOut) ||
+      reserveIn <= 0 ||
+      reserveOut <= 0
+    ) {
+      return 0;
+    }
+
+    // Price impact is computed as the curve-only slippage vs spot, excluding the pool fee
+    // (fee is surfaced separately in the UI).
+    const spotPrice = reserveOut / reserveIn;
+    if (!isFiniteNumber(spotPrice) || spotPrice <= 0) return 0;
+
+    const fee = (amount * FEE_BPS) / BPS;
+    const amountAfterFee = amount - fee;
+    if (!isFiniteNumber(amountAfterFee) || amountAfterFee <= 0) return 0;
+
+    const output =
+      (reserveOut * amountAfterFee) / (reserveIn + amountAfterFee);
+    if (!isFiniteNumber(output) || output <= 0) return 0;
+
+    const executionPrice = output / amountAfterFee;
+    if (!isFiniteNumber(executionPrice) || executionPrice <= 0) return 0;
+
+    const impact = ((spotPrice - executionPrice) / spotPrice) * 100;
+    return Number.isFinite(impact) ? Math.max(0, impact) : 0;
   }, [swapInput, swapDirection, pool.reserveX, pool.reserveY]);
 
   const suggestedSlippagePercent = useMemo(() => {
