@@ -86,6 +86,7 @@ import {
 import { clamp, isFiniteNumber } from "./lib/number";
 import {
   buildExplorerAddressUrl as buildExplorerAddressUrlBase,
+  buildExplorerContractUrl,
   buildExplorerTxUrl as buildExplorerTxUrlBase,
 } from "./lib/explorer";
 
@@ -6226,6 +6227,17 @@ function App() {
                       tab === "swap" ? "Trade link" : "Liquidity link",
                       url,
                     );
+                  }}
+                  onCopyPoolExplorerLink={(id) => {
+                    const url = buildExplorerContractUrl(
+                      id,
+                      RESOLVED_STACKS_NETWORK,
+                    );
+                    if (!url) {
+                      pushToast("Unable to build explorer link.", "error");
+                      return;
+                    }
+                    void copyToClipboard("Explorer link", url);
                   }}
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}

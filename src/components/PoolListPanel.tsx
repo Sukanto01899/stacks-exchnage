@@ -1,3 +1,5 @@
+import { buildExplorerContractUrl } from "../lib/explorer";
+
 type PoolListItem = {
   id: string;
   label: string;
@@ -38,6 +40,7 @@ type PoolListPanelProps = {
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
   onCopyPoolLink: (poolId: string, target: "swap" | "liquidity") => void;
+  onCopyPoolExplorerLink: (poolId: string) => void;
   resolvedStacksNetwork: string;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
@@ -63,16 +66,11 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onOpenPool,
     onCopyPoolId,
     onCopyPoolLink,
+    onCopyPoolExplorerLink,
     resolvedStacksNetwork,
     formatCompactNumber,
     formatNumber,
   } = props;
-
-  const toContractExplorerUrl = (contractId: string) => {
-    const [address = "", name = ""] = contractId.split(".");
-    if (!address || !name) return null;
-    return `https://explorer.hiro.so/contract/${address}/${name}?chain=${resolvedStacksNetwork}`;
-  };
 
   const isDefaultFilters =
     search.trim() === "" &&
@@ -268,10 +266,22 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 >
                   Copy liquidity link
                 </button>
-                {toContractExplorerUrl(pool.id) && (
+                {buildExplorerContractUrl(pool.id, resolvedStacksNetwork) && (
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() => onCopyPoolExplorerLink(pool.id)}
+                  >
+                    Copy explorer link
+                  </button>
+                )}
+                {buildExplorerContractUrl(pool.id, resolvedStacksNetwork) && (
                   <a
                     className="tiny ghost"
-                    href={toContractExplorerUrl(pool.id) as string}
+                    href={buildExplorerContractUrl(
+                      pool.id,
+                      resolvedStacksNetwork,
+                    ) as string}
                     target="_blank"
                     rel="noreferrer"
                   >
