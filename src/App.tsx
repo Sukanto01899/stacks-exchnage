@@ -461,6 +461,11 @@ function App() {
     [pushToast],
   );
 
+  const escapeCsvCell = useCallback((value: unknown) => {
+    const raw = value === null || value === undefined ? "" : String(value);
+    return `"${raw.replaceAll('"', '""')}"`;
+  }, []);
+
   const formatRelativeTime = useCallback(
     (timestampMs: number) => {
       if (!Number.isFinite(timestampMs) || timestampMs <= 0) return "Unknown";
@@ -1550,6 +1555,39 @@ function App() {
     resolveTokenLabel,
     poolFavoritesOnly,
   ]);
+
+  const poolsCsv = useMemo(() => {
+    const header = [
+      "id",
+      "label",
+      "token_x",
+      "token_y",
+      "token_x_is_stx",
+      "token_y_is_stx",
+      "tvl",
+      "volume_24h",
+      "fees_24h",
+      "apr",
+    ];
+    const lines = [header.map(escapeCsvCell).join(",")];
+    for (const pool of poolList) {
+      lines.push(
+        [
+          escapeCsvCell(pool.id),
+          escapeCsvCell(pool.label),
+          escapeCsvCell(pool.tokenXLabel),
+          escapeCsvCell(pool.tokenYLabel),
+          escapeCsvCell(pool.tokenXIsStx ? "true" : "false"),
+          escapeCsvCell(pool.tokenYIsStx ? "true" : "false"),
+          escapeCsvCell(pool.tvl),
+          escapeCsvCell(pool.volume24h),
+          escapeCsvCell(pool.fees24h),
+          escapeCsvCell(pool.apr === null ? "" : pool.apr),
+        ].join(","),
+      );
+    }
+    return lines.join("\n");
+  }, [escapeCsvCell, poolList]);
 
   const marketsByPool = useMemo(
     () =>
@@ -6239,6 +6277,14 @@ function App() {
                     }
                     void copyToClipboard("Explorer link", url);
                   }}
+                  onCopyPoolsCsv={() => void copyToClipboard("Pools CSV", poolsCsv)}
+                  onDownloadPoolsCsv={() =>
+                    downloadTextFile(
+                      `pools-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+                      poolsCsv,
+                      "text/csv",
+                    )
+                  }
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}

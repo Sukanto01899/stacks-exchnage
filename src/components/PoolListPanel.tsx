@@ -41,6 +41,8 @@ type PoolListPanelProps = {
   onCopyPoolId: (poolId: string) => void;
   onCopyPoolLink: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolExplorerLink: (poolId: string) => void;
+  onCopyPoolsCsv: () => void;
+  onDownloadPoolsCsv: () => void;
   resolvedStacksNetwork: string;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
@@ -67,6 +69,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onCopyPoolId,
     onCopyPoolLink,
     onCopyPoolExplorerLink,
+    onCopyPoolsCsv,
+    onDownloadPoolsCsv,
     resolvedStacksNetwork,
     formatCompactNumber,
     formatNumber,
@@ -85,7 +89,27 @@ export default function PoolListPanel(props: PoolListPanelProps) {
           <p className="eyebrow">Pools</p>
           <h3>Discover liquidity</h3>
         </div>
-        <span className="chip ghost">{pools.length} pools</span>
+        <div className="mini-actions">
+          <span className="chip ghost">{pools.length} pools</span>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={onCopyPoolsCsv}
+            disabled={pools.length === 0}
+            title="Copy the currently visible pools list as CSV"
+          >
+            Copy CSV
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={onDownloadPoolsCsv}
+            disabled={pools.length === 0}
+            title="Download the currently visible pools list as CSV"
+          >
+            Download CSV
+          </button>
+        </div>
       </div>
 
       <div className="pool-list-controls">
