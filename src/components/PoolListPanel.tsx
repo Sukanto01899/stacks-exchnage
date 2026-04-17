@@ -260,6 +260,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 >
                   Copy trade link
                 </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => onCopyPoolLink(pool.id, "liquidity")}
+                  title="Copy a link that opens this pool in Liquidity"
+                >
+                  Copy liquidity link
+                </button>
                 {toContractExplorerUrl(pool.id) && (
                   <a
                     className="tiny ghost"

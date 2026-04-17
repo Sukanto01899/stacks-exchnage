@@ -6215,13 +6215,17 @@ function App() {
                   }}
                   onOpenPool={handleOpenPoolFromList}
                   onCopyPoolId={(id) => void copyToClipboard("Pool contract", id)}
-                  onCopyPoolLink={(id) => {
-                    const url = buildPoolDeepLink(id, "swap");
+                  onCopyPoolLink={(id, target) => {
+                    const tab = target === "liquidity" ? "liquidity" : "swap";
+                    const url = buildPoolDeepLink(id, tab);
                     if (!url) {
                       pushToast("Unable to build link.", "error");
                       return;
                     }
-                    void copyToClipboard("Trade link", url);
+                    void copyToClipboard(
+                      tab === "swap" ? "Trade link" : "Liquidity link",
+                      url,
+                    );
                   }}
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}
