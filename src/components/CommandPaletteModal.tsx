@@ -110,6 +110,10 @@ export default function CommandPaletteModal(props: CommandPaletteModalProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        if (query.trim()) {
+          setQuery("");
+          return;
+        }
         onClose();
         return;
       }
@@ -133,7 +137,7 @@ export default function CommandPaletteModal(props: CommandPaletteModalProps) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeIndex, displayed, onClose, open]);
+  }, [activeIndex, displayed, onClose, open, query, setQuery]);
 
   if (!open) return null;
 
