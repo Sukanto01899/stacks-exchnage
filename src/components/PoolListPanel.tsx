@@ -220,7 +220,48 @@ export default function PoolListPanel(props: PoolListPanelProps) {
       )}
 
       {pools.length === 0 ? (
-        <p className="muted small">No pools match your search.</p>
+        <div className="note subtle" aria-label="No pools">
+          <p className="muted small">
+            {favoritesOnly && favorites.length === 0
+              ? "No favorite pools yet."
+              : favoritesOnly && search.trim()
+                ? "No favorite pools match your search."
+                : favoritesOnly
+                  ? "No favorite pools match these filters."
+                  : search.trim()
+                    ? "No pools match your search."
+                    : "No pools match these filters."}
+          </p>
+          <div className="chip-row">
+            {favoritesOnly ? (
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => setFavoritesOnly(false)}
+              >
+                Show all pools
+              </button>
+            ) : null}
+            {search.trim() ? (
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => setSearch("")}
+              >
+                Clear search
+              </button>
+            ) : null}
+            {!isDefaultFilters ? (
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={onResetFilters}
+              >
+                Reset filters
+              </button>
+            ) : null}
+          </div>
+        </div>
       ) : (
         <div className="pool-list-grid">
           {pools.map((pool) => (
