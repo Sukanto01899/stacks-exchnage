@@ -16,6 +16,11 @@ type Watchlist = {
   name: string;
   items: Record<string, WatchlistItemMeta>;
 };
+type StoredUiState = {
+  filterMode?: FilterMode;
+  sortKey?: SortKey;
+  sortDir?: "asc" | "desc";
+};
 
 type MarketInput = {
   id: string;
@@ -292,6 +297,31 @@ const PriceBoardPanel = ({
         } else {
           setPresets(DEFAULT_PRESETS);
         }
+
+        const uiRaw = (parsed as { ui?: unknown }).ui;
+        if (uiRaw && typeof uiRaw === "object") {
+          const ui = uiRaw as StoredUiState;
+          if (
+            ui.filterMode === "all" ||
+            ui.filterMode === "watchlist" ||
+            ui.filterMode === "gainers" ||
+            ui.filterMode === "losers" ||
+            ui.filterMode === "volume"
+          ) {
+            setFilterMode(ui.filterMode);
+          }
+          if (
+            ui.sortKey === "price" ||
+            ui.sortKey === "volume" ||
+            ui.sortKey === "change" ||
+            ui.sortKey === "change1h"
+          ) {
+            setSortKey(ui.sortKey);
+          }
+          if (ui.sortDir === "asc" || ui.sortDir === "desc") {
+            setSortDir(ui.sortDir);
+          }
+        }
       }
     } catch {
       // ignore storage errors
@@ -304,16 +334,25 @@ const PriceBoardPanel = ({
       localStorage.setItem(
         storageKey,
         JSON.stringify({
-          version: 2,
+          version: 3,
           activeId: activeWatchlistId,
           lists: watchlists,
           presets,
+          ui: { filterMode, sortKey, sortDir },
         }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [activeWatchlistId, presets, storageKey, watchlists]);
+  }, [
+    activeWatchlistId,
+    filterMode,
+    presets,
+    sortDir,
+    sortKey,
+    storageKey,
+    watchlists,
+  ]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -652,6 +691,12 @@ const PriceBoardPanel = ({
             placeholder="Filter markets"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && search.trim()) {
+                event.preventDefault();
+                setSearch("");
+              }
+            }}
           />
         </div>
       </div>
@@ -978,7 +1023,11 @@ const PriceBoardPanel = ({
 
       {visibleRows.length === 0 && (
         <p className="muted small price-board-empty">
-          No markets match this filter yet.
+          {filterMode === "watchlist" && watchlistIds.size === 0
+            ? 'Your watchlist is empty. Click "Watch" on a market to add it.'
+            : search.trim()
+              ? "No markets match your search."
+              : "No markets match this filter yet."}
         </p>
       )}
 
