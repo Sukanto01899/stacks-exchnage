@@ -4669,6 +4669,28 @@ function App() {
         },
       },
       {
+        id: "copy-pools-csv",
+        label: "Copy pools CSV (visible)",
+        keywords: "copy pools csv export",
+        run: () => {
+          void copyToClipboard("Pools CSV", poolsCsv);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "download-pools-csv",
+        label: "Download pools CSV (visible)",
+        keywords: "download pools csv export",
+        run: () => {
+          downloadTextFile(
+            `pools-${RESOLVED_STACKS_NETWORK}-${Date.now()}.csv`,
+            poolsCsv,
+            "text/csv",
+          );
+          closeCommandPalette();
+        },
+      },
+      {
         id: "clear-activity",
         label: "Clear activity history",
         keywords: "clear reset activity history",
@@ -4895,6 +4917,7 @@ function App() {
     pushToast,
     poolContract.address,
     poolContract.contractName,
+    poolsCsv,
     resetSwapSettings,
     resetAllLocalData,
     setActiveTab,
