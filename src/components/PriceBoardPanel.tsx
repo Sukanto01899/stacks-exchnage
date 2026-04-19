@@ -182,6 +182,31 @@ const PriceBoardPanel = ({
     [watchlistItems],
   );
 
+  const isDefaultView =
+    filterMode === "all" &&
+    search.trim() === "" &&
+    sortKey === "volume" &&
+    sortDir === "desc";
+
+  const resetView = () => {
+    setFilterMode("all");
+    setSearch("");
+    setSortKey("volume");
+    setSortDir("desc");
+  };
+
+  const clearActiveWatchlist = () => {
+    if (!activeWatchlist) return;
+    if (watchlistIds.size === 0) return;
+    const ok = window.confirm(
+      `Clear all ${watchlistIds.size} watched markets from "${activeWatchlist.name}"?`,
+    );
+    if (!ok) return;
+    setWatchlists((prev) =>
+      prev.map((list) => (list.id === activeWatchlistId ? { ...list, items: {} } : list)),
+    );
+  };
+
   useEffect(() => {
     setRows(buildInitialRows(markets));
   }, [markets]);
@@ -698,6 +723,15 @@ const PriceBoardPanel = ({
               }
             }}
           />
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={resetView}
+            disabled={isDefaultView}
+            title="Reset filter, sort, and search"
+          >
+            Reset view
+          </button>
         </div>
       </div>
 
@@ -726,6 +760,15 @@ const PriceBoardPanel = ({
             disabled={!activeWatchlist}
           >
             Rename
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={clearActiveWatchlist}
+            disabled={!activeWatchlist || watchlistIds.size === 0}
+            title="Remove all watched markets from the selected watchlist"
+          >
+            Clear
           </button>
           <button
             className="tiny ghost"
