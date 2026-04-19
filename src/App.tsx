@@ -4618,6 +4618,39 @@ function App() {
         },
       },
       {
+        id: "pools-toggle-favorites",
+        label: poolFavoritesOnly ? "Pools: Show all" : "Pools: Favorites only",
+        keywords: "pools favorites filter",
+        run: () => {
+          setActiveTab("pools");
+          setPoolFavoritesOnly((prev) => !prev);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-clear-search",
+        label: poolSearch.trim() ? "Pools: Clear search" : "Pools: Search is empty",
+        keywords: "pools search clear",
+        run: () => {
+          setActiveTab("pools");
+          if (poolSearch.trim()) setPoolSearch("");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-reset-filters",
+        label: "Pools: Reset filters",
+        keywords: "pools reset filters sort",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSearch("");
+          setPoolFavoritesOnly(false);
+          setPoolSort("tvl");
+          setPoolSortDir("desc");
+          closeCommandPalette();
+        },
+      },
+      {
         id: "nav-analytics",
         label: "Go to Analytics",
         keywords: "tab analytics pnl il",
@@ -4914,9 +4947,15 @@ function App() {
     handleManualRefresh,
     openActivityDrawer,
     openWalletMenu,
+    poolFavoritesOnly,
     pushToast,
     poolContract.address,
     poolContract.contractName,
+    poolSearch,
+    setPoolFavoritesOnly,
+    setPoolSearch,
+    setPoolSort,
+    setPoolSortDir,
     poolsCsv,
     resetSwapSettings,
     resetAllLocalData,
