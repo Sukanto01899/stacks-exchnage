@@ -4739,6 +4739,32 @@ function App() {
         },
       },
       {
+        id: "copy-page-link",
+        label: "Copy page link",
+        keywords: "copy link share url page",
+        run: () => {
+          if (typeof window !== "undefined") {
+            void copyToClipboard("Link", window.location.href);
+          }
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "copy-pool-link",
+        label: "Copy pool link (this tab)",
+        keywords: "copy link share url pool tab",
+        run: () => {
+          const id = `${poolContract.address}.${poolContract.contractName}`;
+          const url = buildPoolDeepLink(id, activeTab);
+          if (!url) {
+            pushToast("Unable to build link.", "error");
+            return;
+          }
+          void copyToClipboard("Pool link", url);
+          closeCommandPalette();
+        },
+      },
+      {
         id: "copy-pool-contract",
         label: "Copy pool contract ID",
         keywords: "copy pool contract",
@@ -4852,17 +4878,21 @@ function App() {
     return items;
   }, [
     RESOLVED_STACKS_NETWORK,
+    activeTab,
     activityCsv,
     activityItems.length,
+    buildPoolDeepLink,
     clearActivityHistory,
     closeCommandPalette,
     copyToClipboard,
     buildExplorerAddressUrl,
     downloadTextFile,
     handleCopySwapSnapshot,
+    handleCopySwapLink,
     handleManualRefresh,
     openActivityDrawer,
     openWalletMenu,
+    pushToast,
     poolContract.address,
     poolContract.contractName,
     resetSwapSettings,
