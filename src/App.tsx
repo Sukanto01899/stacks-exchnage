@@ -4651,6 +4651,23 @@ function App() {
         },
       },
       {
+        id: "pools-clear-recent",
+        label:
+          recentPools.length > 0
+            ? `Pools: Clear recent (${recentPools.length})`
+            : "Pools: No recent pools",
+        keywords: "pools recent clear history",
+        run: () => {
+          setActiveTab("pools");
+          if (recentPools.length > 0) {
+            const ok = window.confirm("Clear your recent pools list?");
+            if (!ok) return;
+            clearRecentPools();
+          }
+          closeCommandPalette();
+        },
+      },
+      {
         id: "nav-analytics",
         label: "Go to Analytics",
         keywords: "tab analytics pnl il",
@@ -4948,6 +4965,8 @@ function App() {
     openActivityDrawer,
     openWalletMenu,
     poolFavoritesOnly,
+    recentPools.length,
+    clearRecentPools,
     pushToast,
     poolContract.address,
     poolContract.contractName,
