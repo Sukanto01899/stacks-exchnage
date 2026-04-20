@@ -4567,6 +4567,68 @@ function App() {
       if (event.defaultPrevented) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
+      if (commandPaletteOpen) return;
+      if (walletMenuOpen) return;
+      if (swapConfirmDraft) return;
+      if (showOnboarding) return;
+      if (drawerOpen || drawerClosing) return;
+      if (activityDrawerOpen || activityDrawerClosing) return;
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isTyping) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "t") {
+        event.preventDefault();
+        setActiveTab("swap");
+        return;
+      }
+      if (key === "p") {
+        event.preventDefault();
+        setActiveTab("prices");
+        return;
+      }
+      if (key === "o") {
+        event.preventDefault();
+        setActiveTab("pools");
+        return;
+      }
+      if (key === "a") {
+        event.preventDefault();
+        setActiveTab("analytics");
+        return;
+      }
+      if (key === "l") {
+        event.preventDefault();
+        setActiveTab("liquidity");
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activityDrawerClosing,
+    activityDrawerOpen,
+    commandPaletteOpen,
+    drawerClosing,
+    drawerOpen,
+    showOnboarding,
+    swapConfirmDraft,
+    walletMenuOpen,
+  ]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
       const activeEl = document.activeElement as HTMLElement | null;
       const isTyping =
         !!activeEl &&
