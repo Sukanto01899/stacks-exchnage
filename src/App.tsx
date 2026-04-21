@@ -4836,6 +4836,23 @@ function App() {
         },
       },
       {
+        id: "pools-clear-favorites",
+        label:
+          favoritePools.length > 0
+            ? `Pools: Clear favorites (${favoritePools.length})`
+            : "Pools: No favorites",
+        keywords: "pools favorites clear",
+        run: () => {
+          setActiveTab("pools");
+          if (favoritePools.length > 0) {
+            const ok = window.confirm("Clear your favorite pools list?");
+            if (!ok) return;
+            clearFavoritePools();
+          }
+          closeCommandPalette();
+        },
+      },
+      {
         id: "nav-analytics",
         label: "Go to Analytics",
         keywords: "tab analytics pnl il",
@@ -5133,6 +5150,8 @@ function App() {
     openActivityDrawer,
     openWalletMenu,
     poolFavoritesOnly,
+    favoritePools.length,
+    clearFavoritePools,
     recentPools.length,
     clearRecentPools,
     pushToast,
