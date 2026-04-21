@@ -723,6 +723,17 @@ const PriceBoardPanel = ({
               }
             }}
           />
+          {search.trim() ? (
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Clear market search"
+              title="Clear search"
+            >
+              Clear
+            </button>
+          ) : null}
           <button
             className="tiny ghost"
             type="button"
