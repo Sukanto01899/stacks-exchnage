@@ -4697,6 +4697,20 @@ function App() {
         },
       },
       {
+        id: "prices-focus-search",
+        label: "Prices: Focus search",
+        keywords: "prices search focus filter markets",
+        run: () => {
+          setActiveTab("prices");
+          closeCommandPalette();
+          window.setTimeout(() => {
+            document
+              .querySelector<HTMLInputElement>(".price-board-search input")
+              ?.focus();
+          }, 50);
+        },
+      },
+      {
         id: "nav-pools",
         label: "Go to Pools",
         keywords: "tab pools list favorites",
@@ -4704,6 +4718,18 @@ function App() {
         run: () => {
           setActiveTab("pools");
           closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-focus-search",
+        label: "Pools: Focus search",
+        keywords: "pools search focus",
+        run: () => {
+          setActiveTab("pools");
+          closeCommandPalette();
+          window.setTimeout(() => {
+            document.querySelector<HTMLInputElement>(".pool-search input")?.focus();
+          }, 50);
         },
       },
       {
