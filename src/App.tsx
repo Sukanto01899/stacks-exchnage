@@ -4819,6 +4819,56 @@ function App() {
         },
       },
       {
+        id: "pools-toggle-sort-dir",
+        label: `Pools: Sort ${poolSortDir === "desc" ? "High → Low" : "Low → High"}`,
+        keywords: "pools sort direction toggle",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSortDir((prev) => (prev === "desc" ? "asc" : "desc"));
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-sort-tvl",
+        label: `Pools: Sort by TVL${poolSort === "tvl" ? " ✓" : ""}`,
+        keywords: "pools sort tvl",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSort("tvl");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-sort-volume",
+        label: `Pools: Sort by Volume 24h${poolSort === "volume" ? " ✓" : ""}`,
+        keywords: "pools sort volume 24h",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSort("volume");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-sort-fees",
+        label: `Pools: Sort by Fees 24h${poolSort === "fees" ? " ✓" : ""}`,
+        keywords: "pools sort fees 24h",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSort("fees");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "pools-sort-apr",
+        label: `Pools: Sort by APR${poolSort === "apr" ? " ✓" : ""}`,
+        keywords: "pools sort apr",
+        run: () => {
+          setActiveTab("pools");
+          setPoolSort("apr");
+          closeCommandPalette();
+        },
+      },
+      {
         id: "pools-clear-recent",
         label:
           recentPools.length > 0
@@ -5152,6 +5202,8 @@ function App() {
     poolFavoritesOnly,
     favoritePools.length,
     clearFavoritePools,
+    poolSort,
+    poolSortDir,
     recentPools.length,
     clearRecentPools,
     pushToast,
