@@ -4740,6 +4740,15 @@ function App() {
         },
       },
       {
+        id: "open-token-selector",
+        label: "Open token selector",
+        keywords: "token select swap picker",
+        run: () => {
+          handleOpenTokenSelector();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "nav-prices",
         label: "Go to Prices",
         keywords: "tab prices chart board",
@@ -5196,6 +5205,7 @@ function App() {
     downloadTextFile,
     handleCopySwapSnapshot,
     handleCopySwapLink,
+    handleOpenTokenSelector,
     handleManualRefresh,
     openActivityDrawer,
     openWalletMenu,
