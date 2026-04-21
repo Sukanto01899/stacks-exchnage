@@ -4674,6 +4674,59 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleManualRefresh, poolPending]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "s") return;
+
+      if (commandPaletteOpen) return;
+      if (walletMenuOpen) return;
+      if (swapConfirmDraft) return;
+      if (showOnboarding) return;
+      if (drawerOpen || drawerClosing) return;
+      if (activityDrawerClosing) return;
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+      if (isTyping) return;
+
+      event.preventDefault();
+
+      if (activityDrawerOpen) {
+        document.querySelector<HTMLInputElement>("input.activity-search")?.focus();
+        return;
+      }
+
+      if (activeTab === "pools") {
+        document.querySelector<HTMLInputElement>(".pool-search input")?.focus();
+        return;
+      }
+
+      if (activeTab === "prices") {
+        document.querySelector<HTMLInputElement>(".price-board-search input")?.focus();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activeTab,
+    activityDrawerClosing,
+    activityDrawerOpen,
+    commandPaletteOpen,
+    drawerClosing,
+    drawerOpen,
+    showOnboarding,
+    swapConfirmDraft,
+    walletMenuOpen,
+  ]);
+
   const commandItems = useMemo<CommandItem[]>(() => {
     const items: CommandItem[] = [
       {
