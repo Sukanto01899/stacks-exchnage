@@ -4941,6 +4941,28 @@ function App() {
         },
       },
       {
+        id: "activity-focus-search",
+        label: "Activity: Focus search",
+        keywords: "activity search focus filter",
+        run: () => {
+          openActivityDrawer();
+          closeCommandPalette();
+          window.setTimeout(() => {
+            document.querySelector<HTMLInputElement>("input.activity-search")?.focus();
+          }, 50);
+        },
+      },
+      {
+        id: "activity-clear-search",
+        label: activitySearch.trim() ? "Activity: Clear search" : "Activity: Search is empty",
+        keywords: "activity search clear",
+        run: () => {
+          openActivityDrawer();
+          if (activitySearch.trim()) setActivitySearch("");
+          closeCommandPalette();
+        },
+      },
+      {
         id: "copy-activity-csv",
         label: "Copy activity CSV (filtered)",
         keywords: "copy activity csv export transactions",
@@ -5197,6 +5219,7 @@ function App() {
     activeTab,
     activityCsv,
     activityItems.length,
+    activitySearch,
     buildPoolDeepLink,
     clearActivityHistory,
     closeCommandPalette,
@@ -5221,6 +5244,7 @@ function App() {
     poolContract.contractName,
     poolSearch,
     setPoolFavoritesOnly,
+    setActivitySearch,
     setPoolSearch,
     setPoolSort,
     setPoolSortDir,
