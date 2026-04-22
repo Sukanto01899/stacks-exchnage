@@ -4749,6 +4749,19 @@ function App() {
         },
       },
       {
+        id: "close-overlays",
+        label: "Close overlays",
+        keywords: "close escape dismiss modal drawer",
+        run: () => {
+          closeCommandPalette();
+          closeWalletMenu();
+          closeSwapConfirm();
+          closeActivityDrawer();
+          closeNavDrawer();
+          if (showOnboarding) closeOnboarding(false);
+        },
+      },
+      {
         id: "open-token-selector",
         label: "Open token selector",
         keywords: "token select swap picker",
@@ -5246,7 +5259,12 @@ function App() {
     activitySearch,
     buildPoolDeepLink,
     clearActivityHistory,
+    closeActivityDrawer,
     closeCommandPalette,
+    closeNavDrawer,
+    closeOnboarding,
+    closeSwapConfirm,
+    closeWalletMenu,
     copyToClipboard,
     buildExplorerAddressUrl,
     downloadTextFile,
@@ -5279,6 +5297,7 @@ function App() {
     setActiveTab,
     setShowOnboarding,
     setSwapPreset,
+    showOnboarding,
     stacksAddress,
   ]);
 
