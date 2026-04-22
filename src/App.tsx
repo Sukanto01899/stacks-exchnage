@@ -4740,6 +4740,15 @@ function App() {
         },
       },
       {
+        id: "open-onboarding",
+        label: "Open onboarding guide",
+        keywords: "help onboarding guide setup first run",
+        run: () => {
+          setShowOnboarding(true);
+          closeCommandPalette();
+        },
+      },
+      {
         id: "open-token-selector",
         label: "Open token selector",
         keywords: "token select swap picker",
@@ -5252,6 +5261,7 @@ function App() {
     resetSwapSettings,
     resetAllLocalData,
     setActiveTab,
+    setShowOnboarding,
     setSwapPreset,
     stacksAddress,
   ]);
