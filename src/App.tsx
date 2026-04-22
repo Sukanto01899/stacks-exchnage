@@ -5124,6 +5124,21 @@ function App() {
         },
       },
       {
+        id: "copy-pool-explorer-link",
+        label: "Copy pool explorer link",
+        keywords: "copy explorer pool contract link hiro",
+        run: () => {
+          const id = `${poolContract.address}.${poolContract.contractName}`;
+          const url = buildExplorerContractUrl(id, RESOLVED_STACKS_NETWORK);
+          if (!url) {
+            pushToast("Unable to build explorer link.", "error");
+            return;
+          }
+          void copyToClipboard("Explorer link", url);
+          closeCommandPalette();
+        },
+      },
+      {
         id: "view-pool-contract",
         label: "View pool contract on explorer",
         keywords: "explorer pool contract view",
@@ -5235,6 +5250,7 @@ function App() {
     copyToClipboard,
     buildExplorerAddressUrl,
     downloadTextFile,
+    buildExplorerContractUrl,
     handleCopySwapSnapshot,
     handleCopySwapLink,
     handleOpenTokenSelector,
