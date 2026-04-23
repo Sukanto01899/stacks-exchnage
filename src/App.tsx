@@ -412,13 +412,17 @@ function App() {
   }, []);
 
   const copyToClipboard = useCallback(
-    async (label: string, value: string) => {
+    async (
+      label: string,
+      value: string,
+      action?: { label: string; href: string },
+    ) => {
       try {
         const text = String(value ?? "");
         const clipboard = typeof navigator === "undefined" ? null : navigator.clipboard;
         if (clipboard?.writeText) {
           await clipboard.writeText(text);
-          pushToast(`${label} copied.`, "success");
+          pushToast(`${label} copied.`, "success", action);
           return;
         }
 
@@ -445,7 +449,7 @@ function App() {
         prevActive?.focus?.();
         if (!ok) throw new Error("Clipboard not available.");
 
-        pushToast(`${label} copied.`, "success");
+        pushToast(`${label} copied.`, "success", action);
       } catch (error) {
         pushToast(error instanceof Error ? error.message : "Clipboard not available.", "error");
       }
@@ -5149,7 +5153,7 @@ function App() {
             pushToast("Unable to build link.", "error");
             return;
           }
-          void copyToClipboard("Pool link", url);
+          void copyToClipboard("Pool link", url, { label: "Open", href: url });
           closeCommandPalette();
         },
       },
@@ -5188,7 +5192,7 @@ function App() {
             pushToast("Unable to build explorer link.", "error");
             return;
           }
-          void copyToClipboard("Explorer link", url);
+          void copyToClipboard("Explorer link", url, { label: "Open", href: url });
           closeCommandPalette();
         },
       },
@@ -5272,10 +5276,8 @@ function App() {
         label: "Copy wallet explorer link",
         keywords: "copy wallet address explorer link hiro",
         run: () => {
-          void copyToClipboard(
-            "Explorer link",
-            buildExplorerAddressUrl(stacksAddress),
-          );
+          const url = buildExplorerAddressUrl(stacksAddress);
+          void copyToClipboard("Explorer link", url, { label: "Open", href: url });
           closeCommandPalette();
         },
       });
