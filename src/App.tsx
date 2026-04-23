@@ -4728,6 +4728,13 @@ function App() {
   ]);
 
   const commandItems = useMemo<CommandItem[]>(() => {
+    const shortcutsText = [
+      "Command palette: Ctrl/Cmd+K or /",
+      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
+      "Search: S focuses search (context-dependent)",
+      "Close overlays: Esc",
+    ].join("\n");
+
     const items: CommandItem[] = [
       {
         id: "nav-trade",
@@ -4745,6 +4752,15 @@ function App() {
         keywords: "help onboarding guide setup first run",
         run: () => {
           setShowOnboarding(true);
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "copy-shortcuts",
+        label: "Copy keyboard shortcuts",
+        keywords: "help shortcuts hotkeys keybinds keyboard copy",
+        run: () => {
+          void copyToClipboard("Shortcuts", shortcutsText);
           closeCommandPalette();
         },
       },
@@ -5137,6 +5153,18 @@ function App() {
         },
       },
       {
+        id: "toggle-pool-favorite",
+        label: favoritePools.includes(`${poolContract.address}.${poolContract.contractName}`)
+          ? "Remove pool from favorites"
+          : "Add pool to favorites",
+        keywords: "pool favorite star toggle",
+        run: () => {
+          const id = `${poolContract.address}.${poolContract.contractName}`;
+          toggleFavoritePool(id);
+          closeCommandPalette();
+        },
+      },
+      {
         id: "copy-pool-explorer-link",
         label: "Copy pool explorer link",
         keywords: "copy explorer pool contract link hiro",
@@ -5276,6 +5304,7 @@ function App() {
     openActivityDrawer,
     openWalletMenu,
     poolFavoritesOnly,
+    favoritePools,
     favoritePools.length,
     clearFavoritePools,
     poolSort,
@@ -5299,6 +5328,7 @@ function App() {
     setSwapPreset,
     showOnboarding,
     stacksAddress,
+    toggleFavoritePool,
   ]);
 
   return (
