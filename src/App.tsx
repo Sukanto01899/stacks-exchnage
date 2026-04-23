@@ -4636,19 +4636,31 @@ function App() {
         setActiveTab("liquidity");
         return;
       }
+      if (key === "f" && activeTab === "pools") {
+        event.preventDefault();
+        setPoolFavoritesOnly((prev) => {
+          const next = !prev;
+          pushToast(next ? "Pools: Favorites only." : "Pools: Showing all.", "success");
+          return next;
+        });
+        return;
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
+    activeTab,
     activityDrawerClosing,
     activityDrawerOpen,
     commandPaletteOpen,
     drawerClosing,
     drawerOpen,
+    pushToast,
     showOnboarding,
     swapConfirmDraft,
     walletMenuOpen,
+    setPoolFavoritesOnly,
   ]);
 
   useEffect(() => {
@@ -4836,6 +4848,7 @@ function App() {
         id: "pools-toggle-favorites",
         label: poolFavoritesOnly ? "Pools: Show all" : "Pools: Favorites only",
         keywords: "pools favorites filter",
+        hotkey: "F",
         run: () => {
           setActiveTab("pools");
           setPoolFavoritesOnly((prev) => !prev);
