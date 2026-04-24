@@ -4807,6 +4807,28 @@ function App() {
         },
       },
       {
+        id: "copy-diagnostics",
+        label: "Copy diagnostics (for support)",
+        keywords: "help debug diagnostics support report bug",
+        run: () => {
+          const nowIso = new Date().toISOString();
+          const url = typeof window === "undefined" ? "" : window.location.href;
+          const text = [
+            `time: ${nowIso}`,
+            url ? `url: ${url}` : null,
+            `network: ${RESOLVED_STACKS_NETWORK}`,
+            `tab: ${activeTab}`,
+            poolContractId ? `pool: ${poolContractId}` : null,
+            stacksAddress ? `address: ${stacksAddress}` : "address: (disconnected)",
+            `pools favorites-only: ${poolFavoritesOnly ? "yes" : "no"}`,
+          ]
+            .filter(Boolean)
+            .join("\n");
+          void copyToClipboard("Diagnostics", text);
+          closeCommandPalette();
+        },
+      },
+      {
         id: "close-overlays",
         label: "Close overlays",
         keywords: "close escape dismiss modal drawer",
