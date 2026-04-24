@@ -4352,18 +4352,11 @@ function App() {
       .filter(Boolean)
       .join("\n");
 
-    try {
-      await navigator.clipboard.writeText(snapshot);
-      setFrontendMessage("Swap snapshot copied.");
-    } catch (error) {
-      setFrontendMessage(
-        error instanceof Error
-          ? error.message
-          : "Clipboard access is not available.",
-      );
-    }
+    void copyToClipboard("Swap snapshot", snapshot);
   }, [
+    copyToClipboard,
     currentPrice,
+    formatNumber,
     lastPoolRefreshAt,
     liveSwapOutput,
     pool.reserveX,
@@ -4393,18 +4386,16 @@ function App() {
       } else {
         url.searchParams.delete("deadline");
       }
-      await navigator.clipboard.writeText(url.toString());
-      setFrontendMessage("Swap link copied.");
+      const href = url.toString();
+      void copyToClipboard("Swap link", href, { label: "Open", href });
     } catch (error) {
-      setFrontendMessage(
-        error instanceof Error
-          ? error.message
-          : "Clipboard access is not available.",
-      );
+      pushToast(error instanceof Error ? error.message : "Unable to build link.", "error");
     }
   }, [
     deadlineMinutesInput,
+    copyToClipboard,
     poolContractId,
+    pushToast,
     slippageInput,
     swapDirection,
     swapInput,
