@@ -4598,6 +4598,30 @@ function App() {
       if (event.defaultPrevented) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isTyping =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isTyping) return;
+      if (event.key !== "?") return;
+      if (commandPaletteOpen) return;
+
+      event.preventDefault();
+      setCommandPaletteOpen(true);
+      setCommandQuery("shortcuts");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [commandPaletteOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
       if (commandPaletteOpen) return;
       if (walletMenuOpen) return;
       if (swapConfirmDraft) return;
@@ -4746,6 +4770,7 @@ function App() {
   const commandItems = useMemo<CommandItem[]>(() => {
     const shortcutsText = [
       "Command palette: Ctrl/Cmd+K or /",
+      "Shortcuts: ?",
       "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
       "Search: S focuses search (context-dependent)",
       "Close overlays: Esc",
@@ -4775,6 +4800,7 @@ function App() {
         id: "copy-shortcuts",
         label: "Copy keyboard shortcuts",
         keywords: "help shortcuts hotkeys keybinds keyboard copy",
+        hotkey: "?",
         run: () => {
           void copyToClipboard("Shortcuts", shortcutsText);
           closeCommandPalette();
