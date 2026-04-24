@@ -4664,6 +4664,15 @@ function App() {
         });
         return;
       }
+      if (key === "u") {
+        event.preventDefault();
+        setAutoRefreshEnabled((prev) => {
+          const next = !prev;
+          pushToast(next ? "Auto refresh enabled." : "Auto refresh disabled.", "success");
+          return next;
+        });
+        return;
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4680,6 +4689,7 @@ function App() {
     swapConfirmDraft,
     walletMenuOpen,
     setPoolFavoritesOnly,
+    setAutoRefreshEnabled,
   ]);
 
   useEffect(() => {
@@ -4764,6 +4774,7 @@ function App() {
       "Shortcuts: ?",
       "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
       "Search: S focuses search (context-dependent)",
+      "Auto refresh: U toggles",
       "Close overlays: Esc",
     ].join("\n");
 
@@ -5147,6 +5158,7 @@ function App() {
         id: "toggle-auto-refresh",
         label: autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh",
         keywords: "auto refresh polling",
+        hotkey: "U",
         run: () => {
           setAutoRefreshEnabled((prev) => !prev);
           closeCommandPalette();
