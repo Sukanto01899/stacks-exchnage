@@ -7,8 +7,6 @@ import {
   boolCV,
   contractPrincipalCV,
   fetchCallReadOnlyFunction,
-  noneCV,
-  someCV,
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
@@ -1819,14 +1817,22 @@ function App() {
     tokenSelectionKey,
   ]);
 
-  const toOptionalTokenCv = useCallback(
+  const toTokenTraitCv = useCallback(
     (token: TokenKey) => {
-      if (tokenIsStx[token]) return noneCV();
-      const t = tokenContracts[token];
-      if (!t?.address || !t?.contractName) {
-        throw new Error("Token contract is missing or invalid.");
+      const selected = tokenContracts[token];
+      if (!tokenIsStx[token]) {
+        if (!selected?.address || !selected?.contractName) {
+          throw new Error("Token contract is missing or invalid.");
+        }
+        return contractPrincipalCV(selected.address, selected.contractName);
       }
-      return someCV(contractPrincipalCV(t.address, t.contractName));
+
+      const fallbackKey: TokenKey = token === "x" ? "y" : "x";
+      const fallback = tokenContracts[fallbackKey];
+      if (!fallback?.address || !fallback?.contractName) {
+        throw new Error("STX placeholder token contract is missing or invalid.");
+      }
+      return contractPrincipalCV(fallback.address, fallback.contractName);
     },
     [tokenContracts, tokenIsStx],
   );
@@ -3300,8 +3306,8 @@ function App() {
 
     const functionName = fromX ? "swap-x-for-y" : "swap-y-for-x";
     const functionArgs = [
-      toOptionalTokenCv("x"),
-      toOptionalTokenCv("y"),
+      toTokenTraitCv("x"),
+      toTokenTraitCv("y"),
       uintCV(amountMicro),
       uintCV(minOutMicro),
       standardPrincipalCV(activeAddress),
@@ -3590,16 +3596,16 @@ function App() {
     const functionName = initializing ? "initialize-pool" : "add-liquidity";
     const functionArgs = initializing
       ? [
-          toOptionalTokenCv("x"),
-          toOptionalTokenCv("y"),
+          toTokenTraitCv("x"),
+          toTokenTraitCv("y"),
           boolCV(tokenIsStx.x),
           boolCV(tokenIsStx.y),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
         ]
       : [
-          toOptionalTokenCv("x"),
-          toOptionalTokenCv("y"),
+          toTokenTraitCv("x"),
+          toTokenTraitCv("y"),
           uintCV(amountXMicro),
           uintCV(amountYMicro),
           uintCV(minShares),
@@ -3682,8 +3688,8 @@ function App() {
         contractName: poolContract.contractName,
         functionName: "remove-liquidity",
         functionArgs: [
-          toOptionalTokenCv("x"),
-          toOptionalTokenCv("y"),
+          toTokenTraitCv("x"),
+          toTokenTraitCv("y"),
           uintCV(sharesUint),
           uintCV(minX),
           uintCV(minY),
