@@ -5160,7 +5160,51 @@ function App() {
         keywords: "auto refresh polling",
         hotkey: "U",
         run: () => {
-          setAutoRefreshEnabled((prev) => !prev);
+          setAutoRefreshEnabled((prev) => {
+            const next = !prev;
+            pushToast(next ? "Auto refresh enabled." : "Auto refresh disabled.", "success");
+            return next;
+          });
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "auto-refresh-interval-10",
+        label: `Auto refresh: Interval 10s${autoRefreshIntervalSec === 10 ? " ✓" : ""}`,
+        keywords: "auto refresh interval 10s",
+        run: () => {
+          setAutoRefreshIntervalSec(10);
+          pushToast("Auto refresh interval set to 10s.", "success");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "auto-refresh-interval-30",
+        label: `Auto refresh: Interval 30s${autoRefreshIntervalSec === 30 ? " ✓" : ""}`,
+        keywords: "auto refresh interval 30s",
+        run: () => {
+          setAutoRefreshIntervalSec(30);
+          pushToast("Auto refresh interval set to 30s.", "success");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "auto-refresh-interval-60",
+        label: `Auto refresh: Interval 60s${autoRefreshIntervalSec === 60 ? " ✓" : ""}`,
+        keywords: "auto refresh interval 60s 1m",
+        run: () => {
+          setAutoRefreshIntervalSec(60);
+          pushToast("Auto refresh interval set to 60s.", "success");
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "auto-refresh-interval-120",
+        label: `Auto refresh: Interval 120s${autoRefreshIntervalSec === 120 ? " ✓" : ""}`,
+        keywords: "auto refresh interval 120s 2m",
+        run: () => {
+          setAutoRefreshIntervalSec(120);
+          pushToast("Auto refresh interval set to 120s.", "success");
           closeCommandPalette();
         },
       },
@@ -5395,6 +5439,10 @@ function App() {
     showOnboarding,
     stacksAddress,
     toggleFavoritePool,
+    autoRefreshEnabled,
+    autoRefreshIntervalSec,
+    setAutoRefreshEnabled,
+    setAutoRefreshIntervalSec,
   ]);
 
   return (
