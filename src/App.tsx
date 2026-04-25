@@ -4681,6 +4681,16 @@ function App() {
         });
         return;
       }
+      if (key === "i") {
+        event.preventDefault();
+        setAutoRefreshIntervalSec((prev) => {
+          const next =
+            prev <= 10 ? 30 : prev <= 30 ? 60 : prev <= 60 ? 120 : prev <= 120 ? 10 : 30;
+          pushToast(`Auto refresh interval: ${next}s.`, "success");
+          return next;
+        });
+        return;
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4698,6 +4708,7 @@ function App() {
     walletMenuOpen,
     setPoolFavoritesOnly,
     setAutoRefreshEnabled,
+    setAutoRefreshIntervalSec,
   ]);
 
   useEffect(() => {
@@ -4783,6 +4794,7 @@ function App() {
       "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
       "Search: S focuses search (context-dependent)",
       "Auto refresh: U toggles",
+      "Auto refresh interval: I cycles",
       "Close overlays: Esc",
     ].join("\n");
 
@@ -5182,6 +5194,16 @@ function App() {
             pushToast(next ? "Auto refresh enabled." : "Auto refresh disabled.", "success");
             return next;
           });
+          closeCommandPalette();
+        },
+      },
+      {
+        id: "auto-refresh-interval-cycle",
+        label: `Auto refresh: Cycle interval (${autoRefreshIntervalSec}s)`,
+        keywords: "auto refresh interval cycle",
+        hotkey: "I",
+        run: () => {
+          setAutoRefreshIntervalSec((prev) => (prev <= 10 ? 30 : prev <= 30 ? 60 : prev <= 60 ? 120 : 10));
           closeCommandPalette();
         },
       },
