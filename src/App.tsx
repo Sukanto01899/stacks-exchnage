@@ -411,6 +411,10 @@ function App() {
     }, 4200);
   }, []);
 
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
   const copyToClipboard = useCallback(
     async (
       label: string,
@@ -7000,6 +7004,16 @@ function App() {
             key={toast.id}
             className={`toast-item toast-${toast.tone}`}
             role="status"
+            onClick={() => dismissToast(toast.id)}
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                dismissToast(toast.id);
+              }
+            }}
+            aria-label="Dismiss notification"
+            title="Dismiss"
           >
             <div className="toast-item-body">
               <span className="toast-item-message">{toast.message}</span>
@@ -7009,6 +7023,7 @@ function App() {
                   href={toast.actionHref}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
                 >
                   {toast.actionLabel || "View"}
                 </a>
