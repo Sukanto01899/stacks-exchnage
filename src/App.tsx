@@ -415,6 +415,10 @@ function App() {
     setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const clearToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
+
   const copyToClipboard = useCallback(
     async (
       label: string,
@@ -4848,6 +4852,15 @@ function App() {
         },
       },
       {
+        id: "clear-notifications",
+        label: toasts.length > 0 ? `Clear notifications (${toasts.length})` : "No notifications",
+        keywords: "toast notifications clear dismiss",
+        run: () => {
+          if (toasts.length > 0) clearToasts();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "open-token-selector",
         label: "Open token selector",
         keywords: "token select swap picker",
@@ -5442,6 +5455,8 @@ function App() {
     setSwapPreset,
     showOnboarding,
     stacksAddress,
+    toasts.length,
+    clearToasts,
     toggleFavoritePool,
     autoRefreshEnabled,
     autoRefreshIntervalSec,
