@@ -4687,17 +4687,29 @@ function App() {
         });
         return;
       }
-      if (key === "i") {
-        event.preventDefault();
-        setAutoRefreshIntervalSec((prev) => {
-          const next =
-            prev <= 10 ? 30 : prev <= 30 ? 60 : prev <= 60 ? 120 : prev <= 120 ? 10 : 30;
-          pushToast(`Auto refresh interval: ${next}s.`, "success");
-          return next;
-        });
-        return;
-      }
-    };
+	      if (key === "i") {
+	        event.preventDefault();
+	        setAutoRefreshIntervalSec((prev) => {
+	          const next =
+	            prev <= 10 ? 30 : prev <= 30 ? 60 : prev <= 60 ? 120 : prev <= 120 ? 10 : 30;
+	          pushToast(`Auto refresh interval: ${next}s.`, "success");
+	          return next;
+	        });
+	        return;
+	      }
+	      if (key === "x" && activeTab === "swap") {
+	        event.preventDefault();
+	        setSwapDirection((prev) => {
+	          const next = prev === "x-to-y" ? "y-to-x" : "x-to-y";
+	          pushToast(
+	            `Swap direction: ${next === "x-to-y" ? "X \u2192 Y" : "Y \u2192 X"}.`,
+	            "success",
+	          );
+	          return next;
+	        });
+	        return;
+	      }
+	    };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -4711,11 +4723,12 @@ function App() {
     pushToast,
     showOnboarding,
     swapConfirmDraft,
-    walletMenuOpen,
-    setPoolFavoritesOnly,
-    setAutoRefreshEnabled,
-    setAutoRefreshIntervalSec,
-  ]);
+	    walletMenuOpen,
+	    setPoolFavoritesOnly,
+	    setAutoRefreshEnabled,
+	    setAutoRefreshIntervalSec,
+	    setSwapDirection,
+	  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4794,15 +4807,16 @@ function App() {
   ]);
 
   const commandItems = useMemo<CommandItem[]>(() => {
-    const shortcutsText = [
-      "Command palette: Ctrl/Cmd+K or /",
-      "Shortcuts: ?",
-      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
-      "Search: S focuses search (context-dependent)",
-      "Auto refresh: U toggles",
-      "Auto refresh interval: I cycles",
-      "Close overlays: Esc",
-    ].join("\n");
+	    const shortcutsText = [
+	      "Command palette: Ctrl/Cmd+K or /",
+	      "Shortcuts: ?",
+	      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
+	      "Swap: X flips direction",
+	      "Search: S focuses search (context-dependent)",
+	      "Auto refresh: U toggles",
+	      "Auto refresh interval: I cycles",
+	      "Close overlays: Esc",
+	    ].join("\n");
 
     const items: CommandItem[] = [
       {
@@ -5349,12 +5363,30 @@ function App() {
           closeCommandPalette();
         },
       },
-      {
-        id: "swap-reset",
-        label: "Reset swap settings",
-        keywords: "slippage deadline reset",
-        run: () => {
-          resetSwapSettings();
+	      {
+	        id: "swap-flip-direction",
+	        label: "Swap: Flip direction",
+	        keywords: "swap flip direction reverse invert x y",
+	        hotkey: "X",
+	        run: () => {
+	          setActiveTab("swap");
+	          setSwapDirection((prev) => {
+	            const next = prev === "x-to-y" ? "y-to-x" : "x-to-y";
+	            pushToast(
+	              `Swap direction: ${next === "x-to-y" ? "X \u2192 Y" : "Y \u2192 X"}.`,
+	              "success",
+	            );
+	            return next;
+	          });
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "swap-reset",
+	        label: "Reset swap settings",
+	        keywords: "slippage deadline reset",
+	        run: () => {
+	          resetSwapSettings();
           closeCommandPalette();
         },
       },
@@ -5476,14 +5508,15 @@ function App() {
     setPoolSort,
     setPoolSortDir,
     poolsCsv,
-    resetSwapSettings,
-    resetAllLocalData,
-    setActiveTab,
-    setShowOnboarding,
-    setSwapPreset,
-    showOnboarding,
-    stacksAddress,
-    toasts.length,
+	    resetSwapSettings,
+	    resetAllLocalData,
+	    setActiveTab,
+	    setShowOnboarding,
+	    setSwapDirection,
+	    setSwapPreset,
+	    showOnboarding,
+	    stacksAddress,
+	    toasts.length,
     clearToasts,
     toggleFavoritePool,
     autoRefreshEnabled,
