@@ -4709,6 +4709,13 @@ function App() {
 	        });
 	        return;
 	      }
+	      if (activeTab === "swap" && (key === "1" || key === "2" || key === "3" || key === "4")) {
+	        event.preventDefault();
+	        const preset = key === "1" ? 0.25 : key === "2" ? 0.5 : key === "3" ? 0.75 : 1;
+	        setSwapPreset(preset);
+	        pushToast(`Swap preset: ${Math.round(preset * 100)}%.`, "success");
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4728,6 +4735,7 @@ function App() {
 	    setAutoRefreshEnabled,
 	    setAutoRefreshIntervalSec,
 	    setSwapDirection,
+	    setSwapPreset,
 	  ]);
 
   useEffect(() => {
@@ -4812,6 +4820,7 @@ function App() {
 	      "Shortcuts: ?",
 	      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
 	      "Swap: X flips direction",
+	      "Swap presets: 1/2/3/4 sets 25/50/75/100%",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5390,42 +5399,46 @@ function App() {
           closeCommandPalette();
         },
       },
-      {
-        id: "swap-25",
-        label: "Set swap to 25%",
-        keywords: "swap preset 25",
-        run: () => {
-          setSwapPreset(0.25);
-          closeCommandPalette();
-        },
-      },
-      {
-        id: "swap-50",
-        label: "Set swap to 50%",
-        keywords: "swap preset 50",
-        run: () => {
-          setSwapPreset(0.5);
-          closeCommandPalette();
-        },
-      },
-      {
-        id: "swap-75",
-        label: "Set swap to 75%",
-        keywords: "swap preset 75",
-        run: () => {
-          setSwapPreset(0.75);
-          closeCommandPalette();
-        },
-      },
-      {
-        id: "swap-100",
-        label: "Set swap to 100%",
-        keywords: "swap preset 100 max",
-        run: () => {
-          setSwapPreset(1);
-          closeCommandPalette();
-        },
-      },
+	      {
+	        id: "swap-25",
+	        label: "Set swap to 25%",
+	        keywords: "swap preset 25",
+	        hotkey: "1",
+	        run: () => {
+	          setSwapPreset(0.25);
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "swap-50",
+	        label: "Set swap to 50%",
+	        keywords: "swap preset 50",
+	        hotkey: "2",
+	        run: () => {
+	          setSwapPreset(0.5);
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "swap-75",
+	        label: "Set swap to 75%",
+	        keywords: "swap preset 75",
+	        hotkey: "3",
+	        run: () => {
+	          setSwapPreset(0.75);
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "swap-100",
+	        label: "Set swap to 100%",
+	        keywords: "swap preset 100 max",
+	        hotkey: "4",
+	        run: () => {
+	          setSwapPreset(1);
+	          closeCommandPalette();
+	        },
+	      },
     ];
 
     if (stacksAddress) {
