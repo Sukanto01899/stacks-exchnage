@@ -4716,6 +4716,18 @@ function App() {
 	        pushToast(`Swap preset: ${Math.round(preset * 100)}%.`, "success");
 	        return;
 	      }
+	      if (key === "m" && activeTab === "swap") {
+	        event.preventDefault();
+	        setMaxSwap();
+	        pushToast("Swap set to max.", "success");
+	        return;
+	      }
+	      if (key === "c" && activeTab === "swap") {
+	        event.preventDefault();
+	        clearSwapInput();
+	        pushToast("Swap amount cleared.", "success");
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4736,6 +4748,8 @@ function App() {
 	    setAutoRefreshIntervalSec,
 	    setSwapDirection,
 	    setSwapPreset,
+	    setMaxSwap,
+	    clearSwapInput,
 	  ]);
 
   useEffect(() => {
@@ -4821,6 +4835,7 @@ function App() {
 	      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
 	      "Swap: X flips direction",
 	      "Swap presets: 1/2/3/4 sets 25/50/75/100%",
+	      "Swap: M sets max, C clears amount",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5391,6 +5406,30 @@ function App() {
 	        },
 	      },
 	      {
+	        id: "swap-max",
+	        label: "Swap: Set max amount",
+	        keywords: "swap max full balance amount",
+	        hotkey: "M",
+	        run: () => {
+	          setActiveTab("swap");
+	          setMaxSwap();
+	          pushToast("Swap set to max.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "swap-clear-amount",
+	        label: "Swap: Clear amount",
+	        keywords: "swap clear amount reset input",
+	        hotkey: "C",
+	        run: () => {
+	          setActiveTab("swap");
+	          clearSwapInput();
+	          pushToast("Swap amount cleared.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
 	        id: "swap-reset",
 	        label: "Reset swap settings",
 	        keywords: "slippage deadline reset",
@@ -5520,13 +5559,15 @@ function App() {
     setPoolSearch,
     setPoolSort,
     setPoolSortDir,
-    poolsCsv,
+	    poolsCsv,
+	    clearSwapInput,
 	    resetSwapSettings,
 	    resetAllLocalData,
 	    setActiveTab,
 	    setShowOnboarding,
 	    setSwapDirection,
 	    setSwapPreset,
+	    setMaxSwap,
 	    showOnboarding,
 	    stacksAddress,
 	    toasts.length,
