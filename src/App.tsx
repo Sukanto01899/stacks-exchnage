@@ -4487,10 +4487,25 @@ function App() {
     setWalletMenuOpen(false);
   }, []);
 
-  const closeCommandPalette = useCallback(() => {
-    setCommandPaletteOpen(false);
-    setCommandQuery("");
-  }, []);
+	  const closeCommandPalette = useCallback(() => {
+	    setCommandPaletteOpen(false);
+	    setCommandQuery("");
+	  }, []);
+	
+	  const focusSwapAmountInput = useCallback(() => {
+	    if (typeof document === "undefined") return false;
+	    const el = document.querySelector<HTMLInputElement>(
+	      ".swap-panel .token-input input[type='number']",
+	    );
+	    if (!el) return false;
+	    el.focus();
+	    try {
+	      el.select();
+	    } catch {
+	      // ignore
+	    }
+	    return true;
+	  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4678,15 +4693,15 @@ function App() {
         });
         return;
       }
-      if (key === "u") {
-        event.preventDefault();
-        setAutoRefreshEnabled((prev) => {
-          const next = !prev;
-          pushToast(next ? "Auto refresh enabled." : "Auto refresh disabled.", "success");
-          return next;
-        });
-        return;
-      }
+	      if (key === "u") {
+	        event.preventDefault();
+	        setAutoRefreshEnabled((prev) => {
+	          const next = !prev;
+	          pushToast(next ? "Auto refresh enabled." : "Auto refresh disabled.", "success");
+	          return next;
+	        });
+	        return;
+	      }
 	      if (key === "i") {
 	        event.preventDefault();
 	        setAutoRefreshIntervalSec((prev) => {
@@ -4728,20 +4743,27 @@ function App() {
 	        pushToast("Swap amount cleared.", "success");
 	        return;
 	      }
+	      if (key === "e" && activeTab === "swap") {
+	        event.preventDefault();
+	        if (!focusSwapAmountInput()) {
+	          pushToast("Unable to focus swap amount.", "error");
+	        }
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    activeTab,
-    activityDrawerClosing,
-    activityDrawerOpen,
-    commandPaletteOpen,
-    drawerClosing,
-    drawerOpen,
-    pushToast,
-    showOnboarding,
-    swapConfirmDraft,
+	  }, [
+	    activeTab,
+	    activityDrawerClosing,
+	    activityDrawerOpen,
+	    commandPaletteOpen,
+	    drawerClosing,
+	    drawerOpen,
+	    pushToast,
+	    showOnboarding,
+	    swapConfirmDraft,
 	    walletMenuOpen,
 	    setPoolFavoritesOnly,
 	    setAutoRefreshEnabled,
@@ -4750,6 +4772,7 @@ function App() {
 	    setSwapPreset,
 	    setMaxSwap,
 	    clearSwapInput,
+	    focusSwapAmountInput,
 	  ]);
 
   useEffect(() => {
@@ -4836,6 +4859,7 @@ function App() {
 	      "Swap: X flips direction",
 	      "Swap presets: 1/2/3/4 sets 25/50/75/100%",
 	      "Swap: M sets max, C clears amount",
+	      "Swap: E focuses amount input",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5430,14 +5454,29 @@ function App() {
 	        },
 	      },
 	      {
+	        id: "swap-focus-amount",
+	        label: "Swap: Focus amount input",
+	        keywords: "swap focus amount input edit type",
+	        hotkey: "E",
+	        run: () => {
+	          setActiveTab("swap");
+	          closeCommandPalette();
+	          window.setTimeout(() => {
+	            if (!focusSwapAmountInput()) {
+	              pushToast("Unable to focus swap amount.", "error");
+	            }
+	          }, 50);
+	        },
+	      },
+	      {
 	        id: "swap-reset",
 	        label: "Reset swap settings",
 	        keywords: "slippage deadline reset",
 	        run: () => {
 	          resetSwapSettings();
-          closeCommandPalette();
-        },
-      },
+	          closeCommandPalette();
+	        },
+	      },
 	      {
 	        id: "swap-25",
 	        label: "Set swap to 25%",
@@ -5561,6 +5600,7 @@ function App() {
     setPoolSortDir,
 	    poolsCsv,
 	    clearSwapInput,
+	    focusSwapAmountInput,
 	    resetSwapSettings,
 	    resetAllLocalData,
 	    setActiveTab,
