@@ -4750,6 +4750,18 @@ function App() {
 	        }
 	        return;
 	      }
+	      if (activeTab === "liquidity" && (key === "1" || key === "2" || key === "3" || key === "4")) {
+	        event.preventDefault();
+	        if (key === "4") {
+	          setMaxBurn();
+	          pushToast("Withdraw preset: Max.", "success");
+	          return;
+	        }
+	        const preset = key === "1" ? 0.25 : key === "2" ? 0.5 : 0.75;
+	        setBurnPreset(preset);
+	        pushToast(`Withdraw preset: ${Math.round(preset * 100)}%.`, "success");
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4773,6 +4785,8 @@ function App() {
 	    setMaxSwap,
 	    clearSwapInput,
 	    focusSwapAmountInput,
+	    setBurnPreset,
+	    setMaxBurn,
 	  ]);
 
   useEffect(() => {
@@ -4860,6 +4874,7 @@ function App() {
 	      "Swap presets: 1/2/3/4 sets 25/50/75/100%",
 	      "Swap: M sets max, C clears amount",
 	      "Swap: E focuses amount input",
+	      "Liquidity: 1/2/3 sets 25/50/75% withdraw, 4 sets max",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5469,6 +5484,50 @@ function App() {
 	        },
 	      },
 	      {
+	        id: "liquidity-withdraw-25",
+	        label: "Liquidity: Withdraw 25%",
+	        keywords: "liquidity withdraw remove 25 preset",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          setBurnPreset(0.25);
+	          pushToast("Withdraw preset: 25%.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "liquidity-withdraw-50",
+	        label: "Liquidity: Withdraw 50%",
+	        keywords: "liquidity withdraw remove 50 preset",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          setBurnPreset(0.5);
+	          pushToast("Withdraw preset: 50%.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "liquidity-withdraw-75",
+	        label: "Liquidity: Withdraw 75%",
+	        keywords: "liquidity withdraw remove 75 preset",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          setBurnPreset(0.75);
+	          pushToast("Withdraw preset: 75%.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "liquidity-withdraw-max",
+	        label: "Liquidity: Withdraw max",
+	        keywords: "liquidity withdraw remove max 100 preset",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          setMaxBurn();
+	          pushToast("Withdraw preset: Max.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
 	        id: "swap-reset",
 	        label: "Reset swap settings",
 	        keywords: "slippage deadline reset",
@@ -5608,6 +5667,8 @@ function App() {
 	    setSwapDirection,
 	    setSwapPreset,
 	    setMaxSwap,
+	    setBurnPreset,
+	    setMaxBurn,
 	    showOnboarding,
 	    stacksAddress,
 	    toasts.length,
