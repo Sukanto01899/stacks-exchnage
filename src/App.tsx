@@ -4786,6 +4786,15 @@ function App() {
 	        }
 	        return;
 	      }
+	      if (key === "y") {
+	        event.preventDefault();
+	        if (typeof window !== "undefined") {
+	          const url = window.location.href;
+	          void copyToClipboard("Link", url, { label: "Open", href: url });
+	          pushToast("Page link copied.", "success");
+	        }
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4812,6 +4821,7 @@ function App() {
 	    setBurnPreset,
 	    setMaxBurn,
 	    focusLiquidityWithdrawInput,
+	    copyToClipboard,
 	  ]);
 
   useEffect(() => {
@@ -4901,6 +4911,7 @@ function App() {
 	      "Swap: E focuses amount input",
 	      "Liquidity: 1/2/3 sets 25/50/75% withdraw, 4 sets max",
 	      "Liquidity: W focuses withdraw input",
+	      "Share: Y copies page link",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5374,17 +5385,20 @@ function App() {
           closeCommandPalette();
         },
       },
-      {
-        id: "copy-page-link",
-        label: "Copy page link",
-        keywords: "copy link share url page",
-        run: () => {
-          if (typeof window !== "undefined") {
-            void copyToClipboard("Link", window.location.href);
-          }
-          closeCommandPalette();
-        },
-      },
+	      {
+	        id: "copy-page-link",
+	        label: "Copy page link",
+	        keywords: "copy link share url page",
+	        hotkey: "Y",
+	        run: () => {
+	          if (typeof window !== "undefined") {
+	            const url = window.location.href;
+	            void copyToClipboard("Link", url, { label: "Open", href: url });
+	            pushToast("Page link copied.", "success");
+	          }
+	          closeCommandPalette();
+	        },
+	      },
       {
         id: "copy-pool-link",
         label: "Copy pool link (this tab)",
