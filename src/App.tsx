@@ -4025,12 +4025,18 @@ function App() {
     setSwapInput(String(Number(next.toFixed(4))));
   };
 
-  const clearSwapInput = () => {
-    setSwapInput("");
-    setImpactConfirmed(false);
-    setSwapMessage(null);
-    setPreflightMessage(null);
-  };
+	  const clearSwapInput = () => {
+	    setSwapInput("");
+	    setImpactConfirmed(false);
+	    setSwapMessage(null);
+	    setPreflightMessage(null);
+	  };
+	
+	  const clearLiquidityInputs = () => {
+	    setLiqX("");
+	    setLiqY("");
+	    setLiqMessage(null);
+	  };
 
   const setMaxBurn = () => {
     setBurnShares(String(balances.lpShares || "0"));
@@ -4779,6 +4785,18 @@ function App() {
 	        pushToast(`Withdraw preset: ${Math.round(preset * 100)}%.`, "success");
 	        return;
 	      }
+	      if (key === "m" && activeTab === "liquidity") {
+	        event.preventDefault();
+	        setMaxLiquidity();
+	        pushToast("Deposit set to max.", "success");
+	        return;
+	      }
+	      if (key === "c" && activeTab === "liquidity") {
+	        event.preventDefault();
+	        clearLiquidityInputs();
+	        pushToast("Deposit inputs cleared.", "success");
+	        return;
+	      }
 	      if (key === "w" && activeTab === "liquidity") {
 	        event.preventDefault();
 	        if (!focusLiquidityWithdrawInput()) {
@@ -4820,6 +4838,8 @@ function App() {
 	    focusSwapAmountInput,
 	    setBurnPreset,
 	    setMaxBurn,
+	    setMaxLiquidity,
+	    clearLiquidityInputs,
 	    focusLiquidityWithdrawInput,
 	    copyToClipboard,
 	  ]);
@@ -4911,6 +4931,7 @@ function App() {
 	      "Swap: E focuses amount input",
 	      "Liquidity: 1/2/3 sets 25/50/75% withdraw, 4 sets max",
 	      "Liquidity: W focuses withdraw input",
+	      "Liquidity: M sets max deposit, C clears deposit",
 	      "Share: Y copies page link",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
@@ -5583,6 +5604,28 @@ function App() {
 	        },
 	      },
 	      {
+	        id: "liquidity-deposit-max",
+	        label: "Liquidity: Set max deposit",
+	        keywords: "liquidity deposit add max full balance",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          setMaxLiquidity();
+	          pushToast("Deposit set to max.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
+	        id: "liquidity-deposit-clear",
+	        label: "Liquidity: Clear deposit inputs",
+	        keywords: "liquidity deposit add clear reset inputs",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          clearLiquidityInputs();
+	          pushToast("Deposit inputs cleared.", "success");
+	          closeCommandPalette();
+	        },
+	      },
+	      {
 	        id: "swap-reset",
 	        label: "Reset swap settings",
 	        keywords: "slippage deadline reset",
@@ -5724,6 +5767,8 @@ function App() {
 	    setMaxSwap,
 	    setBurnPreset,
 	    setMaxBurn,
+	    setMaxLiquidity,
+	    clearLiquidityInputs,
 	    showOnboarding,
 	    focusLiquidityWithdrawInput,
 	    stacksAddress,
