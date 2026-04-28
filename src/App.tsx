@@ -4506,6 +4506,23 @@ function App() {
 	    }
 	    return true;
 	  }, []);
+	
+	  const focusLiquidityWithdrawInput = useCallback(() => {
+	    if (typeof document === "undefined") return false;
+	    const pills = Array.from(
+	      document.querySelectorAll<HTMLSpanElement>(".pool-card .token-pill"),
+	    );
+	    const lpPill = pills.find((pill) => pill.textContent?.trim() === "LP shares");
+	    const input = lpPill?.parentElement?.querySelector<HTMLInputElement>("input[type='number']");
+	    if (!input) return false;
+	    input.focus();
+	    try {
+	      input.select();
+	    } catch {
+	      // ignore
+	    }
+	    return true;
+	  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4762,6 +4779,13 @@ function App() {
 	        pushToast(`Withdraw preset: ${Math.round(preset * 100)}%.`, "success");
 	        return;
 	      }
+	      if (key === "w" && activeTab === "liquidity") {
+	        event.preventDefault();
+	        if (!focusLiquidityWithdrawInput()) {
+	          pushToast("Unable to focus withdraw input.", "error");
+	        }
+	        return;
+	      }
 	    };
 
     window.addEventListener("keydown", onKeyDown);
@@ -4787,6 +4811,7 @@ function App() {
 	    focusSwapAmountInput,
 	    setBurnPreset,
 	    setMaxBurn,
+	    focusLiquidityWithdrawInput,
 	  ]);
 
   useEffect(() => {
@@ -4875,6 +4900,7 @@ function App() {
 	      "Swap: M sets max, C clears amount",
 	      "Swap: E focuses amount input",
 	      "Liquidity: 1/2/3 sets 25/50/75% withdraw, 4 sets max",
+	      "Liquidity: W focuses withdraw input",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5495,6 +5521,21 @@ function App() {
 	        },
 	      },
 	      {
+	        id: "liquidity-focus-withdraw",
+	        label: "Liquidity: Focus withdraw input",
+	        keywords: "liquidity withdraw focus input lp shares",
+	        hotkey: "W",
+	        run: () => {
+	          setActiveTab("liquidity");
+	          closeCommandPalette();
+	          window.setTimeout(() => {
+	            if (!focusLiquidityWithdrawInput()) {
+	              pushToast("Unable to focus withdraw input.", "error");
+	            }
+	          }, 50);
+	        },
+	      },
+	      {
 	        id: "liquidity-withdraw-50",
 	        label: "Liquidity: Withdraw 50%",
 	        keywords: "liquidity withdraw remove 50 preset",
@@ -5670,6 +5711,7 @@ function App() {
 	    setBurnPreset,
 	    setMaxBurn,
 	    showOnboarding,
+	    focusLiquidityWithdrawInput,
 	    stacksAddress,
 	    toasts.length,
     clearToasts,
