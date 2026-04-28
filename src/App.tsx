@@ -4602,17 +4602,59 @@ function App() {
     walletMenuOpen,
   ]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const isK = event.key.toLowerCase() === "k";
-      const meta = event.metaKey || event.ctrlKey;
+	  useEffect(() => {
+	    const onKeyDown = (event: KeyboardEvent) => {
+	      const isK = event.key.toLowerCase() === "k";
+	      const meta = event.metaKey || event.ctrlKey;
       if (!meta || !isK) return;
       event.preventDefault();
       setCommandPaletteOpen(true);
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+	    return () => window.removeEventListener("keydown", onKeyDown);
+	  }, []);
+	
+	  useEffect(() => {
+	    const onKeyDown = (event: KeyboardEvent) => {
+	      if (event.defaultPrevented) return;
+	      if (event.metaKey || event.ctrlKey || event.altKey) return;
+	
+	      const activeEl = document.activeElement as HTMLElement | null;
+	      const isTyping =
+	        !!activeEl &&
+	        (activeEl.tagName === "INPUT" ||
+	          activeEl.tagName === "TEXTAREA" ||
+	          (activeEl as HTMLElement).isContentEditable);
+	      if (isTyping) return;
+	
+	      if (event.key.toLowerCase() !== "g") return;
+	      if (commandPaletteOpen) return;
+	      if (walletMenuOpen) return;
+	      if (swapConfirmDraft) return;
+	      if (showOnboarding) return;
+	      if (drawerOpen || drawerClosing) return;
+	
+	      event.preventDefault();
+	      if (activityDrawerOpen || activityDrawerClosing) {
+	        closeActivityDrawer();
+	      } else {
+	        openActivityDrawer();
+	      }
+	    };
+	    window.addEventListener("keydown", onKeyDown);
+	    return () => window.removeEventListener("keydown", onKeyDown);
+	  }, [
+	    activityDrawerClosing,
+	    activityDrawerOpen,
+	    closeActivityDrawer,
+	    commandPaletteOpen,
+	    drawerClosing,
+	    drawerOpen,
+	    openActivityDrawer,
+	    showOnboarding,
+	    swapConfirmDraft,
+	    walletMenuOpen,
+	  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -4933,6 +4975,7 @@ function App() {
 	      "Liquidity: W focuses withdraw input",
 	      "Liquidity: M sets max deposit, C clears deposit",
 	      "Share: Y copies page link",
+	      "Activity: G toggles drawer",
 	      "Search: S focuses search (context-dependent)",
 	      "Auto refresh: U toggles",
 	      "Auto refresh interval: I cycles",
@@ -5206,15 +5249,16 @@ function App() {
           closeCommandPalette();
         },
       },
-      {
-        id: "open-activity",
-        label: "Open Activity",
-        keywords: "drawer transactions tx",
-        run: () => {
-          openActivityDrawer();
-          closeCommandPalette();
-        },
-      },
+	      {
+	        id: "open-activity",
+	        label: "Open Activity",
+	        keywords: "drawer transactions tx",
+	        hotkey: "G",
+	        run: () => {
+	          openActivityDrawer();
+	          closeCommandPalette();
+	        },
+	      },
       {
         id: "activity-focus-search",
         label: "Activity: Focus search",
