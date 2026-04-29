@@ -5902,7 +5902,7 @@ function App() {
             <span className="nav-search-hint">Ctrl/Cmd+K</span>
           </button>
           <div className="nav-actions">
-            {STACKS_API && (
+            {STACKS_API && (<>
               <button
                 className={`tiny ${
                   networkHealthChecking
@@ -5938,6 +5938,16 @@ function App() {
                   ? ` · h ${formatCompactNumber(networkHealth.tipHeight)}`
                   : ""}
               </button>
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={() => void copyToClipboard("Stacks API", STACKS_API)}
+                aria-label="Copy Stacks API URL"
+                title="Copy Stacks API URL"
+              >
+                Copy API
+              </button>
+              </>
             )}
             <button
               className={poolIsStale ? "tiny warn" : "tiny ghost"}

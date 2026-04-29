@@ -289,6 +289,14 @@ export default function SwapCard(props: any) {
     return () => window.clearTimeout(timer);
   }, [poolCopied]);
 
+  const [copiedToken, setCopiedToken] = useState<null | "x" | "y">(null);
+
+  useEffect(() => {
+    if (!copiedToken) return;
+    const timer = window.setTimeout(() => setCopiedToken(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedToken]);
+
   const copyPoolContract = async () => {
     const id = `${poolContract.address}.${poolContract.contractName}`;
     try {
@@ -298,6 +306,35 @@ export default function SwapCard(props: any) {
       // ignore clipboard errors
     }
   };
+
+  const buildTokenExplorerUrl = (principal: string | null, isStx: boolean) => {
+    if (!principal || isStx) return null;
+    const [address = "", name = ""] = String(principal).split(".");
+    if (!address || !name) return null;
+    return `https://explorer.hiro.so/contract/${address}/${name}?chain=${resolvedStacksNetwork}`;
+  };
+
+  const copyTokenContract = async (token: "x" | "y") => {
+    const principal = token === "x" ? tokenInfo?.tokenX : tokenInfo?.tokenY;
+    const isStx = token === "x" ? tokenInfo?.tokenXIsStx : tokenInfo?.tokenYIsStx;
+    const value = isStx ? "STX" : String(principal || "");
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedToken(token);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
+
+  const tokenXExplorerUrl = buildTokenExplorerUrl(
+    tokenInfo?.tokenX ?? null,
+    Boolean(tokenInfo?.tokenXIsStx),
+  );
+  const tokenYExplorerUrl = buildTokenExplorerUrl(
+    tokenInfo?.tokenY ?? null,
+    Boolean(tokenInfo?.tokenYIsStx),
+  );
 
   return (
     <div className="swap-card">
@@ -319,6 +356,46 @@ export default function SwapCard(props: any) {
             {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
             {poolTokenYLabel}
           </strong>
+          <div className="note-actions">
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void copyTokenContract("x")}
+              title={tokenInfo.tokenXIsStx ? "Copy STX" : `Copy ${tokenXLabel} contract`}
+            >
+              {copiedToken === "x" ? "Copied X" : "Copy X"}
+            </button>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void copyTokenContract("y")}
+              title={tokenInfo.tokenYIsStx ? "Copy STX" : `Copy ${tokenYLabel} contract`}
+            >
+              {copiedToken === "y" ? "Copied Y" : "Copy Y"}
+            </button>
+            {tokenXExplorerUrl && (
+              <a
+                className="tiny ghost"
+                href={tokenXExplorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`View ${tokenXLabel} contract on explorer`}
+              >
+                View X
+              </a>
+            )}
+            {tokenYExplorerUrl && (
+              <a
+                className="tiny ghost"
+                href={tokenYExplorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`View ${tokenYLabel} contract on explorer`}
+              >
+                View Y
+              </a>
+            )}
+          </div>
         </div>
       )}
 
