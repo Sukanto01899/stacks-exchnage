@@ -1262,6 +1262,19 @@ function App() {
       })),
     [pendingTxs],
   );
+  const latestActivityStatus = useMemo(() => {
+    const latest = activityItems[0];
+    if (!latest) return null;
+    const kind = latest.kind.replace(/-/g, " ");
+    const status =
+      latest.chainStatus && latest.status === "submitted"
+        ? latest.chainStatus
+        : latest.status;
+    return {
+      label: `${kind}: ${status}`,
+      status: latest.status,
+    };
+  }, [activityItems]);
   const filteredActivityItems = useMemo(() => {
     if (activityFilter === "all") return activityItems;
     if (
@@ -5995,12 +6008,24 @@ function App() {
               </>
             )}
             <button
-              className="activity-pill"
+              className={`activity-pill ${
+                latestActivityStatus ? `is-${latestActivityStatus.status}` : ""
+              }`}
               type="button"
               onClick={openActivityDrawer}
               aria-label="Open activity drawer"
+              title={
+                latestActivityStatus
+                  ? `Latest transaction: ${latestActivityStatus.label}`
+                  : "Open activity drawer"
+              }
             >
               Activity
+              {latestActivityStatus && (
+                <span className="activity-status">
+                  {latestActivityStatus.status}
+                </span>
+              )}
               {pendingTxs.length > 0 && (
                 <span className="activity-badge">{pendingTxs.length}</span>
               )}

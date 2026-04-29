@@ -413,6 +413,33 @@ h3 {
   gap: 6px;
 }
 
+.activity-pill.is-submitted {
+  border-color: rgba(250, 204, 21, 0.46);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.activity-pill.is-confirmed {
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(74, 222, 128, 0.09);
+}
+
+.activity-pill.is-failed,
+.activity-pill.is-cancelled {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(248, 113, 113, 0.09);
+}
+
+.activity-status {
+  max-width: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
 .activity-badge {
   min-width: 18px;
   height: 18px;
