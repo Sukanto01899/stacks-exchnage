@@ -290,12 +290,19 @@ export default function SwapCard(props: any) {
   }, [poolCopied]);
 
   const [copiedToken, setCopiedToken] = useState<null | "x" | "y">(null);
+  const [priceCopied, setPriceCopied] = useState(false);
 
   useEffect(() => {
     if (!copiedToken) return;
     const timer = window.setTimeout(() => setCopiedToken(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedToken]);
+
+  useEffect(() => {
+    if (!priceCopied) return;
+    const timer = window.setTimeout(() => setPriceCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [priceCopied]);
 
   const copyPoolContract = async () => {
     const id = `${poolContract.address}.${poolContract.contractName}`;
@@ -335,6 +342,17 @@ export default function SwapCard(props: any) {
     tokenInfo?.tokenY ?? null,
     Boolean(tokenInfo?.tokenYIsStx),
   );
+
+  const copyCurrentPrice = async () => {
+    if (!currentPrice) return;
+    const text = `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setPriceCopied(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   return (
     <div className="swap-card">
@@ -702,11 +720,22 @@ export default function SwapCard(props: any) {
       <div className="inline-stats">
         <div>
           <p className="muted small">Price</p>
-          <strong>
-            {currentPrice
-              ? `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`
-              : "N/A"}
-          </strong>
+          <div className="mini-actions">
+            <strong>
+              {currentPrice
+                ? `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`
+                : "N/A"}
+            </strong>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void copyCurrentPrice()}
+              disabled={!currentPrice}
+              title="Copy current price"
+            >
+              {priceCopied ? "Copied" : "Copy"}
+            </button>
+          </div>
         </div>
         <div>
           <p className="muted small">Fee</p>
