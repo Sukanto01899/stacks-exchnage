@@ -9,6 +9,9 @@ export default function LiquidityCard(props: any) {
     setMaxLiquidity,
     handleFaucet,
     faucetPending,
+    liquidityPending,
+    removeLiquidityPending,
+    balancesPending,
     tokenLabels,
     tokenIcons,
     tokenIsStx,
@@ -164,6 +167,18 @@ export default function LiquidityCard(props: any) {
 
       <div className="pool-overview">
         <div className="pool-overview-card">
+          {(balancesPending || liquidityPending || removeLiquidityPending) && (
+            <div className="loading-strip" role="status">
+              <span className="loading-spinner" aria-hidden="true" />
+              <span>
+                {balancesPending
+                  ? "Refreshing balances..."
+                  : liquidityPending
+                    ? "Preparing liquidity..."
+                    : "Preparing withdrawal..."}
+              </span>
+            </div>
+          )}
           <div className="pool-overview-head">
             <div>
               <p className="eyebrow">Pool stats</p>
@@ -215,7 +230,13 @@ export default function LiquidityCard(props: any) {
           <div className="pool-stats-grid">
             <div className="pool-stat">
               <span className="muted small">Your LP</span>
-              <strong>{formatNumber(balances.lpShares)} shares</strong>
+              <strong>
+                {balancesPending ? (
+                  <span className="skeleton-text skeleton-short" aria-label="Loading LP balance" />
+                ) : (
+                  `${formatNumber(balances.lpShares)} shares`
+                )}
+              </strong>
             </div>
             <div className="pool-stat">
               <span className="muted small">Pool share</span>
@@ -412,13 +433,14 @@ export default function LiquidityCard(props: any) {
             <button className="tiny ghost" onClick={setMaxLiquidity}>
               Max LP
             </button>
-            <button
-              className="tiny ghost"
-              onClick={() => handleFaucet()}
-              disabled={faucetPending}
-            >
-              Faucet both
-            </button>
+              <button
+                className="tiny ghost"
+                onClick={() => handleFaucet()}
+                disabled={faucetPending}
+              >
+                {faucetPending && <span className="loading-spinner tiny-spinner" aria-hidden="true" />}
+                {faucetPending ? "Minting..." : "Faucet both"}
+              </button>
           </div>
         </div>
         <div className="dual-input">
@@ -436,7 +458,12 @@ export default function LiquidityCard(props: any) {
             />
             <div className="pool-helper">
               <span className="muted small">
-                Balance: {formatNumber(balances.tokenX)}
+                Balance:{" "}
+                {balancesPending ? (
+                  <span className="skeleton-text skeleton-short" aria-label="Loading token X balance" />
+                ) : (
+                  formatNumber(balances.tokenX)
+                )}
               </span>
               <button
                 className="tiny ghost"
@@ -460,7 +487,12 @@ export default function LiquidityCard(props: any) {
             />
             <div className="pool-helper">
               <span className="muted small">
-                Balance: {formatNumber(balances.tokenY)}
+                Balance:{" "}
+                {balancesPending ? (
+                  <span className="skeleton-text skeleton-short" aria-label="Loading token Y balance" />
+                ) : (
+                  formatNumber(balances.tokenY)
+                )}
               </span>
               <button
                 className="tiny ghost"
@@ -494,9 +526,10 @@ export default function LiquidityCard(props: any) {
           <button
             className="primary"
             onClick={handleAddLiquidity}
-            disabled={tokenMismatch || initialLiquidityTooSmall}
+            disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending}
           >
-            Add liquidity
+            {liquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
+            {liquidityPending ? "Preparing liquidity..." : "Add liquidity"}
           </button>
         </div>
       </div>
@@ -534,7 +567,12 @@ export default function LiquidityCard(props: any) {
         </div>
         <div className="pool-helper">
           <span className="muted small">
-            Your LP: {formatNumber(balances.lpShares)} shares
+            Your LP:{" "}
+            {balancesPending ? (
+              <span className="skeleton-text skeleton-short" aria-label="Loading LP balance" />
+            ) : (
+              `${formatNumber(balances.lpShares)} shares`
+            )}
           </span>
           <span className="muted small">
             Pool share: {(poolShare * 100).toFixed(2)}%
@@ -544,9 +582,10 @@ export default function LiquidityCard(props: any) {
           <button
             className="primary"
             onClick={handleRemoveLiquidity}
-            disabled={tokenMismatch}
+            disabled={tokenMismatch || removeLiquidityPending}
           >
-            Remove liquidity
+            {removeLiquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
+            {removeLiquidityPending ? "Preparing withdrawal..." : "Remove liquidity"}
           </button>
         </div>
       </div>
@@ -555,16 +594,18 @@ export default function LiquidityCard(props: any) {
         <button
           className="secondary"
           onClick={handleRemoveLiquidity}
-          disabled={tokenMismatch}
+          disabled={tokenMismatch || removeLiquidityPending}
         >
-          Remove liquidity
+          {removeLiquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
+          {removeLiquidityPending ? "Preparing withdrawal..." : "Remove liquidity"}
         </button>
         <button
           className="primary"
           onClick={handleAddLiquidity}
-          disabled={tokenMismatch || initialLiquidityTooSmall}
+          disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending}
         >
-          Add liquidity
+          {liquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
+          {liquidityPending ? "Preparing liquidity..." : "Add liquidity"}
         </button>
       </div>
     </div>

@@ -350,9 +350,11 @@ function App() {
   const [liqX, setLiqX] = useState("1200");
   const [liqY, setLiqY] = useState("1200");
   const [liqMessage, setLiqMessage] = useState<string | null>(null);
+  const [liquidityPending, setLiquidityPending] = useState(false);
 
   const [burnShares, setBurnShares] = useState("0");
   const [burnMessage, setBurnMessage] = useState<string | null>(null);
+  const [removeLiquidityPending, setRemoveLiquidityPending] = useState(false);
 
   const [faucetPending, setFaucetPending] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -1227,6 +1229,7 @@ function App() {
     setBalances,
     faucetMessage,
     setFaucetMessage,
+    balancesPending,
     syncBalances,
   } = useBalances({
     stacksApi: STACKS_API,
@@ -3624,6 +3627,7 @@ function App() {
           uintCV(minShares),
         ];
 
+    setLiquidityPending(true);
     try {
       await openContractCall({
         network,
@@ -3634,6 +3638,7 @@ function App() {
         functionName,
         functionArgs,
         onFinish: async (payload) => {
+          setLiquidityPending(false);
           setLiqMessage(`Liquidity submitted. Txid: ${payload.txId}`);
           pushActivity({
             kind: "add-liquidity",
@@ -3644,6 +3649,7 @@ function App() {
           });
         },
         onCancel: () => {
+          setLiquidityPending(false);
           setLiqMessage("Liquidity cancelled.");
           pushActivity({
             kind: "add-liquidity",
@@ -3653,6 +3659,7 @@ function App() {
         },
       });
     } catch (error) {
+      setLiquidityPending(false);
       pushActivity({
         kind: "add-liquidity",
         status: "failed",
@@ -3692,6 +3699,7 @@ function App() {
     const minX = BigInt(0);
     const minY = BigInt(0);
 
+    setRemoveLiquidityPending(true);
     try {
       await openContractCall({
         network,
@@ -3708,6 +3716,7 @@ function App() {
           uintCV(minY),
         ],
         onFinish: async (payload) => {
+          setRemoveLiquidityPending(false);
           setBurnMessage(`Remove liquidity submitted. Txid: ${payload.txId}`);
           pushActivity({
             kind: "remove-liquidity",
@@ -3718,6 +3727,7 @@ function App() {
           });
         },
         onCancel: () => {
+          setRemoveLiquidityPending(false);
           setBurnMessage("Remove liquidity cancelled.");
           pushActivity({
             kind: "remove-liquidity",
@@ -3727,6 +3737,7 @@ function App() {
         },
       });
     } catch (error) {
+      setRemoveLiquidityPending(false);
       pushActivity({
         kind: "remove-liquidity",
         status: "failed",
@@ -5961,6 +5972,7 @@ function App() {
                   : "Refresh pool/balances\nLast pool refresh: never"
               }
             >
+              {poolPending && <span className="loading-spinner tiny-spinner" aria-hidden="true" />}
               {poolPending ? "Refreshing" : "Refresh"}
             </button>
             {poolSelectorOptions.length > 0 && (
@@ -5979,6 +5991,7 @@ function App() {
                 </select>
                 {poolsDirectoryPending && (
                   <span className="pool-select-status" aria-hidden="true">
+                    <span className="loading-spinner tiny-spinner" />
                     Loading
                   </span>
                 )}
@@ -7076,6 +7089,7 @@ function App() {
                   swapDirection={swapDirection}
                   setSwapDirection={setSwapDirection}
                   balances={balances}
+                  balancesPending={balancesPending}
                   formatNumber={formatNumber}
                   setSwapPreset={setSwapPreset}
                   clearSwapInput={clearSwapInput}
@@ -7169,7 +7183,12 @@ function App() {
                 </div>
               ) : activeTab === "liquidity" ? (
                 <Suspense
-                  fallback={<div className="note subtle">Loading pool...</div>}
+                  fallback={
+                    <div className="loading-state" role="status">
+                      <span className="loading-spinner" aria-hidden="true" />
+                      <span>Loading pool...</span>
+                    </div>
+                  }
                 >
                   <LiquidityCard
                     handleSyncToPoolRatio={handleSyncToPoolRatio}
@@ -7177,6 +7196,9 @@ function App() {
                     setMaxLiquidity={setMaxLiquidity}
                     handleFaucet={handleFaucet}
                     faucetPending={faucetPending}
+                    liquidityPending={liquidityPending}
+                    removeLiquidityPending={removeLiquidityPending}
+                    balancesPending={balancesPending}
                     tokenLabels={selectionLabels}
                     tokenIcons={selectionIcons}
                     tokenIsStx={tokenIsStx}
@@ -7280,7 +7302,10 @@ function App() {
               ) : (
                 <Suspense
                   fallback={
-                    <div className="note subtle">Loading analytics...</div>
+                    <div className="loading-state" role="status">
+                      <span className="loading-spinner" aria-hidden="true" />
+                      <span>Loading analytics...</span>
+                    </div>
                   }
                 >
                   <AnalyticsPanel

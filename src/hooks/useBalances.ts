@@ -31,6 +31,7 @@ export const useBalances = ({
     lpShares: 0,
   });
   const [faucetMessage, setFaucetMessage] = useState<string | null>(null);
+  const [balancesPending, setBalancesPending] = useState(false);
 
   const fetchOnChainBalances = useCallback(
     async (address: string) => {
@@ -91,6 +92,7 @@ export const useBalances = ({
   const syncBalances = useCallback(
     async (address: string, opts?: { silent?: boolean }) => {
       if (!address) return;
+      setBalancesPending(true);
       try {
         if (!opts?.silent) {
           setFaucetMessage("Refreshing on-chain balances...");
@@ -124,6 +126,8 @@ export const useBalances = ({
               : "Could not load on-chain balances.",
           );
         }
+      } finally {
+        setBalancesPending(false);
       }
     },
     [fetchOnChainBalances, fetchPoolState],
@@ -134,6 +138,7 @@ export const useBalances = ({
     setBalances,
     faucetMessage,
     setFaucetMessage,
+    balancesPending,
     syncBalances,
   };
 };

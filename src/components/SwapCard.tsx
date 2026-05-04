@@ -23,6 +23,7 @@ export default function SwapCard(props: any) {
     swapDirection,
     setSwapDirection,
     balances,
+    balancesPending,
     formatNumber,
     setSwapPreset,
     clearSwapInput,
@@ -473,6 +474,14 @@ export default function SwapCard(props: any) {
       )}
 
       <div className="token-card">
+        {(poolPending || balancesPending) && (
+          <div className="loading-strip" role="status">
+            <span className="loading-spinner" aria-hidden="true" />
+            <span>
+              {poolPending ? "Refreshing pool data..." : "Refreshing balances..."}
+            </span>
+          </div>
+        )}
         <div className="token-card-head">
           <span className="muted">From</span>
           <span className="token-inline muted small">
@@ -537,9 +546,13 @@ export default function SwapCard(props: any) {
         </div>
         <p className="muted small">
           Balance:{" "}
-          {swapDirection === "x-to-y"
-            ? formatNumber(balances.tokenX)
-            : formatNumber(balances.tokenY)}
+          {balancesPending ? (
+            <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
+          ) : swapDirection === "x-to-y" ? (
+            formatNumber(balances.tokenX)
+          ) : (
+            formatNumber(balances.tokenY)
+          )}
         </p>
         <div className="mini-actions">
           <button className="tiny ghost" onClick={() => setSwapPreset(0.25)}>
@@ -617,7 +630,12 @@ export default function SwapCard(props: any) {
         <div className="token-output">
           <h3>
             {quoteLoading
-              ? "Loading..."
+              ? (
+                  <span className="quote-loading">
+                    <span className="loading-spinner" aria-hidden="true" />
+                    Loading...
+                  </span>
+                )
               : liveSwapOutput !== null
                 ? formatNumber(liveSwapOutput)
                 : pool.reserveX <= 0 || pool.reserveY <= 0
@@ -678,6 +696,7 @@ export default function SwapCard(props: any) {
             onClick={() => void handleManualRefresh()}
             disabled={poolPending}
           >
+            {poolPending && <span className="loading-spinner tiny-spinner" aria-hidden="true" />}
             {poolPending ? "Refreshing..." : "Refresh data"}
           </button>
           <button
@@ -1336,6 +1355,9 @@ export default function SwapCard(props: any) {
             swapAmountTooSmall
           }
         >
+        {(quoteLoading || preflightPending || swapPending) && (
+          <span className="loading-spinner button-spinner" aria-hidden="true" />
+        )}
         {quoteLoading
           ? "Loading quote..."
           : preflightPending
