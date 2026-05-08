@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { buildExplorerContractUrl } from "../lib/explorer";
 import { shortAddress } from "../lib/helper";
 
 type TokenSeed = {
@@ -293,6 +294,10 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
             const selectedX = selected.xIsStx ? token.isStx : token.id === selected.xId;
             const selectedY = selected.yIsStx ? token.isStx : token.id === selected.yId;
             const warning = token.isStx ? null : token.verified ? null : "Unverified token — double-check contract and asset id.";
+            const explorerContractUrl =
+              token.isStx
+                ? null
+                : buildExplorerContractUrl(token.principal, resolvedStacksNetwork);
             return (
               <div key={token.id} className="token-discover-row">
                 <div className="token-discover-main">
@@ -323,6 +328,17 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
                   >
                     {isFav ? "★" : "☆"}
                   </button>
+                  {explorerContractUrl && (
+                    <a
+                      className="tiny ghost"
+                      href={explorerContractUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open token contract in explorer"
+                    >
+                      Explorer
+                    </a>
+                  )}
                   <button
                     className={`tiny ghost ${isWatched ? "is-active" : ""}`}
                     type="button"
@@ -354,4 +370,3 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
     </div>
   );
 }
-
