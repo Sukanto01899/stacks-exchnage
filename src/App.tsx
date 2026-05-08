@@ -5854,6 +5854,34 @@ function App() {
       className={`page single ${showMinimalSwapLayout ? "simple-page" : ""}`}
     >
       <StatusBanner />
+      <div
+        className={`status-banner status-banner--${
+          RESOLVED_STACKS_NETWORK === "mainnet" ? "success" : "warning"
+        }`}
+        role="status"
+      >
+        <div className="status-banner__left">
+          <span className="status-banner__message">
+            Network: {RESOLVED_STACKS_NETWORK}
+            {RESOLVED_STACKS_NETWORK === "mainnet" ? "" : " (demo)"}{" "}
+            {poolContractId ? `| Pool: ${poolContractId}` : ""}
+          </span>
+          {poolContractId &&
+          buildExplorerContractUrl(poolContractId, RESOLVED_STACKS_NETWORK) ? (
+            <a
+              className="status-banner__link"
+              href={buildExplorerContractUrl(
+                poolContractId,
+                RESOLVED_STACKS_NETWORK,
+              ) as string}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Explorer
+            </a>
+          ) : null}
+        </div>
+      </div>
       <header className="nav">
         <div className="nav-inner">
           <div className="nav-cluster">
