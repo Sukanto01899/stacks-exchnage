@@ -359,6 +359,50 @@ body {
   gap: 10px;
 }
 
+.address-pill-wrap {
+  padding: 0;
+  overflow: hidden;
+}
+
+.address-pill-main {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.address-pill-explorer {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.address-pill-explorer:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.address-pill-explorer:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: -2px;
+}
+
 .address-pill.is-warning {
   border-color: rgba(var(--accent-strong-rgb), 0.55);
   box-shadow: 0 0 0 2px rgba(var(--accent-strong-rgb), 0.12);

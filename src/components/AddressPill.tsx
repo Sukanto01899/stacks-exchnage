@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { buildExplorerAddressUrl } from "../lib/explorer";
 import { shortAddress } from "../lib/helper";
 
 type AddressPillProps = {
@@ -34,27 +35,46 @@ export default function AddressPill(props: AddressPillProps) {
   const fingerprint = useMemo(() => fingerprintFromHash(hash), [hash]);
   const a = useMemo(() => hslFromHash(hash, 11), [hash]);
   const b = useMemo(() => hslFromHash(hash, 97), [hash]);
+  const explorerUrl = useMemo(
+    () => buildExplorerAddressUrl(address, networkLabel),
+    [address, networkLabel],
+  );
 
   return (
-    <button
-      className={`wallet-pill address-pill ${networkMismatch ? "is-warning" : ""}`}
-      onClick={onClick}
-      title={address}
-      type="button"
+    <div
+      className={`wallet-pill address-pill address-pill-wrap ${
+        networkMismatch ? "is-warning" : ""
+      }`}
     >
-      <span
-        className="address-identicon"
-        aria-hidden="true"
-        style={{ background: `linear-gradient(135deg, ${a}, ${b})` }}
-      />
-      <span className="address-text">
-        {shortAddress(address)}
-        <span className="address-fingerprint">{fingerprint}</span>
-      </span>
-      <span className={`chip ${networkMismatch ? "warn" : "ghost"}`}>
-        {networkLabel}
-      </span>
-    </button>
+      <button
+        className="address-pill-main"
+        onClick={onClick}
+        title={address}
+        type="button"
+      >
+        <span
+          className="address-identicon"
+          aria-hidden="true"
+          style={{ background: `linear-gradient(135deg, ${a}, ${b})` }}
+        />
+        <span className="address-text">
+          {shortAddress(address)}
+          <span className="address-fingerprint">{fingerprint}</span>
+        </span>
+        <span className={`chip ${networkMismatch ? "warn" : "ghost"}`}>
+          {networkLabel}
+        </span>
+      </button>
+      <a
+        className="address-pill-explorer"
+        href={explorerUrl}
+        target="_blank"
+        rel="noreferrer"
+        title="Open address in explorer"
+        onClick={(event) => event.stopPropagation()}
+      >
+        Open
+      </a>
+    </div>
   );
 }
-
