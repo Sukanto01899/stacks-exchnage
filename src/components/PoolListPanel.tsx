@@ -76,6 +76,13 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     formatNumber,
   } = props;
 
+  const describePoolHealth = (tvl: number) => {
+    const safeTvl = Number.isFinite(tvl) ? tvl : 0;
+    if (safeTvl <= 0) return { label: "Empty", variant: "warn" as const };
+    if (safeTvl < 10) return { label: "Low liquidity", variant: "warn" as const };
+    return { label: "Healthy", variant: "success" as const };
+  };
+
   const isDefaultFilters =
     search.trim() === "" &&
     sort === "tvl" &&
@@ -264,8 +271,10 @@ export default function PoolListPanel(props: PoolListPanelProps) {
         </div>
       ) : (
         <div className="pool-list-grid">
-          {pools.map((pool) => (
-            <div key={pool.id} className="pool-list-card">
+          {pools.map((pool) => {
+            const health = describePoolHealth(pool.tvl);
+            return (
+              <div key={pool.id} className="pool-list-card">
               <div className="pool-list-card-head">
                 <div>
                   <p className="muted small">{pool.label}</p>
@@ -273,6 +282,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                     {pool.tokenXLabel} / {pool.tokenYLabel}
                   </strong>
                 </div>
+                <span className={`chip ${health.variant}`}>{health.label}</span>
                 <button
                   className={`chip ghost ${favorites.includes(pool.id) ? "is-favorite" : ""}`}
                   type="button"
@@ -369,7 +379,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
