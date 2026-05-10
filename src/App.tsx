@@ -242,13 +242,13 @@ function App() {
       const raw = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
       if (
         raw === "swap" ||
-        raw === "prices" ||
         raw === "pools" ||
         raw === "analytics" ||
         raw === "liquidity"
       ) {
         return raw;
       }
+      if (raw === "prices") return "swap";
     } catch {
       // ignore storage errors
     }
@@ -567,13 +567,13 @@ function App() {
 
       if (
         tab === "swap" ||
-        tab === "prices" ||
         tab === "pools" ||
         tab === "analytics" ||
         tab === "liquidity"
       ) {
         setActiveTab(tab);
       }
+      if (tab === "prices") setActiveTab("swap");
 
       const overrides: NonNullable<(typeof swapUrlOverrides)["current"]> = {};
       if (dir === "x-to-y" || dir === "y-to-x") {
@@ -4356,9 +4356,7 @@ function App() {
         return;
       }
       if (poolPending) return;
-      if (activeTab !== "swap" && activeTab !== "prices" && activeTab !== "liquidity") {
-        return;
-      }
+      if (activeTab !== "swap" && activeTab !== "liquidity") return;
       const age = lastPoolRefreshAt ? Date.now() - lastPoolRefreshAt : Infinity;
       if (age < autoRefreshIntervalSec * 800) return;
       void handleManualRefresh();
@@ -4755,7 +4753,7 @@ function App() {
       }
       if (key === "p") {
         event.preventDefault();
-        setActiveTab("prices");
+        setActiveTab("swap");
         return;
       }
       if (key === "o") {
@@ -4966,8 +4964,8 @@ function App() {
         return;
       }
 
-      if (activeTab === "prices") {
-        document.querySelector<HTMLInputElement>(".price-board-search input")?.focus();
+      if (activeTab === "swap") {
+        document.querySelector<HTMLInputElement>(".token-input input")?.focus();
         return;
       }
     };
@@ -4990,7 +4988,7 @@ function App() {
 	    const shortcutsText = [
 	      "Command palette: Ctrl/Cmd+K or /",
 	      "Shortcuts: ?",
-	      "Tabs: T (Trade), P (Prices), O (Pools), A (Analytics), L (Liquidity)",
+	      "Tabs: T (Trade), O (Pools), A (Analytics), L (Liquidity)",
 	      "Swap: X flips direction",
 	      "Swap presets: 1/2/3/4 sets 25/50/75/100%",
 	      "Swap: M sets max, C clears amount",
@@ -5090,26 +5088,15 @@ function App() {
         },
       },
       {
-        id: "nav-prices",
-        label: "Go to Prices",
-        keywords: "tab prices chart board",
-        hotkey: "P",
+        id: "nav-trade",
+        label: "Go to Trade",
+        keywords: "tab trade swap",
+        hotkey: "T",
         run: () => {
-          setActiveTab("prices");
-          closeCommandPalette();
-        },
-      },
-      {
-        id: "prices-focus-search",
-        label: "Prices: Focus search",
-        keywords: "prices search focus filter markets",
-        run: () => {
-          setActiveTab("prices");
+          setActiveTab("swap");
           closeCommandPalette();
           window.setTimeout(() => {
-            document
-              .querySelector<HTMLInputElement>(".price-board-search input")
-              ?.focus();
+            document.querySelector<HTMLInputElement>(".token-input input")?.focus();
           }, 50);
         },
       },
@@ -5904,12 +5891,6 @@ function App() {
                 Trade
               </button>
               <button
-                className={activeTab === "prices" ? "is-active" : ""}
-                onClick={() => setActiveTab("prices")}
-              >
-                Prices
-              </button>
-              <button
                 className={activeTab === "pools" ? "is-active" : ""}
                 onClick={() => setActiveTab("pools")}
               >
@@ -6620,15 +6601,6 @@ function App() {
                 }}
               >
                 Trade
-              </button>
-              <button
-                className={activeTab === "prices" ? "is-active" : ""}
-                onClick={() => {
-                  setActiveTab("prices");
-                  setDrawerOpen(false);
-                }}
-              >
-                Prices
               </button>
               <button
                 className={activeTab === "pools" ? "is-active" : ""}
