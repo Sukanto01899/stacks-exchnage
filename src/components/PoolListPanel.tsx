@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { buildExplorerContractUrl } from "../lib/explorer";
 
 type PoolListItem = {
@@ -88,6 +89,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     sort === "tvl" &&
     sortDir === "desc" &&
     favoritesOnly === false;
+
+  const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!copiedPoolId) return;
+    const timer = window.setTimeout(() => setCopiedPoolId(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedPoolId]);
 
   return (
     <section className="pool-list-panel">
@@ -321,9 +330,12 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 <button
                   className="tiny ghost"
                   type="button"
-                  onClick={() => onCopyPoolId(pool.id)}
+                  onClick={() => {
+                    onCopyPoolId(pool.id);
+                    setCopiedPoolId(pool.id);
+                  }}
                 >
-                  Copy contract
+                  {copiedPoolId === pool.id ? "Copied" : "Copy contract"}
                 </button>
                 <button
                   className="tiny ghost"

@@ -5864,7 +5864,7 @@ function App() {
           <span className="status-banner__message">
             Network: {RESOLVED_STACKS_NETWORK}
             {RESOLVED_STACKS_NETWORK === "mainnet" ? "" : " (demo)"}{" "}
-            {poolContractId ? `| Pool: ${poolContractId}` : ""}
+            {poolContractId ? `| Active pool: ${poolContractId}` : ""}
           </span>
           {poolContractId &&
           buildExplorerContractUrl(poolContractId, RESOLVED_STACKS_NETWORK) ? (
@@ -5925,7 +5925,7 @@ function App() {
                 className={activeTab === "liquidity" ? "is-active" : ""}
                 onClick={() => setActiveTab("liquidity")}
               >
-                Pool
+                Liquidity
               </button>
             </nav>
           </div>
@@ -6655,7 +6655,7 @@ function App() {
                   setDrawerOpen(false);
                 }}
               >
-                Pool
+                Liquidity
               </button>
               <hr />
               {stacksAddress ? (
