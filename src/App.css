@@ -224,10 +224,10 @@ body {
 
 .page.simple-page {
   min-height: 100svh;
-  height: 100svh;
+  height: auto;
   padding: 0 16px 18px;
   gap: 12px;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .nav {
@@ -868,7 +868,7 @@ h3 {
   justify-content: center;
   width: 100%;
   min-height: 100%;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .dashboard-sidebar,
@@ -2446,6 +2446,30 @@ h3 {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.swap-simple-mid {
+  display: flex;
+  justify-content: center;
+  margin: -8px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.swap-simple-flip {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(16, 20, 32, 0.92);
+}
+
+.swap-simple-flip:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.swap-settings--simple {
+  margin-top: 10px;
 }
 
 .token-card {

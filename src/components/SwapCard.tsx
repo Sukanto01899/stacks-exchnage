@@ -355,6 +355,187 @@ export default function SwapCard(props: any) {
     }
   };
 
+  if (showMinimalSwapLayout) {
+    const outputText =
+      liveSwapOutput !== null && Number.isFinite(liveSwapOutput) && liveSwapOutput > 0
+        ? formatNumber(liveSwapOutput)
+        : "";
+
+    return (
+      <div className="swap-card">
+        {(networkMismatch || tokenMismatch || noLiquidity || insufficientBalance) && (
+          <div className={`note ${networkMismatch || noLiquidity ? "error" : "warning"}`}>
+            <strong>
+              {networkMismatch
+                ? `Connected wallet is not on ${resolvedStacksNetwork}.`
+                : tokenMismatch
+                  ? "Selected tokens do not match the pool."
+                  : noLiquidity
+                    ? "Pool has no liquidity yet."
+                    : "Insufficient balance."}
+            </strong>
+          </div>
+        )}
+
+        <div className="token-card">
+          <div className="token-card-head">
+            <span className="muted">From</span>
+            <span className="token-inline muted small">
+              {renderIcon(fromIcon, fromLabel, fromIsStx)}
+              {fromLabel}
+            </span>
+            <div className="mini-actions">
+              <button
+                className="tiny ghost"
+                onClick={setMaxSwap}
+                title={
+                  fromIsStx
+                    ? "Keeps 0.1 STX for transaction fees"
+                    : "Use your full balance"
+                }
+              >
+                Max
+              </button>
+              <button className="tiny ghost" onClick={clearSwapInput}>
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="token-input">
+            <input
+              type="number"
+              value={swapInput}
+              onChange={(e) => setSwapInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && String(swapInput || "").trim()) {
+                  e.preventDefault();
+                  clearSwapInput();
+                }
+              }}
+              onBlur={handleSwapAmountBlur}
+              min="0"
+              step="0.000001"
+              placeholder="0.0"
+            />
+            <select
+              className="token-select"
+              value={swapDirection === "x-to-y" ? "x" : "y"}
+              onChange={(e) =>
+                setSwapDirection(e.target.value === "x" ? "x-to-y" : "y-to-x")
+              }
+            >
+              <option value="x">{tokenXLabel}</option>
+              <option value="y">{tokenYLabel}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="swap-simple-mid">
+          <button
+            className="icon-button swap-simple-flip"
+            type="button"
+            aria-label="Flip swap direction"
+            title="Flip"
+            onClick={() =>
+              setSwapDirection((prev: "x-to-y" | "y-to-x") =>
+                prev === "x-to-y" ? "y-to-x" : "x-to-y",
+              )
+            }
+          >
+            ⇅
+          </button>
+        </div>
+
+        <div className="token-card">
+          <div className="token-card-head">
+            <span className="muted">To</span>
+            <span className="token-inline muted small">
+              {renderIcon(toIcon, toLabel, toIsStx)}
+              {toLabel}
+            </span>
+          </div>
+          <div className="token-input">
+            <input
+              type="text"
+              value={quoteLoading ? "" : outputText}
+              readOnly
+              placeholder={quoteLoading ? "Quoting..." : "0.0"}
+            />
+            <select
+              className="token-select"
+              value={swapDirection === "x-to-y" ? "y" : "x"}
+              disabled
+            >
+              <option value="x">{tokenXLabel}</option>
+              <option value="y">{tokenYLabel}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="swap-settings swap-settings--simple">
+          <div className="swap-setting-row">
+            <span className="muted small">Slippage</span>
+            <div className="swap-setting-pills" aria-label="Slippage presets">
+              {SLIPPAGE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  className={`tiny ghost ${slippageInput === preset ? "is-active" : ""}`}
+                  type="button"
+                  onClick={() => setSlippageInput(preset)}
+                  aria-pressed={slippageInput === preset}
+                >
+                  {preset}%
+                </button>
+              ))}
+            </div>
+            <input
+              className="tiny"
+              inputMode="decimal"
+              value={slippageInput}
+              onChange={(e) => setSlippageInput(e.target.value)}
+              onBlur={normalizeSlippageInput}
+              placeholder="0.5"
+              aria-label="Slippage percent"
+            />
+          </div>
+        </div>
+
+        {renderApprovalManager("swap")}
+
+        <button
+          className="primary"
+          onClick={handleSimpleSwap}
+          disabled={
+            quoteLoading ||
+            swapPending ||
+            preflightPending ||
+            tokenMismatch ||
+            insufficientBalance ||
+            noLiquidity ||
+            networkMismatch ||
+            missingRiskConfirm ||
+            missingImpactConfirm ||
+            missingLargeSwapConfirm ||
+            impactBlocked ||
+            swapAmountInvalid ||
+            swapAmountTooSmall
+          }
+        >
+          {(quoteLoading || preflightPending || swapPending) && (
+            <span className="loading-spinner button-spinner" aria-hidden="true" />
+          )}
+          {quoteLoading
+            ? "Loading quote..."
+            : preflightPending
+              ? "Preparing swap..."
+              : swapPending
+                ? "Swapping..."
+                : "Swap"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="swap-card">
       {showMinimalSwapLayout && (
