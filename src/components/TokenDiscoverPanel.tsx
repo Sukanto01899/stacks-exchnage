@@ -62,6 +62,13 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
   const [addTokenId, setAddTokenId] = useState("");
   const [addMessage, setAddMessage] = useState<string | null>(null);
   const [addPending, setAddPending] = useState(false);
+  const [copiedContract, setCopiedContract] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!copiedContract) return;
+    const timer = window.setTimeout(() => setCopiedContract(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedContract]);
 
   useEffect(() => {
     try {
@@ -339,6 +346,23 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
                       Explorer
                     </a>
                   )}
+                  {!token.isStx && token.principal ? (
+                    <button
+                      className="tiny ghost"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(token.principal);
+                          setCopiedContract(token.principal);
+                        } catch {
+                          // ignore clipboard errors
+                        }
+                      }}
+                      title="Copy token contract principal"
+                    >
+                      {copiedContract === token.principal ? "Copied" : "Copy contract"}
+                    </button>
+                  ) : null}
                   <button
                     className={`tiny ghost ${isWatched ? "is-active" : ""}`}
                     type="button"
