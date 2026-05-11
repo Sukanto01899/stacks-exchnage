@@ -7,6 +7,7 @@ import {
   boolCV,
   contractPrincipalCV,
   fetchCallReadOnlyFunction,
+  noneCV,
   standardPrincipalCV,
   uintCV,
 } from "@stacks/transactions";
@@ -166,6 +167,7 @@ const inferToastTone = (
     | "frontend"
     | "alert"
     | "approval"
+    | "send"
     | "liquidity"
     | "remove"
     | "faucet",
@@ -207,6 +209,7 @@ const inferToastTone = (
 
 type ActivityFilter =
   | "swap"
+  | "send"
   | "confirmed"
   | "submitted"
   | "add-liquidity"
@@ -357,6 +360,11 @@ function App() {
   const [removeLiquidityPending, setRemoveLiquidityPending] = useState(false);
 
   const [faucetPending, setFaucetPending] = useState(false);
+  const [sendToken, setSendToken] = useState<TokenKey>("x");
+  const [sendAmount, setSendAmount] = useState("");
+  const [sendRecipient, setSendRecipient] = useState("");
+  const [sendPending, setSendPending] = useState(false);
+  const [sendMessage, setSendMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
@@ -2587,6 +2595,7 @@ function App() {
         next === "remove-liquidity" ||
         next === "approve" ||
         next === "faucet" ||
+        next === "send" ||
         next === "failed" ||
         next === "cancelled" ||
         next === "all"
@@ -3553,6 +3562,116 @@ function App() {
     }
   };
 
+  const handleSendToken = async () => {
+    setSendMessage(null);
+    if (!stacksAddress) {
+      setSendMessage("Connect a Stacks wallet first.");
+      return;
+    }
+    if (!isNetworkAddress(stacksAddress)) {
+      setSendMessage(
+        `Network mismatch: connected address is not ${RESOLVED_STACKS_NETWORK}. Switch wallet network and reconnect.`,
+      );
+      return;
+    }
+    const recipient = sendRecipient.trim();
+    if (!isNetworkAddress(recipient)) {
+      setSendMessage(`Enter a valid ${RESOLVED_STACKS_NETWORK} recipient address.`);
+      return;
+    }
+    if (recipient === stacksAddress) {
+      setSendMessage("Recipient must be different from your connected wallet.");
+      return;
+    }
+    if (tokenIsStx[sendToken]) {
+      setSendMessage("Native STX transfers are not supported in this token send drawer.");
+      return;
+    }
+    const tokenContract = tokenContracts[sendToken];
+    if (!tokenContract?.address || !tokenContract?.contractName) {
+      setSendMessage("Token contract is missing or invalid.");
+      return;
+    }
+    const amount = Number(sendAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setSendMessage("Enter an amount greater than 0.");
+      return;
+    }
+    const available = sendToken === "x" ? balances.tokenX : balances.tokenY;
+    if (amount > available + Number.EPSILON) {
+      setSendMessage(
+        `Not enough ${selectionLabels[sendToken]}. Available: ${formatNumber(available)}.`,
+      );
+      return;
+    }
+    const amountMicro = BigInt(Math.floor(amount * TOKEN_DECIMALS));
+    if (amountMicro <= 0n) {
+      setSendMessage("Amount is too small for this token precision.");
+      return;
+    }
+
+    const tokenLabel = selectionLabels[sendToken];
+    try {
+      setSendPending(true);
+      await openContractCall({
+        network,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Allow,
+        contractAddress: tokenContract.address,
+        contractName: tokenContract.contractName,
+        functionName: "transfer",
+        functionArgs: [
+          uintCV(amountMicro),
+          standardPrincipalCV(stacksAddress),
+          standardPrincipalCV(recipient),
+          noneCV(),
+        ],
+        onFinish: async (payload) => {
+          setSendMessage(`${tokenLabel} send submitted. Txid: ${payload.txId}`);
+          pushActivity({
+            kind: "send",
+            status: "submitted",
+            txid: payload.txId,
+            message: `${tokenLabel} send submitted`,
+            detail: `${formatNumber(amount)} ${tokenLabel} to ${shortAddress(recipient)}`,
+            meta: {
+              amountIn: amount,
+              fromSymbol: sendToken === "x" ? "X" : "Y",
+            },
+          });
+          setBalances((prev) => ({
+            ...prev,
+            tokenX:
+              sendToken === "x" ? Math.max(0, prev.tokenX - amount) : prev.tokenX,
+            tokenY:
+              sendToken === "y" ? Math.max(0, prev.tokenY - amount) : prev.tokenY,
+          }));
+          setSendAmount("");
+          setSendPending(false);
+        },
+        onCancel: () => {
+          setSendMessage(`${tokenLabel} send cancelled.`);
+          pushActivity({
+            kind: "send",
+            status: "cancelled",
+            message: `${tokenLabel} send cancelled`,
+          });
+          setSendPending(false);
+        },
+      });
+    } catch (error) {
+      pushActivity({
+        kind: "send",
+        status: "failed",
+        message: `${tokenLabel} send failed`,
+      });
+      setSendMessage(
+        error instanceof Error ? error.message : `${tokenLabel} send failed.`,
+      );
+      setSendPending(false);
+    }
+  };
+
   const handleAddLiquidity = async () => {
     setLiqMessage(null);
     const tokenConfigError = validateTokenConfig();
@@ -4248,6 +4367,7 @@ function App() {
       ["frontend", frontendMessage],
       ["alert", alertMessage],
       ["approval", approvalMessage],
+      ["send", sendMessage],
       ["liquidity", liqMessage],
       ["remove", burnMessage],
       ["faucet", faucetMessage],
@@ -4267,6 +4387,7 @@ function App() {
     liqMessage,
     preflightMessage,
     pushToast,
+    sendMessage,
     swapMessage,
   ]);
 
@@ -6166,6 +6287,14 @@ function App() {
                 </button>
                 <button
                   className={`tiny ghost ${
+                    activityFilter === "send" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActivityFilter("send")}
+                >
+                  Sends
+                </button>
+                <button
+                  className={`tiny ghost ${
                     activityFilter === "add-liquidity" ? "is-active" : ""
                   }`}
                   onClick={() => setActivityFilter("add-liquidity")}
@@ -6513,6 +6642,84 @@ function App() {
                   </button>
                 </div>
               ) : null}
+            </div>
+
+            <div className="drawer-section">
+              <h3 className="drawer-section-title">Send</h3>
+              <form
+                className="drawer-send-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSendToken();
+                }}
+              >
+                <div className="drawer-send-token-row" role="group" aria-label="Token to send">
+                  <button
+                    className={`tiny ghost ${sendToken === "x" ? "is-active" : ""}`}
+                    type="button"
+                    aria-pressed={sendToken === "x"}
+                    onClick={() => setSendToken("x")}
+                  >
+                    {selectionLabels.x}
+                  </button>
+                  <button
+                    className={`tiny ghost ${sendToken === "y" ? "is-active" : ""}`}
+                    type="button"
+                    aria-pressed={sendToken === "y"}
+                    onClick={() => setSendToken("y")}
+                  >
+                    {selectionLabels.y}
+                  </button>
+                </div>
+                <label>
+                  Amount
+                  <input
+                    className="drawer-send-input"
+                    type="number"
+                    min="0"
+                    step="any"
+                    inputMode="decimal"
+                    value={sendAmount}
+                    onChange={(event) => setSendAmount(event.target.value)}
+                    placeholder="0.00"
+                    disabled={sendPending}
+                  />
+                </label>
+                <label>
+                  Recipient address
+                  <input
+                    className="drawer-send-input"
+                    type="text"
+                    value={sendRecipient}
+                    onChange={(event) => setSendRecipient(event.target.value)}
+                    placeholder={IS_MAINNET ? "SP..." : "ST..."}
+                    autoComplete="off"
+                    disabled={sendPending}
+                  />
+                </label>
+                <div className="drawer-send-actions">
+                  <button
+                    className="primary"
+                    type="submit"
+                    disabled={sendPending || !sendAmount.trim() || !sendRecipient.trim()}
+                  >
+                    {sendPending ? "Sending..." : "Send"}
+                  </button>
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() => {
+                      setSendAmount("");
+                      setSendRecipient("");
+                      setSendMessage(null);
+                    }}
+                    disabled={sendPending || (!sendAmount && !sendRecipient && !sendMessage)}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {sendMessage ? <p className="note drawer-send-note">{sendMessage}</p> : null}
+              </form>
             </div>
 
             <div className="drawer-section">

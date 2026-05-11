@@ -1,7 +1,13 @@
 type ActivityItem = {
   id: string;
   ts: number;
-  kind: "swap" | "add-liquidity" | "remove-liquidity" | "approve" | "faucet";
+  kind:
+    | "swap"
+    | "send"
+    | "add-liquidity"
+    | "remove-liquidity"
+    | "approve"
+    | "faucet";
   status: "submitted" | "confirmed" | "failed" | "cancelled";
   txid?: string;
   message: string;
@@ -22,6 +28,7 @@ import { buildExplorerTxUrl } from "../lib/explorer";
 
 type ActivityFilter =
   | "swap"
+  | "send"
   | "confirmed"
   | "submitted"
   | "add-liquidity"
@@ -216,6 +223,13 @@ export default function ActivityPanel(props: ActivityPanelProps) {
             disabled={activityFilter === "swap"}
           >
             Swaps
+          </button>
+          <button
+            className="tiny ghost"
+            onClick={() => setActivityFilter("send")}
+            disabled={activityFilter === "send"}
+          >
+            Sends
           </button>
           <button
             className="tiny ghost"

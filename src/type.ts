@@ -60,7 +60,13 @@ export type PortfolioSnapshot = {
 export type ActivityItem = {
   id: string;
   ts: number;
-  kind: "swap" | "add-liquidity" | "remove-liquidity" | "approve" | "faucet";
+  kind:
+    | "swap"
+    | "send"
+    | "add-liquidity"
+    | "remove-liquidity"
+    | "approve"
+    | "faucet";
   status: "submitted" | "confirmed" | "failed" | "cancelled";
   txid?: string;
   message: string;

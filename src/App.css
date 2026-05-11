@@ -3259,6 +3259,50 @@ h3 {
   margin-bottom: 6px;
 }
 
+.drawer-send-form {
+  display: grid;
+  gap: 10px;
+}
+
+.drawer-send-token-row,
+.drawer-send-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drawer-send-token-row .tiny.is-active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  color: #fff;
+  background: rgba(var(--accent-rgb), 0.18);
+}
+
+.drawer-send-input {
+  width: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  padding: 10px 11px;
+  font-size: 14px;
+  outline: 0;
+}
+
+.drawer-send-input:focus-visible {
+  border-color: rgba(var(--accent-rgb), 0.65);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.18);
+}
+
+.drawer-send-actions .primary {
+  flex: 1 1 140px;
+  min-height: 38px;
+}
+
+.drawer-send-note {
+  overflow-wrap: anywhere;
+}
+
 .drawer-activity-list {
   margin: 0;
   padding: 0;
