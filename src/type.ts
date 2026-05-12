@@ -105,7 +105,7 @@ export type ToastItem = {
   actionHref?: string;
 };
 
-export type AppTab = "swap" | "liquidity" | "analytics" | "pools" | "prices";
+export type AppTab = "swap" | "liquidity" | "analytics" | "pools";
 export type OnboardingState = {
   seenModal: boolean;
   dismissed: boolean;

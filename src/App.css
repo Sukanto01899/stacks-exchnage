@@ -3272,6 +3272,14 @@ h3 {
   flex-wrap: wrap;
 }
 
+.drawer-send-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .drawer-send-token-row .tiny.is-active {
   border-color: rgba(var(--accent-rgb), 0.6);
   color: #fff;

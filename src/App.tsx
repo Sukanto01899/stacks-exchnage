@@ -25,9 +25,6 @@ import PoolListPanel from "./components/PoolListPanel";
 import PortfolioPanel from "./components/PortfolioPanel";
 import OnboardingModal from "./components/OnboardingModal";
 import ApprovalManager from "./components/ApprovalManager";
-import PriceBoardPanel from "./components/PriceBoardPanel";
-import MarketChartPanel from "./components/MarketChartPanel";
-import TradeSimulatorPanel from "./components/TradeSimulatorPanel";
 import TokenDiscoverPanel from "./components/TokenDiscoverPanel";
 import AddressPill from "./components/AddressPill";
 import SwapConfirmModal from "./components/SwapConfirmModal";
@@ -251,7 +248,6 @@ function App() {
       ) {
         return raw;
       }
-      if (raw === "prices") return "swap";
     } catch {
       // ignore storage errors
     }
@@ -581,7 +577,6 @@ function App() {
       ) {
         setActiveTab(tab);
       }
-      if (tab === "prices") setActiveTab("swap");
 
       const overrides: NonNullable<(typeof swapUrlOverrides)["current"]> = {};
       if (dir === "x-to-y" || dir === "y-to-x") {
@@ -1650,39 +1645,6 @@ function App() {
     return lines.join("\n");
   }, [escapeCsvCell, poolList]);
 
-  const marketsByPool = useMemo(
-    () =>
-      poolsDirectory.map((pool) => {
-        const tokenXId = buildTokenId(pool.tokenXPrincipal, pool.tokenXIsStx);
-        const tokenYId = buildTokenId(pool.tokenYPrincipal, pool.tokenYIsStx);
-        return {
-          id: pool.id,
-          label: pool.label,
-          tokenXLabel: resolveTokenLabel(tokenXId, pool.tokenXIsStx, "Token X"),
-          tokenYLabel: resolveTokenLabel(tokenYId, pool.tokenYIsStx, "Token Y"),
-          tvl: pool.tvl,
-          volume24h: pool.volume24h,
-        };
-      }),
-    [buildTokenId, poolsDirectory, resolveTokenLabel],
-  );
-
-  const priceBoardMarkets = useMemo(
-    () => marketsByPool,
-    [marketsByPool],
-  );
-
-  const marketChartMarkets = useMemo(
-    () =>
-      marketsByPool.map((market) => ({
-        id: market.id,
-        label: market.label,
-        tokenXLabel: market.tokenXLabel,
-        tokenYLabel: market.tokenYLabel,
-      })),
-    [marketsByPool],
-  );
-
   const poolSelectorOptions = useMemo(() => {
     if (POOL_CONTRACT_IDS.length <= 1) return [];
     const byId = new Map(poolsDirectory.map((pool) => [pool.id, pool]));
@@ -1695,7 +1657,7 @@ function App() {
       const tokenYId = buildTokenId(entry.tokenYPrincipal, entry.tokenYIsStx);
       const tokenXLabel = resolveTokenLabel(tokenXId, entry.tokenXIsStx, "Token X");
       const tokenYLabel = resolveTokenLabel(tokenYId, entry.tokenYIsStx, "Token Y");
-      return { id, label: `${tokenXLabel} / ${tokenYLabel} · ${entry.label}` };
+      return { id, label: `${tokenXLabel} / ${tokenYLabel} - ${entry.label}` };
     });
   }, [buildTokenId, poolsDirectory, resolveTokenLabel]);
 
@@ -1724,11 +1686,6 @@ function App() {
       target: "swap" | "liquidity";
     }[];
   }, [buildTokenId, poolsDirectory, recentPools, resolveTokenLabel]);
-
-  const priceBoardStorageKey = useMemo(
-    () => `price-board-watchlist-${RESOLVED_STACKS_NETWORK}`,
-    [RESOLVED_STACKS_NETWORK],
-  );
 
   const tokenMismatchWarning = useMemo(() => {
     if (!tokenInfo) return null;
@@ -6232,7 +6189,7 @@ function App() {
                 aria-label="Close activity drawer"
                 onClick={closeActivityDrawer}
               >
-                ×
+                x
               </button>
             </div>
             <div className="activity-drawer-controls">
@@ -6593,7 +6550,7 @@ function App() {
                 aria-label="Close menu"
                 onClick={closeNavDrawer}
               >
-                ×
+                x
               </button>
             </div>
 
@@ -6653,12 +6610,27 @@ function App() {
                   void handleSendToken();
                 }}
               >
+                {!stacksAddress ? (
+                  <div className="note subtle">
+                    <strong>Connect your wallet to send tokens.</strong>
+                    <div className="note-actions">
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() => void handleStacksConnect()}
+                      >
+                        Connect Stacks
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="drawer-send-token-row" role="group" aria-label="Token to send">
                   <button
                     className={`tiny ghost ${sendToken === "x" ? "is-active" : ""}`}
                     type="button"
                     aria-pressed={sendToken === "x"}
                     onClick={() => setSendToken("x")}
+                    disabled={sendPending}
                   >
                     {selectionLabels.x}
                   </button>
@@ -6667,8 +6639,28 @@ function App() {
                     type="button"
                     aria-pressed={sendToken === "y"}
                     onClick={() => setSendToken("y")}
+                    disabled={sendPending}
                   >
                     {selectionLabels.y}
+                  </button>
+                </div>
+                <div className="drawer-send-meta">
+                  <span className="muted small">
+                    Available:{" "}
+                    {formatNumber(sendToken === "x" ? balances.tokenX : balances.tokenY)}{" "}
+                    {selectionLabels[sendToken]}
+                  </span>
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() =>
+                      setSendAmount(
+                        String(sendToken === "x" ? balances.tokenX : balances.tokenY),
+                      )
+                    }
+                    disabled={!stacksAddress || sendPending}
+                  >
+                    Max
                   </button>
                 </div>
                 <label>
@@ -6682,7 +6674,7 @@ function App() {
                     value={sendAmount}
                     onChange={(event) => setSendAmount(event.target.value)}
                     placeholder="0.00"
-                    disabled={sendPending}
+                    disabled={!stacksAddress || sendPending}
                   />
                 </label>
                 <label>
@@ -6694,14 +6686,19 @@ function App() {
                     onChange={(event) => setSendRecipient(event.target.value)}
                     placeholder={IS_MAINNET ? "SP..." : "ST..."}
                     autoComplete="off"
-                    disabled={sendPending}
+                    disabled={!stacksAddress || sendPending}
                   />
                 </label>
                 <div className="drawer-send-actions">
                   <button
                     className="primary"
                     type="submit"
-                    disabled={sendPending || !sendAmount.trim() || !sendRecipient.trim()}
+                    disabled={
+                      !stacksAddress ||
+                      sendPending ||
+                      !sendAmount.trim() ||
+                      !sendRecipient.trim()
+                    }
                   >
                     {sendPending ? "Sending..." : "Send"}
                   </button>
@@ -7370,24 +7367,6 @@ function App() {
                   faucetCooldownActive={faucetCooldownActive}
                   faucetCooldownLabel={faucetCooldownLabel}
                 />
-              ) : activeTab === "prices" ? (
-                <div className="prices-stack">
-                  <MarketChartPanel
-                    markets={marketChartMarkets}
-                    formatNumber={formatNumber}
-                  />
-                  <TradeSimulatorPanel
-                    markets={marketChartMarkets}
-                    formatNumber={formatNumber}
-                  />
-                  <PriceBoardPanel
-                    markets={priceBoardMarkets}
-                    formatNumber={formatNumber}
-                    formatCompactNumber={formatCompactNumber}
-                    formatSignedPercent={formatSignedPercent}
-                    storageKey={priceBoardStorageKey}
-                  />
-                </div>
               ) : activeTab === "liquidity" ? (
                 <Suspense
                   fallback={
