@@ -725,16 +725,17 @@ export default function SwapCard(props: any) {
             <option value="y">{tokenYLabel}</option>
           </select>
         </div>
-        <p className="muted small">
-          Balance:{" "}
+        <div className="swap-balance-row" aria-label="Token balances">
+          <span className="muted small">Balances</span>
           {balancesPending ? (
-            <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
-          ) : swapDirection === "x-to-y" ? (
-            formatNumber(balances.tokenX)
+            <span className="skeleton-text skeleton-short" aria-label="Loading balances" />
           ) : (
-            formatNumber(balances.tokenY)
+            <span className="muted small swap-balance-values">
+              {tokenXLabel}: {formatNumber(balances.tokenX)} · {tokenYLabel}:{" "}
+              {formatNumber(balances.tokenY)}
+            </span>
           )}
-        </p>
+        </div>
         <div className="mini-actions">
           <button className="tiny ghost" onClick={() => setSwapPreset(0.25)}>
             25%

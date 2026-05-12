@@ -2363,6 +2363,19 @@ h3 {
   margin-top: 6px;
 }
 
+.swap-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.swap-balance-values {
+  text-align: right;
+}
+
 .pool-actions {
   display: flex;
   justify-content: flex-end;

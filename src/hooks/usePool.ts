@@ -45,46 +45,48 @@ export const usePool = ({
       setPoolPending(true);
       try {
         const senderAddress = address || contractAddress;
-        const reserves = await fetchCallReadOnlyFunction({
-          contractAddress: poolContract.address,
-          contractName: poolContract.contractName,
-          functionName: "get-reserves",
-          functionArgs: [],
-          senderAddress,
-          network,
-        });
-        const totalSupply = await fetchCallReadOnlyFunction({
-          contractAddress: poolContract.address,
-          contractName: poolContract.contractName,
-          functionName: "get-total-supply",
-          functionArgs: [],
-          senderAddress,
-          network,
-        });
-        const tokenInfoResult = await fetchCallReadOnlyFunction({
-          contractAddress: poolContract.address,
-          contractName: poolContract.contractName,
-          functionName: "get-token-info",
-          functionArgs: [],
-          senderAddress,
-          network,
-        });
-        const lpBalance =
-          address &&
-          (await fetchCallReadOnlyFunction({
-            contractAddress: poolContract.address,
-            contractName: poolContract.contractName,
-            functionName: "get-lp-balance",
-            functionArgs: [standardPrincipalCV(address)],
-            senderAddress,
-            network,
-          }));
+        const [reserves, totalSupply, tokenInfoResult, lpBalance] =
+          await Promise.all([
+            fetchCallReadOnlyFunction({
+              contractAddress: poolContract.address,
+              contractName: poolContract.contractName,
+              functionName: "get-reserves",
+              functionArgs: [],
+              senderAddress,
+              network,
+            }),
+            fetchCallReadOnlyFunction({
+              contractAddress: poolContract.address,
+              contractName: poolContract.contractName,
+              functionName: "get-total-supply",
+              functionArgs: [],
+              senderAddress,
+              network,
+            }),
+            fetchCallReadOnlyFunction({
+              contractAddress: poolContract.address,
+              contractName: poolContract.contractName,
+              functionName: "get-token-info",
+              functionArgs: [],
+              senderAddress,
+              network,
+            }),
+            address
+              ? fetchCallReadOnlyFunction({
+                  contractAddress: poolContract.address,
+                  contractName: poolContract.contractName,
+                  functionName: "get-lp-balance",
+                  functionArgs: [standardPrincipalCV(address)],
+                  senderAddress,
+                  network,
+                })
+              : Promise.resolve(null),
+          ]);
 
         const reserveValue = unwrapReadOnlyOk(reserves);
         const totalSupplyValue = parseClarityNumber(unwrapReadOnlyOk(totalSupply));
-        const lpBalanceValue = lpBalance
-          ? parseClarityNumber(unwrapReadOnlyOk(lpBalance))
-          : 0;
+        const lpBalanceValue =
+          lpBalance !== null ? parseClarityNumber(unwrapReadOnlyOk(lpBalance)) : 0;
         const tokenInfoValue = unwrapReadOnlyOk(tokenInfoResult);
         const tokenXRaw = readClarityField(tokenInfoValue, "token-x");
         const tokenYRaw = readClarityField(tokenInfoValue, "token-y");
