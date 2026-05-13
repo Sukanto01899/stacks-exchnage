@@ -31,6 +31,8 @@ import SwapConfirmModal from "./components/SwapConfirmModal";
 import WalletMenuModal from "./components/WalletMenuModal";
 import CommandPaletteModal, { type CommandItem } from "./components/CommandPaletteModal";
 import StatusBanner from "./components/StatusBanner";
+import SendTokenModal from "./components/SendTokenModal";
+import ReceiveModal from "./components/ReceiveModal";
 import type {
   ActivityItem,
   AppTab,
@@ -361,6 +363,8 @@ function App() {
   const [sendRecipient, setSendRecipient] = useState("");
   const [sendPending, setSendPending] = useState(false);
   const [sendMessage, setSendMessage] = useState<string | null>(null);
+  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
@@ -6599,124 +6603,22 @@ function App() {
                   </button>
                 </div>
               ) : null}
-            </div>
-
-            <div className="drawer-section">
-              <h3 className="drawer-section-title">Send</h3>
-              <form
-                className="drawer-send-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleSendToken();
-                }}
-              >
-                {!stacksAddress ? (
-                  <div className="note subtle">
-                    <strong>Connect your wallet to send tokens.</strong>
-                    <div className="note-actions">
-                      <button
-                        className="tiny ghost"
-                        type="button"
-                        onClick={() => void handleStacksConnect()}
-                      >
-                        Connect Stacks
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="drawer-send-token-row" role="group" aria-label="Token to send">
-                  <button
-                    className={`tiny ghost ${sendToken === "x" ? "is-active" : ""}`}
-                    type="button"
-                    aria-pressed={sendToken === "x"}
-                    onClick={() => setSendToken("x")}
-                    disabled={sendPending}
-                  >
-                    {selectionLabels.x}
-                  </button>
-                  <button
-                    className={`tiny ghost ${sendToken === "y" ? "is-active" : ""}`}
-                    type="button"
-                    aria-pressed={sendToken === "y"}
-                    onClick={() => setSendToken("y")}
-                    disabled={sendPending}
-                  >
-                    {selectionLabels.y}
-                  </button>
-                </div>
-                <div className="drawer-send-meta">
-                  <span className="muted small">
-                    Available:{" "}
-                    {formatNumber(sendToken === "x" ? balances.tokenX : balances.tokenY)}{" "}
-                    {selectionLabels[sendToken]}
-                  </span>
-                  <button
-                    className="tiny ghost"
-                    type="button"
-                    onClick={() =>
-                      setSendAmount(
-                        String(sendToken === "x" ? balances.tokenX : balances.tokenY),
-                      )
-                    }
-                    disabled={!stacksAddress || sendPending}
-                  >
-                    Max
-                  </button>
-                </div>
-                <label>
-                  Amount
-                  <input
-                    className="drawer-send-input"
-                    type="number"
-                    min="0"
-                    step="any"
-                    inputMode="decimal"
-                    value={sendAmount}
-                    onChange={(event) => setSendAmount(event.target.value)}
-                    placeholder="0.00"
-                    disabled={!stacksAddress || sendPending}
-                  />
-                </label>
-                <label>
-                  Recipient address
-                  <input
-                    className="drawer-send-input"
-                    type="text"
-                    value={sendRecipient}
-                    onChange={(event) => setSendRecipient(event.target.value)}
-                    placeholder={IS_MAINNET ? "SP..." : "ST..."}
-                    autoComplete="off"
-                    disabled={!stacksAddress || sendPending}
-                  />
-                </label>
-                <div className="drawer-send-actions">
-                  <button
-                    className="primary"
-                    type="submit"
-                    disabled={
-                      !stacksAddress ||
-                      sendPending ||
-                      !sendAmount.trim() ||
-                      !sendRecipient.trim()
-                    }
-                  >
-                    {sendPending ? "Sending..." : "Send"}
-                  </button>
-                  <button
-                    className="tiny ghost"
-                    type="button"
-                    onClick={() => {
-                      setSendAmount("");
-                      setSendRecipient("");
-                      setSendMessage(null);
-                    }}
-                    disabled={sendPending || (!sendAmount && !sendRecipient && !sendMessage)}
-                  >
-                    Clear
-                  </button>
-                </div>
-                {sendMessage ? <p className="note drawer-send-note">{sendMessage}</p> : null}
-              </form>
+              <div className="activity-chip-row" style={{ marginTop: 10 }}>
+                <button
+                  className="chip ghost"
+                  type="button"
+                  onClick={() => setReceiveModalOpen(true)}
+                >
+                  Receive
+                </button>
+                <button
+                  className="chip ghost"
+                  type="button"
+                  onClick={() => setSendModalOpen(true)}
+                >
+                  Send
+                </button>
+              </div>
             </div>
 
             <div className="drawer-section">
@@ -7619,6 +7521,47 @@ function App() {
         setQuery={setCommandQuery}
         items={commandItems}
         onClose={closeCommandPalette}
+      />
+      <ReceiveModal
+        open={receiveModalOpen}
+        stacksAddress={stacksAddress}
+        onClose={() => setReceiveModalOpen(false)}
+        onConnect={() => void handleStacksConnect()}
+        onCopyAddress={() => {
+          if (!stacksAddress) return;
+          void copyToClipboard("Address", stacksAddress);
+        }}
+        onCopyExplorerLink={() => {
+          if (!stacksAddress) return;
+          void copyToClipboard("Explorer link", buildExplorerAddressUrl(stacksAddress));
+        }}
+      />
+      <SendTokenModal
+        open={sendModalOpen}
+        stacksAddress={stacksAddress}
+        selectionLabels={selectionLabels}
+        balances={balances}
+        sendToken={sendToken}
+        sendAmount={sendAmount}
+        sendRecipient={sendRecipient}
+        sendPending={sendPending}
+        sendMessage={sendMessage}
+        recipientPlaceholder={IS_MAINNET ? "SP..." : "ST..."}
+        onClose={() => setSendModalOpen(false)}
+        onConnect={() => void handleStacksConnect()}
+        onSendTokenChange={setSendToken}
+        onAmountChange={setSendAmount}
+        onRecipientChange={setSendRecipient}
+        onMax={() =>
+          setSendAmount(String(sendToken === "x" ? balances.tokenX : balances.tokenY))
+        }
+        onClear={() => {
+          setSendAmount("");
+          setSendRecipient("");
+          setSendMessage(null);
+        }}
+        onSubmit={() => void handleSendToken()}
+        formatNumber={formatNumber}
       />
       <div className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
