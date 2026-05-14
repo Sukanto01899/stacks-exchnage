@@ -171,6 +171,11 @@
   width: 78px;
 }
 
+.skeleton-output {
+  width: 140px;
+  height: 1em;
+}
+
 @keyframes loadingSpin {
   to {
     transform: rotate(360deg);
@@ -2570,6 +2575,38 @@ h3 {
   font-weight: 700;
   font-size: 13px;
   max-width: 44%;
+}
+
+.token-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: #2d3246;
+  color: var(--text);
+  padding: 7px 12px 7px 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.token-badge:hover {
+  background: #363b55;
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+.token-badge--static {
+  cursor: default;
+  pointer-events: none;
+}
+
+.token-badge--static:hover {
+  background: #2d3246;
+  border-color: var(--stroke);
 }
 
 .simple-mode .token-select {

@@ -417,16 +417,19 @@ export default function SwapCard(props: any) {
               step="0.000001"
               placeholder="0.0"
             />
-            <select
-              className="token-select"
-              value={swapDirection === "x-to-y" ? "x" : "y"}
-              onChange={(e) =>
-                setSwapDirection(e.target.value === "x" ? "x-to-y" : "y-to-x")
+            <button
+              className="token-badge"
+              type="button"
+              onClick={() =>
+                setSwapDirection((prev: "x-to-y" | "y-to-x") =>
+                  prev === "x-to-y" ? "y-to-x" : "x-to-y"
+                )
               }
+              title="Click to flip token direction"
             >
-              <option value="x">{tokenXLabel}</option>
-              <option value="y">{tokenYLabel}</option>
-            </select>
+              {renderIcon(fromIcon, fromLabel, fromIsStx)}
+              <span>{fromLabel}</span>
+            </button>
           </div>
         </div>
 
@@ -455,20 +458,20 @@ export default function SwapCard(props: any) {
             </span>
           </div>
           <div className="token-input">
-            <input
-              type="text"
-              value={quoteLoading ? "" : outputText}
-              readOnly
-              placeholder={quoteLoading ? "Quoting..." : "0.0"}
-            />
-            <select
-              className="token-select"
-              value={swapDirection === "x-to-y" ? "y" : "x"}
-              disabled
-            >
-              <option value="x">{tokenXLabel}</option>
-              <option value="y">{tokenYLabel}</option>
-            </select>
+            {quoteLoading ? (
+              <span className="skeleton-text skeleton-output" aria-label="Loading quote" />
+            ) : (
+              <input
+                type="text"
+                value={outputText}
+                readOnly
+                placeholder="0.0"
+              />
+            )}
+            <span className="token-badge token-badge--static">
+              {renderIcon(toIcon, toLabel, toIsStx)}
+              <span>{toLabel}</span>
+            </span>
           </div>
         </div>
 
@@ -714,16 +717,19 @@ export default function SwapCard(props: any) {
             step="0.000001"
             placeholder="0.0"
           />
-          <select
-            className="token-select"
-            value={swapDirection === "x-to-y" ? "x" : "y"}
-            onChange={(e) =>
-              setSwapDirection(e.target.value === "x" ? "x-to-y" : "y-to-x")
+          <button
+            className="token-badge"
+            type="button"
+            onClick={() =>
+              setSwapDirection((prev: any) =>
+                prev === "x-to-y" ? "y-to-x" : "x-to-y"
+              )
             }
+            title="Click to flip token direction"
           >
-            <option value="x">{tokenXLabel}</option>
-            <option value="y">{tokenYLabel}</option>
-          </select>
+            {renderIcon(fromIcon, fromLabel, fromIsStx)}
+            <span>{fromLabel}</span>
+          </button>
         </div>
         <div className="swap-balance-row" aria-label="Token balances">
           <span className="muted small">Balances</span>
@@ -800,24 +806,15 @@ export default function SwapCard(props: any) {
             {renderIcon(toIcon, toLabel, toIsStx)}
             {toLabel}
           </span>
-          <select
-            className="token-select"
-            value={swapDirection === "x-to-y" ? "y" : "x"}
-            disabled
-          >
-            <option value="x">{tokenXLabel}</option>
-            <option value="y">{tokenYLabel}</option>
-          </select>
+          <span className="token-badge token-badge--static">
+            {renderIcon(toIcon, toLabel, toIsStx)}
+            <span>{toLabel}</span>
+          </span>
         </div>
         <div className="token-output">
           <h3>
             {quoteLoading
-              ? (
-                  <span className="quote-loading">
-                    <span className="loading-spinner" aria-hidden="true" />
-                    Loading...
-                  </span>
-                )
+              ? <span className="skeleton-text skeleton-output" aria-label="Loading quote" />
               : liveSwapOutput !== null
                 ? formatNumber(liveSwapOutput)
                 : pool.reserveX <= 0 || pool.reserveY <= 0
