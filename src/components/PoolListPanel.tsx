@@ -49,6 +49,28 @@ type PoolListPanelProps = {
   formatNumber: (value: number) => string;
 };
 
+const SORT_OPTIONS: { value: "tvl" | "volume" | "fees" | "apr"; label: string }[] = [
+  { value: "tvl", label: "TVL" },
+  { value: "volume", label: "Volume" },
+  { value: "apr", label: "APR" },
+];
+
+function PairIcon({ label, isStx }: { label: string; isStx: boolean }) {
+  const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
+  return (
+    <span className="pool-pair-icon" aria-hidden="true">
+      {text}
+    </span>
+  );
+}
+
+function HealthDot({ tvl }: { tvl: number }) {
+  const safe = Number.isFinite(tvl) ? tvl : 0;
+  if (safe <= 0) return <span className="pool-health-dot pool-health-dot--empty" title="No liquidity" />;
+  if (safe < 10) return <span className="pool-health-dot pool-health-dot--low" title="Low liquidity" />;
+  return <span className="pool-health-dot pool-health-dot--healthy" title="Healthy" />;
+}
+
 export default function PoolListPanel(props: PoolListPanelProps) {
   const {
     pools,
@@ -68,21 +90,9 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onResetFilters,
     onOpenPool,
     onCopyPoolId,
-    onCopyPoolLink,
-    onCopyPoolExplorerLink,
-    onCopyPoolsCsv,
-    onDownloadPoolsCsv,
     resolvedStacksNetwork,
     formatCompactNumber,
-    formatNumber,
   } = props;
-
-  const describePoolHealth = (tvl: number) => {
-    const safeTvl = Number.isFinite(tvl) ? tvl : 0;
-    if (safeTvl <= 0) return { label: "Empty", variant: "warn" as const };
-    if (safeTvl < 10) return { label: "Low liquidity", variant: "warn" as const };
-    return { label: "Healthy", variant: "success" as const };
-  };
 
   const isDefaultFilters =
     search.trim() === "" &&
@@ -91,6 +101,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     favoritesOnly === false;
 
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
+  const [expandedPool, setExpandedPool] = useState<string | null>(null);
 
   useEffect(() => {
     if (!copiedPoolId) return;
@@ -101,109 +112,78 @@ export default function PoolListPanel(props: PoolListPanelProps) {
   return (
     <section className="pool-list-panel">
       <div className="pool-list-head">
-        <div>
-          <p className="eyebrow">Pools</p>
-          <h3>Discover liquidity</h3>
-        </div>
-        <div className="mini-actions">
-          <span className="chip ghost">{pools.length} pools</span>
-          <button
-            className="tiny ghost"
-            type="button"
-            onClick={onCopyPoolsCsv}
-            disabled={pools.length === 0}
-            title="Copy the currently visible pools list as CSV"
-          >
-            Copy CSV
-          </button>
-          <button
-            className="tiny ghost"
-            type="button"
-            onClick={onDownloadPoolsCsv}
-            disabled={pools.length === 0}
-            title="Download the currently visible pools list as CSV"
-          >
-            Download CSV
-          </button>
-        </div>
+        <h2 className="pool-list-title">Pools</h2>
+        <span className="chip ghost">{pools.length} pools</span>
       </div>
 
       <div className="pool-list-controls">
         <div className="pool-search">
-          <span className="pool-search-icon">Search</span>
+          <svg className="pool-search-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10 10l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Escape" && search.trim()) {
-                setSearch("");
-              }
+              if (e.key === "Escape" && search.trim()) setSearch("");
             }}
-            placeholder="Search by token, symbol, or pool label"
+            placeholder="Search pools…"
           />
           {search.trim() && (
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="Clear pool search"
-            >
-              Clear
+            <button className="pool-search-clear" type="button" onClick={() => setSearch("")} aria-label="Clear search">
+              ✕
             </button>
           )}
         </div>
-        <div className="pool-sort">
-          <label htmlFor="pool-sort">Sort by</label>
-          <select
-            id="pool-sort"
-            value={sort}
-            onChange={(e) =>
-              setSort(e.target.value as "tvl" | "volume" | "fees" | "apr")
-            }
-          >
-            <option value="tvl">TVL</option>
-            <option value="volume">Volume 24h</option>
-            <option value="fees">Fees 24h</option>
-            <option value="apr">APR</option>
-          </select>
+
+        <div className="pool-sort-row">
+          <div className="pool-sort-pills" role="group" aria-label="Sort by">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`pool-sort-pill ${sort === opt.value ? "is-active" : ""}`}
+                type="button"
+                onClick={() => {
+                  if (sort === opt.value) {
+                    setSortDir(sortDir === "desc" ? "asc" : "desc");
+                  } else {
+                    setSort(opt.value);
+                    setSortDir("desc");
+                  }
+                }}
+                aria-pressed={sort === opt.value}
+              >
+                {opt.label}
+                {sort === opt.value && (
+                  <span className="pool-sort-arrow">{sortDir === "desc" ? "↓" : "↑"}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
           <button
-            className="tiny ghost"
+            className={`pool-fav-toggle ${favoritesOnly ? "is-active" : ""}`}
             type="button"
-            onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+            onClick={() => setFavoritesOnly(!favoritesOnly)}
+            title={favoritesOnly ? "Showing favorites only" : "Show favorites only"}
+            aria-pressed={favoritesOnly}
           >
-            {sortDir === "desc" ? "High → Low" : "Low → High"}
+            {favoritesOnly ? "★" : "☆"} Saved
           </button>
-          <label className="target-toggle pool-sort-favorites">
-            <input
-              type="checkbox"
-              checked={favoritesOnly}
-              onChange={(e) => setFavoritesOnly(e.target.checked)}
-            />
-            Favorites only
-          </label>
-          <button
-            className="tiny ghost"
-            type="button"
-            onClick={onResetFilters}
-            disabled={isDefaultFilters}
-          >
-            Reset
-          </button>
-          <button
-            className="tiny ghost"
-            type="button"
-            onClick={clearFavorites}
-            disabled={favorites.length === 0}
-          >
-            Clear favorites
-          </button>
+
+          {!isDefaultFilters && (
+            <button className="tiny ghost" type="button" onClick={onResetFilters}>
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
       {recentPools.length > 0 && (
-        <div className="note subtle" aria-label="Recent pools">
-          <p className="muted small">Recent pools</p>
+        <div className="pool-recent-row" aria-label="Recent pools">
+          <span className="muted small">Recent</span>
           <div className="chip-row">
             {recentPools.map((pool) => (
               <button
@@ -211,25 +191,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                 className="chip ghost"
                 type="button"
                 onClick={() => onOpenPool(pool.id, pool.target)}
-                title={
-                  pool.target === "swap"
-                    ? "Open in Trade"
-                    : "Open in Liquidity"
-                }
+                title={pool.target === "swap" ? "Open in Trade" : "Open in Liquidity"}
               >
-                {pool.tokenXLabel} / {pool.tokenYLabel}
-                <span className="muted small">
-                  {" "}
-                  · {pool.target === "swap" ? "Trade" : "Liquidity"}
-                </span>
+                {pool.tokenXLabel}/{pool.tokenYLabel}
+                <span className="muted small"> · {pool.target === "swap" ? "Trade" : "Liquidity"}</span>
               </button>
             ))}
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={clearRecentPools}
-            >
-              Clear recent
+            <button className="tiny ghost" type="button" onClick={clearRecentPools}>
+              Clear
             </button>
           </div>
         </div>
@@ -239,158 +208,147 @@ export default function PoolListPanel(props: PoolListPanelProps) {
         <div className="note subtle" aria-label="No pools">
           <p className="muted small">
             {favoritesOnly && favorites.length === 0
-              ? "No favorite pools yet."
-              : favoritesOnly && search.trim()
-                ? "No favorite pools match your search."
-                : favoritesOnly
-                  ? "No favorite pools match these filters."
-                  : search.trim()
-                    ? "No pools match your search."
-                    : "No pools match these filters."}
+              ? "No saved pools yet."
+              : search.trim()
+                ? `No pools match "${search}".`
+                : "No pools match these filters."}
           </p>
           <div className="chip-row">
-            {favoritesOnly ? (
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={() => setFavoritesOnly(false)}
-              >
+            {favoritesOnly && (
+              <button className="tiny ghost" type="button" onClick={() => setFavoritesOnly(false)}>
                 Show all pools
               </button>
-            ) : null}
-            {search.trim() ? (
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={() => setSearch("")}
-              >
+            )}
+            {search.trim() && (
+              <button className="tiny ghost" type="button" onClick={() => setSearch("")}>
                 Clear search
               </button>
-            ) : null}
-            {!isDefaultFilters ? (
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={onResetFilters}
-              >
+            )}
+            {!isDefaultFilters && (
+              <button className="tiny ghost" type="button" onClick={onResetFilters}>
                 Reset filters
               </button>
-            ) : null}
+            )}
           </div>
         </div>
       ) : (
         <div className="pool-list-grid">
           {pools.map((pool) => {
-            const health = describePoolHealth(pool.tvl);
+            const isFav = favorites.includes(pool.id);
+            const isExpanded = expandedPool === pool.id;
+            const explorerUrl = buildExplorerContractUrl(pool.id, resolvedStacksNetwork);
+
             return (
-              <div key={pool.id} className="pool-list-card">
-              <div className="pool-list-card-head">
-                <div>
-                  <p className="muted small">{pool.label}</p>
-                  <strong>
-                    {pool.tokenXLabel} / {pool.tokenYLabel}
-                  </strong>
-                </div>
-                <span className={`chip ${health.variant}`}>{health.label}</span>
-                <button
-                  className={`chip ghost ${favorites.includes(pool.id) ? "is-favorite" : ""}`}
-                  type="button"
-                  onClick={() => toggleFavorite(pool.id)}
-                  aria-label={
-                    favorites.includes(pool.id)
-                      ? "Remove from favorites"
-                      : "Add to favorites"
-                  }
-                >
-                  {favorites.includes(pool.id) ? "★ Favorite" : "☆ Favorite"}
-                </button>
-                <span className="chip ghost">
-                  {pool.tokenXIsStx || pool.tokenYIsStx ? "STX" : "SIP-010"}
-                </span>
-              </div>
-              <div className="pool-list-stats">
-                <div>
-                  <span className="muted small">TVL</span>
-                  <strong>{formatCompactNumber(pool.tvl)}</strong>
-                </div>
-                <div>
-                  <span className="muted small">Volume 24h</span>
-                  <strong>{formatCompactNumber(pool.volume24h)}</strong>
-                </div>
-                <div>
-                  <span className="muted small">Fees 24h</span>
-                  <strong>{formatNumber(pool.fees24h)}</strong>
-                </div>
-                <div>
-                  <span className="muted small">APR</span>
-                  <strong>{pool.apr !== null ? `${pool.apr}%` : "—"}</strong>
-                </div>
-              </div>
-              <div className="pool-list-actions">
-                <button
-                  className="tiny ghost"
-                  type="button"
-                  onClick={() => {
-                    onCopyPoolId(pool.id);
-                    setCopiedPoolId(pool.id);
-                  }}
-                >
-                  {copiedPoolId === pool.id ? "Copied" : "Copy contract"}
-                </button>
-                <button
-                  className="tiny ghost"
-                  type="button"
-                  onClick={() => onCopyPoolLink(pool.id, "swap")}
-                  title="Copy a link that opens this pool in Trade"
-                >
-                  Copy trade link
-                </button>
-                <button
-                  className="tiny ghost"
-                  type="button"
-                  onClick={() => onCopyPoolLink(pool.id, "liquidity")}
-                  title="Copy a link that opens this pool in Liquidity"
-                >
-                  Copy liquidity link
-                </button>
-                {buildExplorerContractUrl(pool.id, resolvedStacksNetwork) && (
+              <div key={pool.id} className={`pool-list-card ${isFav ? "is-favorite" : ""}`}>
+                <div className="pool-list-card-head">
+                  <div className="pool-pair">
+                    <div className="pool-pair-icons">
+                      <PairIcon label={pool.tokenXLabel} isStx={pool.tokenXIsStx} />
+                      <PairIcon label={pool.tokenYLabel} isStx={pool.tokenYIsStx} />
+                    </div>
+                    <div className="pool-pair-info">
+                      <span className="pool-pair-name">
+                        {pool.tokenXLabel} / {pool.tokenYLabel}
+                      </span>
+                      <HealthDot tvl={pool.tvl} />
+                    </div>
+                  </div>
+
                   <button
-                    className="tiny ghost"
+                    className={`pool-fav-btn ${isFav ? "is-active" : ""}`}
                     type="button"
-                    onClick={() => onCopyPoolExplorerLink(pool.id)}
+                    onClick={() => toggleFavorite(pool.id)}
+                    aria-label={isFav ? "Remove from saved" : "Save pool"}
+                    title={isFav ? "Remove from saved" : "Save pool"}
                   >
-                    Copy explorer link
+                    {isFav ? "★" : "☆"}
                   </button>
-                )}
-                {buildExplorerContractUrl(pool.id, resolvedStacksNetwork) && (
-                  <a
-                    className="tiny ghost"
-                    href={buildExplorerContractUrl(
-                      pool.id,
-                      resolvedStacksNetwork,
-                    ) as string}
-                    target="_blank"
-                    rel="noreferrer"
+                </div>
+
+                <div className="pool-list-stats">
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">TVL</span>
+                    <strong className="pool-stat-value">{formatCompactNumber(pool.tvl)}</strong>
+                  </div>
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">Vol. 24h</span>
+                    <strong className="pool-stat-value">{formatCompactNumber(pool.volume24h)}</strong>
+                  </div>
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">APR</span>
+                    <strong className="pool-stat-value pool-stat-apr">
+                      {pool.apr !== null ? `${pool.apr}%` : "—"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="pool-list-actions">
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => onOpenPool(pool.id, "swap")}
                   >
-                    Explorer
-                  </a>
-                )}
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => onOpenPool(pool.id, "swap")}
-                >
-                  Trade
-                </button>
-                <button
-                  className="primary"
-                  type="button"
-                  onClick={() => onOpenPool(pool.id, "liquidity")}
-                >
-                  Add liquidity
-                </button>
+                    Swap
+                  </button>
+                  <button
+                    className="primary"
+                    type="button"
+                    onClick={() => onOpenPool(pool.id, "liquidity")}
+                  >
+                    + Add liquidity
+                  </button>
+                </div>
+
+                <div className="pool-card-footer">
+                  <button
+                    className="pool-details-toggle"
+                    type="button"
+                    onClick={() => setExpandedPool(isExpanded ? null : pool.id)}
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? "Hide details ↑" : "Details ↓"}
+                  </button>
+                  {isExpanded && (
+                    <div className="pool-details">
+                      <div className="pool-details-stat">
+                        <span className="muted small">Fees 24h</span>
+                        <strong className="muted small">{formatCompactNumber(pool.fees24h)}</strong>
+                      </div>
+                      <div className="pool-details-stat">
+                        <span className="muted small">Contract</span>
+                        <code className="pool-contract-id">{pool.id.split(".")[1] ?? pool.id}</code>
+                      </div>
+                      <div className="pool-details-actions">
+                        <button
+                          className="tiny ghost"
+                          type="button"
+                          onClick={() => {
+                            onCopyPoolId(pool.id);
+                            setCopiedPoolId(pool.id);
+                          }}
+                        >
+                          {copiedPoolId === pool.id ? "Copied!" : "Copy contract"}
+                        </button>
+                        {explorerUrl && (
+                          <a
+                            className="tiny ghost"
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Explorer ↗
+                          </a>
+                        )}
+                        {favoritesOnly && favorites.length > 0 && (
+                          <button className="tiny ghost" type="button" onClick={clearFavorites}>
+                            Clear saved
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
