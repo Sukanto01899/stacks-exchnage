@@ -6547,33 +6547,71 @@ function App() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="nav-drawer-head">
-              <h2>Menu</h2>
+              <span className="nav-drawer-title">Menu</span>
               <button
-                className="icon-button"
+                className="nav-drawer-close"
                 type="button"
                 aria-label="Close menu"
                 onClick={closeNavDrawer}
               >
-                x
+                ✕
               </button>
             </div>
 
+            <nav className="nav-drawer-links">
+              {(
+                [
+                  { tab: "swap", label: "Trade" },
+                  { tab: "pools", label: "Pools" },
+                  { tab: "liquidity", label: "Liquidity" },
+                  { tab: "analytics", label: "Analytics" },
+                ] as const
+              ).map(({ tab, label }) => (
+                <button
+                  key={tab}
+                  className={activeTab === tab ? "is-active" : ""}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setDrawerOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
             <div className="drawer-section">
-              <h3 className="drawer-section-title">Wallet</h3>
+              <p className="drawer-section-title">Wallet</p>
               <div className="drawer-balance-row">
-                <span>{selectionLabels.x}</span>
-                <span>{formatNumber(balances.tokenX)}</span>
+                <span className="muted small">{selectionLabels.x}</span>
+                <strong>{formatNumber(balances.tokenX)}</strong>
               </div>
               <div className="drawer-balance-row">
-                <span>{selectionLabels.y}</span>
-                <span>{formatNumber(balances.tokenY)}</span>
+                <span className="muted small">{selectionLabels.y}</span>
+                <strong>{formatNumber(balances.tokenY)}</strong>
               </div>
               <div className="drawer-balance-row">
-                <span>LP shares</span>
-                <span>{formatNumber(balances.lpShares)}</span>
+                <span className="muted small">LP shares</span>
+                <strong>{formatNumber(balances.lpShares)}</strong>
               </div>
-              {stacksAddress ? (
-                <div className="activity-chip-row" style={{ marginTop: 10 }}>
+              <div className="drawer-wallet-actions">
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => { setReceiveModalOpen(true); setDrawerOpen(false); }}
+                >
+                  Receive
+                </button>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={() => { setSendModalOpen(true); setDrawerOpen(false); }}
+                >
+                  Send
+                </button>
+              </div>
+              {stacksAddress && (
+                <div className="activity-chip-row" style={{ marginTop: 8 }}>
                   <button
                     className="chip ghost"
                     type="button"
@@ -6587,155 +6625,47 @@ function App() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    View on explorer
+                    Explorer ↗
                   </a>
-                  <button
-                    className="chip ghost"
-                    type="button"
-                    onClick={() =>
-                      void copyToClipboard(
-                        "Explorer link",
-                        buildExplorerAddressUrl(stacksAddress),
-                      )
-                    }
-                  >
-                    Copy explorer link
-                  </button>
                 </div>
-              ) : null}
-              <div className="activity-chip-row" style={{ marginTop: 10 }}>
-                <button
-                  className="chip ghost"
-                  type="button"
-                  onClick={() => setReceiveModalOpen(true)}
-                >
-                  Receive
-                </button>
-                <button
-                  className="chip ghost"
-                  type="button"
-                  onClick={() => setSendModalOpen(true)}
-                >
-                  Send
-                </button>
-              </div>
+              )}
             </div>
 
             <div className="drawer-section">
-              <h3 className="drawer-section-title">Activity</h3>
+              <div className="drawer-section-head">
+                <p className="drawer-section-title">Recent activity</p>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => { closeNavDrawer(); openActivityDrawer(); }}
+                >
+                  View all →
+                </button>
+              </div>
               <ul className="drawer-activity-list">
                 {activityItems.length === 0 ? (
                   <li className="drawer-activity-empty">No recent activity</li>
                 ) : (
-                  activityItems.slice(0, 5).map((item) => (
+                  activityItems.slice(0, 4).map((item) => (
                     <li key={item.id} className="drawer-activity-item">
+                      <span
+                        className={`drawer-activity-dot drawer-activity-dot--${item.status}`}
+                        title={item.status}
+                      />
+                      <span className="drawer-activity-message">{item.message}</span>
                       <span className="drawer-activity-time">
                         {new Date(item.ts).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </span>
-                      <span className="drawer-activity-message">
-                        {item.message}
-                      </span>
-                      <span
-                        className={`drawer-activity-status drawer-activity-status-${item.status}`}
-                      >
-                        {item.status}
-                      </span>
-                      {item.txid ? (
-                        <div className="activity-chip-row">
-                          <a
-                            className="chip ghost"
-                            href={buildExplorerTxUrl(item.txid)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                          </a>
-                          <button
-                            className="chip ghost"
-                            type="button"
-                            onClick={() =>
-                              void copyToClipboard("Txid", item.txid || "")
-                            }
-                            aria-label="Copy txid"
-                          >
-                            Copy
-                          </button>
-                          <button
-                            className="chip ghost"
-                            type="button"
-                            onClick={() =>
-                              void copyToClipboard(
-                                "Explorer link",
-                                buildExplorerTxUrl(item.txid!),
-                              )
-                            }
-                            aria-label="Copy explorer link"
-                          >
-                            Copy link
-                          </button>
-                        </div>
-                      ) : null}
                     </li>
                   ))
                 )}
               </ul>
             </div>
 
-            <div className="drawer-section">
-              <h3 className="drawer-section-title">Local data</h3>
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={() => {
-                  setDrawerOpen(false);
-                  resetAllLocalData();
-                }}
-              >
-                Reset local UI data
-              </button>
-            </div>
-
-            <nav className="nav-drawer-links">
-              <button
-                className={activeTab === "swap" ? "is-active" : ""}
-                onClick={() => {
-                  setActiveTab("swap");
-                  setDrawerOpen(false);
-                }}
-              >
-                Trade
-              </button>
-              <button
-                className={activeTab === "pools" ? "is-active" : ""}
-                onClick={() => {
-                  setActiveTab("pools");
-                  setDrawerOpen(false);
-                }}
-              >
-                Pools
-              </button>
-              <button
-                className={activeTab === "analytics" ? "is-active" : ""}
-                onClick={() => {
-                  setActiveTab("analytics");
-                  setDrawerOpen(false);
-                }}
-              >
-                Analytics
-              </button>
-              <button
-                className={activeTab === "liquidity" ? "is-active" : ""}
-                onClick={() => {
-                  setActiveTab("liquidity");
-                  setDrawerOpen(false);
-                }}
-              >
-                Liquidity
-              </button>
-              <hr />
+            <div className="nav-drawer-bottom">
               {stacksAddress ? (
                 <AddressPill
                   address={stacksAddress}
@@ -6757,7 +6687,17 @@ function App() {
                   Connect Stacks
                 </button>
               )}
-            </nav>
+              <button
+                className="drawer-reset-btn"
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  resetAllLocalData();
+                }}
+              >
+                Reset UI data
+              </button>
+            </div>
           </div>
         </div>
       )}

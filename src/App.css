@@ -3276,79 +3276,69 @@ h3 {
 .nav-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: radial-gradient(
-      circle at 20% 10%,
-      rgba(var(--accent-rgb), 0.25),
-      transparent 55%
-    ),
-    rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: flex-end;
   z-index: 1200;
-  animation: fadeIn 220ms ease;
+  animation: fadeIn 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-drawer-backdrop.is-closing {
-  animation: fadeOut 220ms ease forwards;
+  animation: fadeOut 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .nav-drawer {
-  width: min(320px, 90vw);
+  width: min(300px, 88vw);
   height: 100%;
   border-left: 1px solid var(--stroke);
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(var(--accent-rgb), 0.18),
-      transparent 55%
-    ),
-    linear-gradient(180deg, rgba(18, 22, 34, 0.98) 0%, #0e121a 100%);
-  padding: 18px 16px;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
+  background: #0e1118;
+  padding: 0;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: 16px;
   transform: translateX(100%);
-  animation: slideIn 220ms ease forwards;
+  animation: slideIn 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-drawer.is-closing {
-  animation: slideOut 220ms ease forwards;
+  animation: slideOut 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .activity-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: flex-end;
   z-index: 1250;
-  animation: fadeIn 220ms ease;
+  animation: fadeIn 240ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .activity-drawer-backdrop.is-closing {
-  animation: fadeOut 220ms ease forwards;
+  animation: fadeOut 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .activity-drawer {
   width: min(420px, 92vw);
   height: 100%;
   border-left: 1px solid var(--stroke);
-  background: var(--bg-panel);
-  padding: 18px 16px;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.35);
+  background: #0e1118;
+  padding: 20px 18px;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   gap: 16px;
   transform: translateX(100%);
-  animation: slideIn 220ms ease forwards;
+  animation: slideIn 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
 }
 
 .activity-drawer.is-closing {
-  animation: slideOut 220ms ease forwards;
+  animation: slideOut 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 .activity-drawer-controls {
   display: flex;
@@ -3497,51 +3487,110 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.nav-drawer-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nav-drawer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-drawer-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
 }
 
 .nav-drawer-links {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 10px;
+  gap: 2px;
+  padding: 14px 12px 4px;
+  flex-shrink: 0;
 }
 
 .nav-drawer-links button {
   text-align: left;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+
+.nav-drawer-links button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
 }
 
 .nav-drawer-links button.is-active {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--text);
 }
 
 .drawer-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 12px;
-  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 20px;
+  flex-shrink: 0;
+}
+
+.drawer-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 .drawer-section-title {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 10px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
+  font-weight: 600;
+}
+
+.drawer-section-head .drawer-section-title {
+  margin-bottom: 0;
 }
 
 .drawer-balance-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  font-size: 14px;
-  margin-bottom: 6px;
+  font-size: 13px;
+  padding: 5px 0;
+}
+
+.drawer-wallet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .drawer-send-form {
@@ -3600,30 +3649,61 @@ h3 {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .drawer-activity-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 8px 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 4px;
+  border-radius: 8px;
   font-size: 12px;
+  transition: background 0.1s;
+}
+
+.drawer-activity-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.drawer-activity-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.drawer-activity-dot--confirmed {
+  background: var(--ok, #22c55e);
+}
+
+.drawer-activity-dot--submitted {
+  background: var(--accent);
+}
+
+.drawer-activity-dot--failed {
+  background: #ef4444;
+}
+
+.drawer-activity-dot--cancelled {
+  background: #fbbf24;
 }
 
 .drawer-activity-time {
   color: var(--text-muted);
   white-space: nowrap;
+  font-size: 11px;
 }
 
 .drawer-activity-message {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text);
 }
 
 .drawer-activity-status {
@@ -3631,25 +3711,40 @@ h3 {
   text-transform: capitalize;
 }
 
-.drawer-activity-status-confirmed {
-  color: var(--ok);
-}
-
-.drawer-activity-status-submitted {
-  color: var(--accent);
-}
-
-.drawer-activity-status-failed {
-  color: #ef4444;
-}
-
-.drawer-activity-status-cancelled {
-  color: #fbbf24;
-}
+.drawer-activity-status-confirmed { color: var(--ok); }
+.drawer-activity-status-submitted { color: var(--accent); }
+.drawer-activity-status-failed { color: #ef4444; }
+.drawer-activity-status-cancelled { color: #fbbf24; }
 
 .drawer-activity-empty {
   color: var(--text-muted);
   font-size: 12px;
+  padding: 4px 0;
+}
+
+.nav-drawer-bottom {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.drawer-reset-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 0;
+  text-align: left;
+  transition: color 0.15s;
+}
+
+.drawer-reset-btn:hover {
+  color: var(--text);
 }
 
 .token-inline {
