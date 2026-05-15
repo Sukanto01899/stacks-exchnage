@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { TokenKey } from "../type";
 
 type SendTokenModalProps = {
@@ -45,14 +46,27 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     formatNumber,
   } = props;
 
-  if (!open) return null;
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open) {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      if (dialog.open) dialog.close();
+    }
+  }, [open]);
 
   return (
-    <div
-      className="confirm-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
+    <dialog
+      ref={dialogRef}
+      className="send-dialog"
+      aria-label="Send tokens"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="confirm-modal-head">
@@ -175,7 +189,6 @@ export default function SendTokenModal(props: SendTokenModalProps) {
           </form>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
-

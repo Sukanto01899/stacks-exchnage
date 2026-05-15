@@ -940,6 +940,7 @@ h3 {
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.03);
   padding: 12px;
+  animation: swapCardEnter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .prices-stack {
@@ -1639,6 +1640,24 @@ h3 {
   z-index: 1400;
 }
 
+.send-dialog {
+  border: none;
+  padding: 16px;
+  background: transparent;
+  margin: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.send-dialog::backdrop {
+  background: rgba(6, 8, 14, 0.72);
+  backdrop-filter: blur(4px);
+}
+
 .confirm-modal {
   width: min(560px, 100%);
   border-radius: 20px;
@@ -1884,11 +1903,12 @@ h3 {
   border: 1px solid var(--stroke);
   background: rgba(0, 0, 0, 0.22);
   padding: 10px 14px;
-  transition: border-color 0.15s;
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
 
 .pool-search:focus-within {
   border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
 }
 
 .pool-search-icon {
@@ -1946,12 +1966,17 @@ h3 {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.14s;
 }
 
 .pool-sort-pill:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
+  transform: translateY(-1px);
+}
+
+.pool-sort-pill:active {
+  transform: scale(0.96);
 }
 
 .pool-sort-pill.is-active {
@@ -1963,6 +1988,7 @@ h3 {
 .pool-sort-arrow {
   font-size: 10px;
   opacity: 0.7;
+  transition: transform 0.2s;
 }
 
 .pool-fav-toggle {
@@ -1977,7 +2003,11 @@ h3 {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.14s;
+}
+
+.pool-fav-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .pool-fav-toggle.is-active {
@@ -2008,20 +2038,33 @@ h3 {
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.03);
   padding: 16px;
+  animation: breakdownItemIn 0.28s ease both;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .pool-list-card:hover {
   border-color: rgba(var(--accent-rgb), 0.3);
   background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(var(--accent-rgb), 0.08);
 }
 
 .pool-list-card.is-favorite {
   border-color: rgba(250, 204, 21, 0.25);
 }
+
+.pool-list-grid .pool-list-card:nth-child(1)  { animation-delay: 0.03s; }
+.pool-list-grid .pool-list-card:nth-child(2)  { animation-delay: 0.06s; }
+.pool-list-grid .pool-list-card:nth-child(3)  { animation-delay: 0.09s; }
+.pool-list-grid .pool-list-card:nth-child(4)  { animation-delay: 0.12s; }
+.pool-list-grid .pool-list-card:nth-child(5)  { animation-delay: 0.15s; }
+.pool-list-grid .pool-list-card:nth-child(6)  { animation-delay: 0.18s; }
+.pool-list-grid .pool-list-card:nth-child(7)  { animation-delay: 0.21s; }
+.pool-list-grid .pool-list-card:nth-child(8)  { animation-delay: 0.24s; }
+.pool-list-grid .pool-list-card:nth-child(n+9) { animation-delay: 0.27s; }
 
 /* ── Card header ── */
 
@@ -2101,17 +2144,18 @@ h3 {
   color: var(--text-muted);
   padding: 2px 4px;
   line-height: 1;
-  transition: color 0.15s, transform 0.1s;
+  transition: color 0.18s, transform 0.18s;
   flex-shrink: 0;
 }
 
 .pool-fav-btn:hover {
   color: #facc15;
-  transform: scale(1.15);
+  transform: scale(1.25);
 }
 
 .pool-fav-btn.is-active {
   color: #facc15;
+  animation: starPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 /* ── Stats row ── */
@@ -2126,7 +2170,12 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  animation: breakdownItemIn 0.24s ease both;
 }
+
+.pool-list-stats .pool-stat-item:nth-child(1) { animation-delay: 0.05s; }
+.pool-list-stats .pool-stat-item:nth-child(2) { animation-delay: 0.09s; }
+.pool-list-stats .pool-stat-item:nth-child(3) { animation-delay: 0.13s; }
 
 .pool-stat-label {
   font-size: 11px;
@@ -2180,6 +2229,7 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: poolDetailsOpen 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .pool-details-stat {
@@ -2516,6 +2566,7 @@ h3 {
 
 .pool-page {
   gap: 14px;
+  animation: swapCardEnter 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .pool-header {
@@ -2524,6 +2575,7 @@ h3 {
   align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
+  animation: swapCardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both;
 }
 
 .pool-meta {
@@ -2553,6 +2605,25 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  animation: swapCardEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pool-overview-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.pool-overview .pool-overview-card:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.pool-overview .pool-overview-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.lp-stack > .pool-overview-card {
+  animation-delay: 0.16s;
 }
 
 .pool-overview-head {
@@ -2575,7 +2646,20 @@ h3 {
   padding: 10px 12px;
   background: rgba(0, 0, 0, 0.18);
   min-width: 0;
+  animation: breakdownItemIn 0.26s ease both;
+  transition: border-color 0.18s, background 0.18s;
 }
+
+.pool-stat:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pool-stats-grid .pool-stat:nth-child(1) { animation-delay: 0.06s; }
+.pool-stats-grid .pool-stat:nth-child(2) { animation-delay: 0.1s; }
+.pool-stats-grid .pool-stat:nth-child(3) { animation-delay: 0.14s; }
+.pool-stats-grid .pool-stat:nth-child(4) { animation-delay: 0.18s; }
+.pool-stats-grid .pool-stat:nth-child(5) { animation-delay: 0.22s; }
 
 .pool-stat.wide {
   grid-column: 1 / -1;
@@ -2585,6 +2669,7 @@ h3 {
   display: block;
   margin-top: 4px;
   font-size: 14px;
+  animation: statCountIn 0.3s ease both;
 }
 
 .pool-card .token-card-head {
@@ -2639,6 +2724,7 @@ h3 {
   border-radius: var(--radius-lg);
   background: rgba(0, 0, 0, 0.14);
   padding: 12px;
+  animation: swapCardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
 }
 
 .pool-recent-head {
@@ -2671,7 +2757,21 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  animation: breakdownItemIn 0.26s ease both;
+  transition: border-color 0.18s, background 0.18s;
 }
+
+.pool-recent-item:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pool-recent-list .pool-recent-item:nth-child(1) { animation-delay: 0.05s; }
+.pool-recent-list .pool-recent-item:nth-child(2) { animation-delay: 0.09s; }
+.pool-recent-list .pool-recent-item:nth-child(3) { animation-delay: 0.13s; }
+.pool-recent-list .pool-recent-item:nth-child(4) { animation-delay: 0.17s; }
+.pool-recent-list .pool-recent-item:nth-child(5) { animation-delay: 0.21s; }
+.pool-recent-list .pool-recent-item:nth-child(n+6) { animation-delay: 0.25s; }
 
 .pool-recent-main,
 .pool-recent-meta {
@@ -3580,6 +3680,34 @@ h3 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes poolDetailsOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes starPop {
+  0%   { transform: scale(0.6) rotate(-15deg); }
+  60%  { transform: scale(1.3) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes statCountIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
