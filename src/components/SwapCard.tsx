@@ -276,6 +276,23 @@ export default function SwapCard(props: any) {
   };
 
   const [poolCopied, setPoolCopied] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [outputFlashing, setOutputFlashing] = useState(false);
+
+  const handleFlip = () => {
+    setIsFlipping(true);
+    setSwapDirection((prev: "x-to-y" | "y-to-x") =>
+      prev === "x-to-y" ? "y-to-x" : "x-to-y"
+    );
+    window.setTimeout(() => setIsFlipping(false), 320);
+  };
+
+  useEffect(() => {
+    if (liveSwapOutput === null || !Number.isFinite(liveSwapOutput)) return;
+    setOutputFlashing(true);
+    const t = window.setTimeout(() => setOutputFlashing(false), 650);
+    return () => window.clearTimeout(t);
+  }, [liveSwapOutput]);
 
   const refreshLabel = lastPoolRefreshAt
     ? `Updated ${new Date(lastPoolRefreshAt).toLocaleTimeString([], {
@@ -420,11 +437,7 @@ export default function SwapCard(props: any) {
             <button
               className="token-badge"
               type="button"
-              onClick={() =>
-                setSwapDirection((prev: "x-to-y" | "y-to-x") =>
-                  prev === "x-to-y" ? "y-to-x" : "x-to-y"
-                )
-              }
+              onClick={handleFlip}
               title="Click to flip token direction"
             >
               {renderIcon(fromIcon, fromLabel, fromIsStx)}
@@ -435,15 +448,11 @@ export default function SwapCard(props: any) {
 
         <div className="swap-simple-mid">
           <button
-            className="icon-button swap-simple-flip"
+            className={`icon-button swap-simple-flip${isFlipping ? " is-flipping" : ""}`}
             type="button"
             aria-label="Flip swap direction"
             title="Flip"
-            onClick={() =>
-              setSwapDirection((prev: "x-to-y" | "y-to-x") =>
-                prev === "x-to-y" ? "y-to-x" : "x-to-y",
-              )
-            }
+            onClick={handleFlip}
           >
             ⇅
           </button>
@@ -720,11 +729,7 @@ export default function SwapCard(props: any) {
           <button
             className="token-badge"
             type="button"
-            onClick={() =>
-              setSwapDirection((prev: any) =>
-                prev === "x-to-y" ? "y-to-x" : "x-to-y"
-              )
-            }
+            onClick={handleFlip}
             title="Click to flip token direction"
           >
             {renderIcon(fromIcon, fromLabel, fromIsStx)}
@@ -789,12 +794,8 @@ export default function SwapCard(props: any) {
       </div>
 
       <button
-        className="switcher"
-        onClick={() =>
-          setSwapDirection((prev: any) =>
-            prev === "x-to-y" ? "y-to-x" : "x-to-y",
-          )
-        }
+        className={`switcher${isFlipping ? " is-flipping" : ""}`}
+        onClick={handleFlip}
       >
         Switch
       </button>
@@ -812,7 +813,7 @@ export default function SwapCard(props: any) {
           </span>
         </div>
         <div className="token-output">
-          <h3>
+          <h3 className={outputFlashing && !quoteLoading ? "is-flashing" : ""}>
             {quoteLoading
               ? <span className="skeleton-text skeleton-output" aria-label="Loading quote" />
               : liveSwapOutput !== null
