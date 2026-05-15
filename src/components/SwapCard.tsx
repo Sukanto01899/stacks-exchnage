@@ -1,9 +1,8 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 
 const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"] as const;
-const DEADLINE_PRESETS = ["10", "30", "60"] as const;
 
 export default function SwapCard(props: any) {
   const {
@@ -16,7 +15,6 @@ export default function SwapCard(props: any) {
     poolTokenLabels,
     poolTokenIcons,
     poolTokenIsStx,
-    tokenInfo,
     tokenMismatch,
     swapInput,
     setSwapInput,
@@ -64,27 +62,6 @@ export default function SwapCard(props: any) {
     setCustomTokenConfirmed,
     networkMismatch,
     resolvedStacksNetwork,
-    directionalPrice,
-    targetPriceEnabled,
-    setTargetPriceEnabled,
-    targetPairDirection,
-    setTargetPairDirection,
-    targetCondition,
-    setTargetCondition,
-    targetPriceInput,
-    setTargetPriceInput,
-    targetPrice,
-    targetTriggered,
-    requestBrowserAlerts,
-    browserAlertsEnabled,
-    createPriceAlert,
-    clearTriggeredAlerts,
-    alertSummary,
-    priceAlerts,
-    removePriceAlert,
-    maxSwap,
-    simulator,
-    curvePreview,
     renderApprovalManager,
     handleSimpleSwap,
     handleSwap,
@@ -95,7 +72,8 @@ export default function SwapCard(props: any) {
     onOpenTokenSelector,
     faucetPending,
     faucetCooldownActive,
-    faucetCooldownLabel
+    faucetCooldownLabel,
+    maxSwap,
   } = props;
 
   const tokenXLabel = tokenLabels?.x || "Token X";
@@ -123,26 +101,17 @@ export default function SwapCard(props: any) {
   const hasSwapInput = String(swapInput || "").trim().length > 0;
   const swapAmountIsFinite = Number.isFinite(swapAmount);
   const minSwapAmount = 1 / TOKEN_DECIMALS;
-  const swapAmountTooLarge =
-    hasSwapInput && swapAmountIsFinite && swapAmount > maxAvailable;
   const swapAmountTooSmall =
     hasSwapInput &&
     swapAmountIsFinite &&
     swapAmount > 0 &&
     swapAmount < minSwapAmount;
   const swapAmountInvalid = hasSwapInput && (!swapAmountIsFinite || swapAmount <= 0);
-  const insufficientBalance = swapAmountTooLarge;
+  const insufficientBalance = hasSwapInput && swapAmountIsFinite && swapAmount > maxAvailable;
   const noLiquidity = pool.reserveX <= 0 || pool.reserveY <= 0;
-  const swapSafetyKey = `swap-safety-${resolvedStacksNetwork}`;
-  const [largeSwapConfirmAtInput, setLargeSwapConfirmAtInput] = useState("80");
-  const [largeSwapConfirmed, setLargeSwapConfirmed] = useState(false);
   const missingRiskConfirm =
     (customTokenRequired && !customTokenConfirmed) ||
     (highSlippageRequired && !highSlippageConfirmed);
-  const targetPriceInvalid =
-    targetPriceEnabled &&
-    String(targetPriceInput || "").trim().length > 0 &&
-    !targetPrice;
   const hasPriceImpact = Number.isFinite(priceImpact);
   const impactBlocked = priceImpact >= PRICE_IMPACT_BLOCK_PCT;
   const impactNeedsConfirm =
@@ -156,126 +125,7 @@ export default function SwapCard(props: any) {
     suggestedSlippage !== null &&
     Number.isFinite(parsedSlippage) &&
     Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
-  const slippageOutsideRange =
-    Number.isFinite(parsedSlippage) &&
-    (parsedSlippage < 0 || parsedSlippage > 50);
-  const parsedDeadline = Number(deadlineMinutesInput);
-  const deadlineOutsideRange =
-    Number.isFinite(parsedDeadline) &&
-    (parsedDeadline < 1 || parsedDeadline > 1440);
 
-  const swapPercent =
-    maxAvailable > 0 && swapAmountIsFinite
-      ? Math.min(100, Math.max(0, (swapAmount / maxAvailable) * 100))
-      : 0;
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(swapSafetyKey);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as unknown;
-      if (!parsed || typeof parsed !== "object") return;
-      const value = (parsed as { largeSwapConfirmAt?: unknown }).largeSwapConfirmAt;
-      if (typeof value === "number" && Number.isFinite(value)) {
-        setLargeSwapConfirmAtInput(
-          String(Math.min(100, Math.max(0, Math.round(value)))),
-        );
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [swapSafetyKey]);
-
-  useEffect(() => {
-    try {
-      const parsed = Number(largeSwapConfirmAtInput);
-      const value = Number.isFinite(parsed)
-        ? Math.min(100, Math.max(0, Math.round(parsed)))
-        : 80;
-      localStorage.setItem(
-        swapSafetyKey,
-        JSON.stringify({ largeSwapConfirmAt: value }),
-      );
-    } catch {
-      // ignore storage errors
-    }
-  }, [largeSwapConfirmAtInput, swapSafetyKey]);
-
-  useEffect(() => {
-    setLargeSwapConfirmed(false);
-  }, [largeSwapConfirmAtInput, swapDirection, swapInput]);
-
-  const normalizeLargeSwapConfirmAtInput = () => {
-    const raw = String(largeSwapConfirmAtInput ?? "").trim();
-    if (raw === "") {
-      setLargeSwapConfirmAtInput("80");
-      return;
-    }
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) {
-      setLargeSwapConfirmAtInput("80");
-      return;
-    }
-    setLargeSwapConfirmAtInput(
-      String(Math.min(100, Math.max(0, Math.round(parsed)))),
-    );
-  };
-
-  const parsedLargeSwapConfirmAt = Number(largeSwapConfirmAtInput);
-  const largeSwapConfirmAt =
-    Number.isFinite(parsedLargeSwapConfirmAt)
-      ? Math.min(100, Math.max(0, parsedLargeSwapConfirmAt))
-      : 80;
-  const largeSwapConfirmOutsideRange =
-    Number.isFinite(parsedLargeSwapConfirmAt) &&
-    (parsedLargeSwapConfirmAt < 0 || parsedLargeSwapConfirmAt > 100);
-  const largeSwapNeedsConfirm =
-    largeSwapConfirmAt > 0 &&
-    swapAmountIsFinite &&
-    swapAmount > 0 &&
-    swapPercent >= largeSwapConfirmAt;
-  const missingLargeSwapConfirm = largeSwapNeedsConfirm && !largeSwapConfirmed;
-
-  const handleSwapAmountBlur = () => {
-    if (!hasSwapInput || !swapAmountIsFinite) return;
-    if (maxAvailable > 0 && swapAmount > maxAvailable) {
-      setSwapInput(String(maxAvailable));
-    }
-  };
-
-  const normalizeSlippageInput = () => {
-    const raw = String(slippageInput ?? "").trim();
-    if (!raw) return;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return;
-    const clamped = Math.min(50, Math.max(0, parsed));
-    const normalized = clamped.toFixed(2).replace(/\.?0+$/, "");
-    setSlippageInput(normalized);
-  };
-
-  const normalizeDeadlineMinutesInput = () => {
-    const raw = String(deadlineMinutesInput ?? "").trim();
-    if (!raw) return;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return;
-    const rounded = Math.round(parsed);
-    const clamped = Math.min(1440, Math.max(1, rounded));
-    setDeadlineMinutesInput(String(clamped));
-  };
-
-  const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
-    if (iconUrl) {
-      return <img className="token-icon" src={iconUrl} alt="" />;
-    }
-    const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
-    return (
-      <span className="token-icon token-icon-fallback">
-        <span className="token-icon-text">{text}</span>
-      </span>
-    );
-  };
-
-  const [poolCopied, setPoolCopied] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [outputFlashing, setOutputFlashing] = useState(false);
 
@@ -294,83 +144,41 @@ export default function SwapCard(props: any) {
     return () => window.clearTimeout(t);
   }, [liveSwapOutput]);
 
+  const handleSwapAmountBlur = () => {
+    if (!hasSwapInput || !swapAmountIsFinite) return;
+    if (maxAvailable > 0 && swapAmount > maxAvailable) {
+      setSwapInput(String(maxAvailable));
+    }
+  };
+
+  const normalizeSlippageInput = () => {
+    const raw = String(slippageInput ?? "").trim();
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.min(50, Math.max(0, parsed));
+    const normalized = clamped.toFixed(2).replace(/\.?0+$/, "");
+    setSlippageInput(normalized);
+  };
+
+  const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
+    if (iconUrl) {
+      return <img className="token-icon" src={iconUrl} alt="" />;
+    }
+    const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
+    return (
+      <span className="token-icon token-icon-fallback">
+        <span className="token-icon-text">{text}</span>
+      </span>
+    );
+  };
+
   const refreshLabel = lastPoolRefreshAt
     ? `Updated ${new Date(lastPoolRefreshAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       })}`
     : "Not updated yet";
-
-  useEffect(() => {
-    if (!poolCopied) return;
-    const timer = window.setTimeout(() => setPoolCopied(false), 1200);
-    return () => window.clearTimeout(timer);
-  }, [poolCopied]);
-
-  const [copiedToken, setCopiedToken] = useState<null | "x" | "y">(null);
-  const [priceCopied, setPriceCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copiedToken) return;
-    const timer = window.setTimeout(() => setCopiedToken(null), 1200);
-    return () => window.clearTimeout(timer);
-  }, [copiedToken]);
-
-  useEffect(() => {
-    if (!priceCopied) return;
-    const timer = window.setTimeout(() => setPriceCopied(false), 1200);
-    return () => window.clearTimeout(timer);
-  }, [priceCopied]);
-
-  const copyPoolContract = async () => {
-    const id = `${poolContract.address}.${poolContract.contractName}`;
-    try {
-      await navigator.clipboard.writeText(id);
-      setPoolCopied(true);
-    } catch {
-      // ignore clipboard errors
-    }
-  };
-
-  const buildTokenExplorerUrl = (principal: string | null, isStx: boolean) => {
-    if (!principal || isStx) return null;
-    const [address = "", name = ""] = String(principal).split(".");
-    if (!address || !name) return null;
-    return `https://explorer.hiro.so/contract/${address}/${name}?chain=${resolvedStacksNetwork}`;
-  };
-
-  const copyTokenContract = async (token: "x" | "y") => {
-    const principal = token === "x" ? tokenInfo?.tokenX : tokenInfo?.tokenY;
-    const isStx = token === "x" ? tokenInfo?.tokenXIsStx : tokenInfo?.tokenYIsStx;
-    const value = isStx ? "STX" : String(principal || "");
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedToken(token);
-    } catch {
-      // ignore clipboard errors
-    }
-  };
-
-  const tokenXExplorerUrl = buildTokenExplorerUrl(
-    tokenInfo?.tokenX ?? null,
-    Boolean(tokenInfo?.tokenXIsStx),
-  );
-  const tokenYExplorerUrl = buildTokenExplorerUrl(
-    tokenInfo?.tokenY ?? null,
-    Boolean(tokenInfo?.tokenYIsStx),
-  );
-
-  const copyCurrentPrice = async () => {
-    if (!currentPrice) return;
-    const text = `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setPriceCopied(true);
-    } catch {
-      // ignore clipboard errors
-    }
-  };
 
   if (showMinimalSwapLayout) {
     const outputText =
@@ -527,7 +335,6 @@ export default function SwapCard(props: any) {
             networkMismatch ||
             missingRiskConfirm ||
             missingImpactConfirm ||
-            missingLargeSwapConfirm ||
             impactBlocked ||
             swapAmountInvalid ||
             swapAmountTooSmall
@@ -550,93 +357,29 @@ export default function SwapCard(props: any) {
 
   return (
     <div className="swap-card">
-      {showMinimalSwapLayout && (
-        <div className="swap-hero-row" aria-label="Swap status">
-          <span className="chip success">Instant route</span>
-          <span className="chip ghost">{poolContract.contractName}</span>
-          <span className="chip ghost">{(FEE_BPS / 100).toFixed(2)}% fee</span>
-        </div>
-      )}
-
-      {tokenInfo && (
-        <div className="note subtle">
-          <p className="muted small">Pool tokens</p>
-          <strong className="token-inline">
-            {renderIcon(poolTokenXIcon, poolTokenXLabel, poolTokenXIsStx)}
-            {poolTokenXLabel}
-            <span className="muted small"> / </span>
-            {renderIcon(poolTokenYIcon, poolTokenYLabel, poolTokenYIsStx)}
-            {poolTokenYLabel}
-          </strong>
-          <div className="note-actions">
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={() => void copyTokenContract("x")}
-              title={tokenInfo.tokenXIsStx ? "Copy STX" : `Copy ${tokenXLabel} contract`}
-            >
-              {copiedToken === "x" ? "Copied X" : "Copy X"}
-            </button>
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={() => void copyTokenContract("y")}
-              title={tokenInfo.tokenYIsStx ? "Copy STX" : `Copy ${tokenYLabel} contract`}
-            >
-              {copiedToken === "y" ? "Copied Y" : "Copy Y"}
-            </button>
-            {tokenXExplorerUrl && (
-              <a
-                className="tiny ghost"
-                href={tokenXExplorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                title={`View ${tokenXLabel} contract on explorer`}
-              >
-                View X
-              </a>
-            )}
-            {tokenYExplorerUrl && (
-              <a
-                className="tiny ghost"
-                href={tokenYExplorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                title={`View ${tokenYLabel} contract on explorer`}
-              >
-                View Y
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-
-      {(tokenMismatch || insufficientBalance || noLiquidity) && (
-        <div
-          className={`note ${
-            noLiquidity ? "error" : tokenMismatch ? "warning" : "warning"
-          }`}
-        >
-          <p className="muted small">Heads up</p>
+      {(networkMismatch || tokenMismatch || noLiquidity || insufficientBalance) && (
+        <div className={`note ${networkMismatch || noLiquidity ? "error" : "warning"}`}>
           <strong>
-            {tokenMismatch
-              ? "Selected tokens do not match the initialized pool."
-              : noLiquidity
-                ? "Pool has no liquidity yet. Swaps are disabled."
-                : `Insufficient balance. Max ${formatNumber(maxAvailable)} ${fromLabel}.`}
+            {networkMismatch
+              ? `Wallet not on ${resolvedStacksNetwork}. Swaps are disabled.`
+              : tokenMismatch
+                ? "Selected tokens do not match the pool."
+                : noLiquidity
+                  ? "Pool has no liquidity yet. Swaps are disabled."
+                  : `Insufficient balance. Max ${formatNumber(maxAvailable)} ${fromLabel}.`}
           </strong>
           <div className="note-actions">
-            {tokenMismatch && onOpenTokenSelector ? (
+            {tokenMismatch && onOpenTokenSelector && (
               <button className="tiny ghost" onClick={onOpenTokenSelector}>
                 Open token selector
               </button>
-            ) : null}
-            {!tokenMismatch && noLiquidity && onGoToPool ? (
+            )}
+            {!tokenMismatch && noLiquidity && onGoToPool && (
               <button className="tiny ghost" onClick={onGoToPool}>
                 Go to Pool
               </button>
-            ) : null}
-            {insufficientBalance && onMintFaucet ? (
+            )}
+            {insufficientBalance && onMintFaucet && (
               <button
                 className="tiny"
                 onClick={() => onMintFaucet()}
@@ -646,23 +389,10 @@ export default function SwapCard(props: any) {
                   ? "Minting..."
                   : faucetCooldownActive
                     ? `Cooldown ${faucetCooldownLabel || ""}`.trim()
-                    : "Mint X & Y from Faucet"}
+                    : "Mint from Faucet"}
               </button>
-            ) : null}
+            )}
           </div>
-        </div>
-      )}
-
-      {networkMismatch && (
-        <div className="note error">
-          <p className="muted small">Network mismatch</p>
-          <strong>
-            Connected wallet is not on {resolvedStacksNetwork}. Swaps are
-            disabled.
-          </strong>
-          <p className="muted small">
-            Switch wallet network and reconnect, then refresh pool data.
-          </p>
         </div>
       )}
 
@@ -684,24 +414,8 @@ export default function SwapCard(props: any) {
           <div className="mini-actions">
             <button
               className="tiny ghost"
-              onClick={() => setSwapDirection("x-to-y")}
-            >
-              X -&gt; Y
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={() => setSwapDirection("y-to-x")}
-            >
-              Y -&gt; X
-            </button>
-            <button
-              className="tiny"
               onClick={setMaxSwap}
-              title={
-                fromIsStx
-                  ? "Keeps 0.1 STX for transaction fees"
-                  : "Use your full balance"
-              }
+              title={fromIsStx ? "Keeps 0.1 STX for transaction fees" : "Use your full balance"}
             >
               Max
             </button>
@@ -736,52 +450,14 @@ export default function SwapCard(props: any) {
             <span>{fromLabel}</span>
           </button>
         </div>
-        <div className="swap-balance-row" aria-label="Token balances">
-          <span className="muted small">Balances</span>
+        <div className="swap-balance-row" aria-label="From balance">
           {balancesPending ? (
-            <span className="skeleton-text skeleton-short" aria-label="Loading balances" />
+            <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
           ) : (
-            <span className="muted small swap-balance-values">
-              {tokenXLabel}: {formatNumber(balances.tokenX)} · {tokenYLabel}:{" "}
-              {formatNumber(balances.tokenY)}
+            <span className="muted small">
+              Balance: {formatNumber(fromBalance)} {fromLabel}
             </span>
           )}
-        </div>
-        <div className="mini-actions">
-          <button className="tiny ghost" onClick={() => setSwapPreset(0.25)}>
-            25%
-          </button>
-          <button className="tiny ghost" onClick={() => setSwapPreset(0.5)}>
-            50%
-          </button>
-          <button className="tiny ghost" onClick={() => setSwapPreset(0.75)}>
-            75%
-          </button>
-          <button className="tiny ghost" onClick={() => setSwapPreset(1)}>
-            100%
-          </button>
-        </div>
-        <div className="swap-amount-slider" aria-label="Swap amount percentage">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={Math.round(swapPercent)}
-            onChange={(e) => {
-              const pct = Number(e.target.value || 0);
-              if (!maxAvailable || maxAvailable <= 0) return;
-              const next = (maxAvailable * pct) / 100;
-              setSwapInput(String(Number(next.toFixed(6))));
-            }}
-            disabled={maxAvailable <= 0}
-          />
-          <div className="swap-amount-slider-meta">
-            <span className="muted small">{Math.round(swapPercent)}%</span>
-            <span className="muted small">
-              Min {minSwapAmount.toFixed(6)} · Max {formatNumber(maxAvailable)}
-            </span>
-          </div>
         </div>
         {swapAmountInvalid && (
           <p className="muted small">Enter an amount greater than 0.</p>
@@ -793,12 +469,16 @@ export default function SwapCard(props: any) {
         )}
       </div>
 
-      <button
-        className={`switcher${isFlipping ? " is-flipping" : ""}`}
-        onClick={handleFlip}
-      >
-        Switch
-      </button>
+      <div className="swap-simple-mid">
+        <button
+          className={`icon-button swap-simple-flip${isFlipping ? " is-flipping" : ""}`}
+          type="button"
+          aria-label="Flip swap direction"
+          onClick={handleFlip}
+        >
+          ⇅
+        </button>
+      </div>
 
       <div className="token-card">
         <div className="token-card-head">
@@ -806,10 +486,6 @@ export default function SwapCard(props: any) {
           <span className="token-inline muted small">
             {renderIcon(toIcon, toLabel, toIsStx)}
             {toLabel}
-          </span>
-          <span className="token-badge token-badge--static">
-            {renderIcon(toIcon, toLabel, toIsStx)}
-            <span>{toLabel}</span>
           </span>
         </div>
         <div className="token-output">
@@ -826,304 +502,39 @@ export default function SwapCard(props: any) {
         </div>
       </div>
 
-      {showMinimalSwapLayout && (
-        <div className="simple-quote-line">
-          <span className="simple-quote-pill muted small">
-            {pool.reserveX > 0 && pool.reserveY > 0
-              ? `1 ${poolTokenXLabel} = ${formatNumber(currentPrice || 0)} ${poolTokenYLabel}`
-              : "No liquidity yet"}
-          </span>
-          <span className="simple-quote-pill muted small">
-            {quoteLoading
-              ? "Refreshing pool..."
-              : liveSwapOutput !== null
-                ? `Est. ${formatNumber(liveSwapOutput)} ${swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}`
-                : "Enter amount"}
-          </span>
-        </div>
-      )}
-
-      {showMinimalSwapLayout && (
-        <div className="swap-quick-actions">
-          <span className="muted small" aria-label="Last updated">
-            {refreshLabel}
-          </span>
-          <button
-            className="tiny ghost"
-            type="button"
-            onClick={() => setAutoRefreshEnabled?.((prev: boolean) => !prev)}
-            title="Automatically refresh pool data"
-          >
-            Auto: {autoRefreshEnabled ? `${autoRefreshIntervalSec || 30}s` : "Off"}
-          </button>
-          {autoRefreshEnabled && setAutoRefreshIntervalSec ? (
-            <>
-              {[15, 30, 60].map((seconds) => (
-                <button
-                  key={seconds}
-                  className={`tiny ghost ${autoRefreshIntervalSec === seconds ? "is-active" : ""}`}
-                  type="button"
-                  onClick={() => setAutoRefreshIntervalSec(seconds)}
-                  aria-pressed={autoRefreshIntervalSec === seconds}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </>
-          ) : null}
-          <button
-            className="tiny ghost"
-            onClick={() => void handleManualRefresh()}
-            disabled={poolPending}
-          >
-            {poolPending && <span className="loading-spinner tiny-spinner" aria-hidden="true" />}
-            {poolPending ? "Refreshing..." : "Refresh data"}
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => void handleCopySwapSnapshot()}
-          >
-            Copy snapshot
-          </button>
-          <button
-            className="tiny ghost"
-            onClick={() => void handleCopySwapLink?.()}
-            disabled={!handleCopySwapLink}
-          >
-            Copy link
-          </button>
-        </div>
-      )}
-
-      {showMinimalSwapLayout && (
+      {(currentPrice || hasPriceImpact || liveSwapOutput) && (
         <div className="swap-breakdown-compact">
-          <span className="chip ghost">
-            Route: {fromLabel} → {toLabel}
-          </span>
-          <span className="chip ghost">
-            Fee: {(FEE_BPS / 100).toFixed(2)}%
-          </span>
-          <span className="chip ghost">
-            Impact: {hasPriceImpact ? `${priceImpact.toFixed(3)}%` : "N/A"}
-          </span>
-          <span className="chip ghost">
-            Min:{" "}
-            {liveSwapOutput
-              ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))}`
-              : "N/A"}{" "}
-            {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
-          </span>
+          {currentPrice && (
+            <span className="chip ghost">
+              1 {poolTokenXLabel} = {formatNumber(currentPrice)} {poolTokenYLabel}
+            </span>
+          )}
+          <span className="chip ghost">Fee: {(FEE_BPS / 100).toFixed(2)}%</span>
+          {hasPriceImpact && (
+            <span className="chip ghost">
+              Impact: {priceImpact.toFixed(2)}%
+            </span>
+          )}
+          {liveSwapOutput ? (
+            <span className="chip ghost">
+              Min: {formatNumber(liveSwapOutput * (1 - slippageRatio))}{" "}
+              {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
+            </span>
+          ) : null}
         </div>
       )}
 
-      <div className="inline-stats">
-        <div>
-          <p className="muted small">Price</p>
-          <div className="mini-actions">
-            <strong>
-              {currentPrice
-                ? `1 ${poolTokenXLabel} ~ ${formatNumber(currentPrice)} ${poolTokenYLabel}`
-                : "N/A"}
-            </strong>
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={() => void copyCurrentPrice()}
-              disabled={!currentPrice}
-              title="Copy current price"
-            >
-              {priceCopied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        </div>
-        <div>
-          <p className="muted small">Fee</p>
-          <strong>0.30%</strong>
-        </div>
-        <div>
-          <p className="muted small">Pool reserves</p>
-          <strong>
-            {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
-            {formatNumber(pool.reserveY)} {poolTokenYLabel}
-          </strong>
-        </div>
-      </div>
-      <div className="swap-breakdown">
-        <div className="swap-breakdown-head">
-          <div>
-            <p className="eyebrow">Route</p>
-            <h3>Single pool path</h3>
-          </div>
-          <div className="mini-actions">
-            <span className="chip ghost">{poolContract.contractName}</span>
-            <a
-              className="tiny ghost"
-              href={`https://explorer.hiro.so/contract/${poolContract.address}/${poolContract.contractName}?chain=${resolvedStacksNetwork}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View
-            </a>
-            <button
-              className="tiny ghost"
-              type="button"
-              onClick={() => void copyPoolContract()}
-            >
-              {poolCopied ? "Copied" : "Copy contract"}
-            </button>
-          </div>
-        </div>
-        <div className="swap-breakdown-grid">
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Route
-              <span
-                className="info-icon"
-                aria-label="Swap path for this trade"
-                data-tooltip="Swap path for this trade"
-              >
-                i
-              </span>
-            </span>
-            <strong>
-              {fromLabel} → {toLabel} (1 hop)
-            </strong>
-          </div>
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Pool fee
-              <span
-                className="info-icon"
-                aria-label="Fee charged by the pool"
-                data-tooltip="Fee charged by the pool"
-              >
-                i
-              </span>
-            </span>
-            <strong>{(FEE_BPS / 100).toFixed(2)}%</strong>
-          </div>
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Price impact
-              <span
-                className="info-icon"
-                aria-label="Estimated price movement from this trade"
-                data-tooltip="Estimated price movement from this trade"
-              >
-                i
-              </span>
-            </span>
-            <strong>
-              {hasPriceImpact ? `${priceImpact.toFixed(4)}%` : "N/A"}
-            </strong>
-          </div>
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Slippage tolerance
-              <span
-                className="info-icon"
-                aria-label="Maximum price movement you will accept"
-                data-tooltip="Maximum price movement you will accept"
-              >
-                i
-              </span>
-            </span>
-            <strong>{slippageInput ? `${slippageInput}%` : "N/A"}</strong>
-          </div>
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Minimum received
-              <span
-                className="info-icon"
-                aria-label="Minimum output after slippage"
-                data-tooltip="Minimum output after slippage"
-              >
-                i
-              </span>
-            </span>
-            <strong>
-              {liveSwapOutput
-                ? `${formatNumber(liveSwapOutput * (1 - slippageRatio))} `
-                : "N/A"}
-              {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
-            </strong>
-          </div>
-          <div className="swap-breakdown-item">
-            <span className="muted small">
-              Estimated fee
-              <span
-                className="info-icon"
-                aria-label="Estimated fee charged in the input token"
-                data-tooltip="Estimated fee charged in the input token"
-              >
-                i
-              </span>
-            </span>
-            <strong>
-              {formatNumber(simulator.fee)} {fromLabel}
-            </strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="impact-guardrail">
-        <div className="impact-row">
-          <span className="muted small">
-            Guardrail: warn at {PRICE_IMPACT_WARN_PCT}%, confirm at{" "}
-            {PRICE_IMPACT_CONFIRM_PCT}%, block at {PRICE_IMPACT_BLOCK_PCT}%.
-          </span>
-          {splitSuggestionCount > 1 && (
-            <button className="tiny ghost" onClick={applySplitSuggestion}>
-              Auto split ({splitSuggestionCount}x)
-            </button>
-          )}
-        </div>
-        {priceImpact >= PRICE_IMPACT_CONFIRM_PCT &&
-          priceImpact < PRICE_IMPACT_BLOCK_PCT && (
-            <label className="impact-confirm">
-              <input
-                type="checkbox"
-                checked={impactConfirmed}
-                onChange={(e) => setImpactConfirmed(e.target.checked)}
-              />
-              I understand this swap has high price impact.
-            </label>
-          )}
-        {impactBlocked && (
-          <p className="muted small">
-            Swap blocked: price impact {priceImpact.toFixed(2)}% exceeds{" "}
-            {PRICE_IMPACT_BLOCK_PCT}%.
-          </p>
-        )}
-        {priceImpact >= PRICE_IMPACT_WARN_PCT &&
-          priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
-            <p className="muted small">
-              Warning: current price impact is {priceImpact.toFixed(2)}%.
-              Consider smaller size.
-            </p>
-          )}
-      </div>
-
-      <div className="swap-settings">
-        <div>
-          <label>Slippage tolerance (%)</label>
-          <input
-            type="number"
-            min="0"
-            max="50"
-            step="0.1"
-            value={slippageInput}
-            onChange={(e) => setSlippageInput(e.target.value)}
-            onBlur={normalizeSlippageInput}
-          />
+      <div className="swap-settings swap-settings--simple">
+        <div className="swap-setting-row">
+          <span className="muted small">Slippage</span>
           <div className="swap-setting-pills" aria-label="Slippage presets">
             {SLIPPAGE_PRESETS.map((preset) => (
               <button
                 key={preset}
                 className={`tiny ghost ${slippageInput === preset ? "is-active" : ""}`}
+                type="button"
                 onClick={() => setSlippageInput(preset)}
                 aria-pressed={slippageInput === preset}
-                type="button"
               >
                 {preset}%
               </button>
@@ -1139,327 +550,42 @@ export default function SwapCard(props: any) {
               </button>
             )}
           </div>
-          {suggestedSlippage !== null && (
-            <p className="muted small">
-              Suggested for this trade: {suggestedSlippage}%
-            </p>
-          )}
-          {slippageOutsideRange && (
-            <p className="muted small">Slippage must stay between 0% and 50%.</p>
-          )}
-          <div className="mini-actions">
-            {onResetSwapSettings ? (
-              <button className="tiny ghost" onClick={onResetSwapSettings} type="button">
-                Reset
-              </button>
-            ) : null}
-          </div>
-        </div>
-        <div>
-          <label>Deadline (minutes)</label>
           <input
-            type="number"
-            min="1"
-            max="1440"
-            step="1"
-            value={deadlineMinutesInput}
-            onChange={(e) => setDeadlineMinutesInput(e.target.value)}
-            onBlur={normalizeDeadlineMinutesInput}
+            className="tiny"
+            inputMode="decimal"
+            value={slippageInput}
+            onChange={(e) => setSlippageInput(e.target.value)}
+            onBlur={normalizeSlippageInput}
+            placeholder="0.5"
+            aria-label="Slippage percent"
           />
-          <div className="swap-setting-pills" aria-label="Deadline presets">
-            {DEADLINE_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                className={`tiny ghost ${deadlineMinutesInput === preset ? "is-active" : ""}`}
-                onClick={() => setDeadlineMinutesInput(preset)}
-                aria-pressed={deadlineMinutesInput === preset}
-                type="button"
-              >
-                {preset}m
-              </button>
-            ))}
-          </div>
-          {deadlineOutsideRange && (
-            <p className="muted small">Deadline must stay between 1 and 1440 minutes.</p>
-          )}
-        </div>
-        <div>
-          <label>Safety: confirm above (% balance)</label>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            value={largeSwapConfirmAtInput}
-            onChange={(e) => setLargeSwapConfirmAtInput(e.target.value)}
-            onBlur={normalizeLargeSwapConfirmAtInput}
-          />
-          <p className="muted small">
-            Set 0 to disable. Triggers when swap size is at least this percent
-            of your available balance.
-          </p>
-          {largeSwapConfirmOutsideRange && (
-            <p className="muted small">
-              Safety confirm must be between 0 and 100.
-            </p>
-          )}
         </div>
       </div>
 
-      <div className="target-panel">
-        <div className="target-head">
-          <span className="muted">Target Price</span>
-          <label className="target-toggle">
-            <input
-              type="checkbox"
-              checked={targetPriceEnabled}
-              onChange={(e) => setTargetPriceEnabled(e.target.checked)}
-            />
-            Enable
-          </label>
-        </div>
-        <div className="target-meta">
-          <span className="muted small">
-            When 1 {targetPairDirection === "x-to-y" ? "X" : "Y"}
-          </span>
-          <button
-            className="tiny ghost"
-            onClick={() =>
-              setTargetPairDirection((prev: any) =>
-                prev === "x-to-y" ? "y-to-x" : "x-to-y",
-              )
-            }
-            disabled={!targetPriceEnabled}
-          >
-            Reverse
-          </button>
-        </div>
-        <div className="target-grid">
-          <select
-            className="token-select"
-            value={targetCondition}
-            onChange={(e) =>
-              setTargetCondition((e.target.value as ">=" | "<=") || ">=")
-            }
-            disabled={!targetPriceEnabled}
-          >
-            <option value=">=">{">="}</option>
-            <option value="<=">{"<="}</option>
-          </select>
+      {priceImpact >= PRICE_IMPACT_WARN_PCT && priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
+        <p className="muted small">
+          Warning: price impact is {priceImpact.toFixed(2)}%. Consider a smaller size.
+        </p>
+      )}
+      {impactNeedsConfirm && (
+        <label className="impact-confirm">
           <input
-            className="target-input"
-            type="number"
-            min="0"
-            step="0.000001"
-            placeholder={`Target ${targetPairDirection === "x-to-y" ? "Y" : "X"}`}
-            value={targetPriceInput}
-            onChange={(e) => setTargetPriceInput(e.target.value)}
-            disabled={!targetPriceEnabled}
+            type="checkbox"
+            checked={impactConfirmed}
+            onChange={(e) => setImpactConfirmed(e.target.checked)}
           />
-        </div>
-        {targetPriceInvalid && (
-          <p className="muted small">Enter a target price greater than 0.</p>
-        )}
-        <div className="target-meta">
-          <span className="muted small">
-            Live:{" "}
-            {directionalPrice
-              ? `${formatNumber(directionalPrice)} ${targetPairDirection === "x-to-y" ? "Y/X" : "X/Y"}`
-              : "N/A"}
-          </span>
-          <button
-            className="tiny ghost"
-            onClick={() =>
-              directionalPrice > 0 &&
-              setTargetPriceInput(directionalPrice.toFixed(6))
-            }
-            disabled={!targetPriceEnabled || directionalPrice <= 0}
-          >
-            Use current
-          </button>
-        </div>
-        {targetPriceEnabled && targetPrice && (
-          <p className={`note ${targetTriggered ? "subtle" : ""}`}>
-            {targetTriggered
-              ? `Condition met: 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`
-              : `Waiting: 1 ${targetPairDirection === "x-to-y" ? "X" : "Y"} ${targetCondition} ${formatNumber(targetPrice)} ${targetPairDirection === "x-to-y" ? "Y" : "X"}.`}
-          </p>
-        )}
-        <div className="alerts-panel">
-          <div className="alerts-head">
-            <div>
-              <span className="muted">Price Alerts</span>
-              <p className="muted small">
-                Save the current target as a reusable alert.
-              </p>
-            </div>
-            <button className="tiny ghost" onClick={requestBrowserAlerts}>
-              {browserAlertsEnabled ? "Browser alerts on" : "Enable alerts"}
-            </button>
-          </div>
-          <div className="alerts-actions">
-            <button
-              className="tiny"
-              onClick={createPriceAlert}
-              disabled={!targetPriceEnabled || !targetPrice}
-            >
-              Save alert
-            </button>
-            <button
-              className="tiny ghost"
-              onClick={clearTriggeredAlerts}
-              disabled={alertSummary.triggered.length === 0}
-            >
-              Clear triggered
-            </button>
-          </div>
-          {priceAlerts.length === 0 ? (
-            <p className="muted small">No saved alerts yet.</p>
-          ) : (
-            <div className="alerts-list">
-            {priceAlerts.slice(0, 6).map((alert: any) => {
-              const unitFrom = alert.pairDirection === "x-to-y" ? "X" : "Y";
-              const unitTo = alert.pairDirection === "x-to-y" ? "Y" : "X";
-              return (
-                <div className="alerts-item" key={alert.id}>
-                    <div className="alerts-main">
-                      <span
-                        className={`chip ghost status-${alert.status === "triggered" ? "confirmed" : "submitted"}`}
-                      >
-                        {alert.status}
-                      </span>
-                      <strong>
-                        1 {unitFrom} {alert.condition}{" "}
-                        {formatNumber(alert.targetPrice)} {unitTo}
-                      </strong>
-                    </div>
-                    <div className="alerts-meta">
-                      <span className="muted small">
-                        {alert.status === "triggered" && alert.triggeredAt
-                          ? `Triggered ${new Date(alert.triggeredAt).toLocaleString()}`
-                          : `Created ${new Date(alert.createdAt).toLocaleString()}`}
-                      </span>
-                      <div className="mini-actions">
-                        <button
-                          className="tiny ghost"
-                          onClick={() => {
-                            setTargetPriceEnabled(true);
-                            setTargetPairDirection(alert.pairDirection);
-                            setTargetCondition(alert.condition);
-                            setTargetPriceInput(String(alert.targetPrice));
-                          }}
-                        >
-                          Use
-                        </button>
-                        <button
-                          className="tiny ghost"
-                          onClick={() => removePriceAlert(alert.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                    {alert.status === "triggered" && alert.triggeredPrice ? (
-                      <p className="muted small">
-                        Live hit at {formatNumber(alert.triggeredPrice)}{" "}
-                        {unitTo}
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="simulator">
-        <div className="sim-header">
-          <div>
-            <p className="eyebrow">Swap Simulator</p>
-            <h3>Live curve preview</h3>
-          </div>
-          <span className="pill-small">Drag to preview</span>
-        </div>
-        <div className="sim-body">
-          <div className="sim-controls">
-            <label>Simulated amount</label>
-            <input
-              type="range"
-              min="0"
-              max={maxSwap || 0}
-              step="0.01"
-              value={Math.min(Number(swapInput || 0), maxSwap || 0)}
-              onChange={(e) => setSwapInput(e.target.value)}
-              disabled={maxSwap <= 0}
-            />
-            <div className="sim-meta">
-              <span className="muted small">
-                {formatNumber(simulator.amount)}{" "}
-                {swapDirection === "x-to-y" ? "X" : "Y"}
-              </span>
-              <span className="muted small">Max {formatNumber(maxSwap)}</span>
-            </div>
-          </div>
-          <div className="sim-curve">
-            {curvePreview ? (
-              <svg
-                viewBox="0 0 100 100"
-                role="img"
-                aria-label="Swap curve preview"
-              >
-                <path d={curvePreview.path} className="curve-path" />
-                <circle
-                  cx={curvePreview.current.x}
-                  cy={curvePreview.current.y}
-                  r="3.5"
-                />
-                {curvePreview.simulated && (
-                  <circle
-                    cx={curvePreview.simulated.x}
-                    cy={curvePreview.simulated.y}
-                    r="4.5"
-                    className="curve-point"
-                  />
-                )}
-              </svg>
-            ) : (
-              <p className="muted small">
-                Add liquidity to render the AMM curve.
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="sim-stats">
-          <div>
-            <span className="muted small">Post-swap reserves</span>
-            <strong>
-              {formatNumber(simulator.nextReserveX)} X /{" "}
-              {formatNumber(simulator.nextReserveY)} Y
-            </strong>
-          </div>
-          <div>
-            <span className="muted small">New price</span>
-            <strong>
-              {simulator.nextPrice
-                ? `1 X ~ ${formatNumber(simulator.nextPrice)} Y`
-                : "N/A"}
-            </strong>
-          </div>
-          <div>
-            <span className="muted small">Estimated fee</span>
-            <strong>
-              {formatNumber(simulator.fee)}{" "}
-              {swapDirection === "x-to-y" ? "X" : "Y"}
-            </strong>
-          </div>
-        </div>
-      </div>
+          I understand this swap has high price impact ({priceImpact.toFixed(2)}%).
+        </label>
+      )}
+      {impactBlocked && (
+        <p className="muted small">
+          Swap blocked: price impact {priceImpact.toFixed(2)}% exceeds {PRICE_IMPACT_BLOCK_PCT}%.
+        </p>
+      )}
 
       {(customTokenRequired || highSlippageRequired) && (
         <div className="note warning">
-          <p className="muted small">Confirmation required</p>
-          <strong>Review risks before swapping</strong>
+          <strong>Confirm risks before swapping</strong>
           <div className="note-actions">
             {customTokenRequired && (
               <label className="target-toggle">
@@ -1482,35 +608,6 @@ export default function SwapCard(props: any) {
               </label>
             )}
           </div>
-          {missingRiskConfirm && (
-            <p className="muted small">
-              Swap stays disabled until required confirmations are checked.
-            </p>
-          )}
-        </div>
-      )}
-
-      {largeSwapNeedsConfirm && (
-        <div className="note warning">
-          <p className="muted small">Large swap confirmation</p>
-          <strong>
-            This swap uses {Math.round(swapPercent)}% of your {fromLabel} balance.
-          </strong>
-          <div className="note-actions">
-            <label className="target-toggle">
-              <input
-                type="checkbox"
-                checked={!!largeSwapConfirmed}
-                onChange={(e) => setLargeSwapConfirmed(e.target.checked)}
-              />
-              I confirm this size
-            </label>
-          </div>
-          {missingLargeSwapConfirm && (
-            <p className="muted small">
-              Swap stays disabled until you confirm this large size.
-            </p>
-          )}
         </div>
       )}
 
@@ -1518,23 +615,22 @@ export default function SwapCard(props: any) {
 
       <button
         className="primary"
-        onClick={showMinimalSwapLayout ? handleSimpleSwap : handleSwap}
-          disabled={
-            quoteLoading ||
-            swapPending ||
-            preflightPending ||
-            tokenMismatch ||
-            insufficientBalance ||
-            noLiquidity ||
-            networkMismatch ||
-            missingRiskConfirm ||
-            missingImpactConfirm ||
-            missingLargeSwapConfirm ||
-            impactBlocked ||
-            swapAmountInvalid ||
-            swapAmountTooSmall
-          }
-        >
+        onClick={handleSwap}
+        disabled={
+          quoteLoading ||
+          swapPending ||
+          preflightPending ||
+          tokenMismatch ||
+          insufficientBalance ||
+          noLiquidity ||
+          networkMismatch ||
+          missingRiskConfirm ||
+          missingImpactConfirm ||
+          impactBlocked ||
+          swapAmountInvalid ||
+          swapAmountTooSmall
+        }
+      >
         {(quoteLoading || preflightPending || swapPending) && (
           <span className="loading-spinner button-spinner" aria-hidden="true" />
         )}
@@ -1543,8 +639,8 @@ export default function SwapCard(props: any) {
           : preflightPending
             ? "Preparing swap..."
             : swapPending
-            ? "Swapping..."
-            : "Swap"}
+              ? "Swapping..."
+              : "Swap"}
       </button>
     </div>
   );
