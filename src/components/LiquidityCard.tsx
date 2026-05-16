@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { buildExplorerTxUrl } from "../lib/explorer";
 
@@ -34,12 +34,6 @@ export default function LiquidityCard(props: any) {
     burnShares,
     setBurnShares,
     poolShare,
-    lpPosition,
-    portfolioTotals,
-    portfolioMetrics,
-    feeEstimates,
-    claimableFees,
-    formatSignedPercent,
     pool,
     liquidityPreview,
     initialLiquidityTooSmall,
@@ -49,6 +43,7 @@ export default function LiquidityCard(props: any) {
     onViewAllActivity,
     activityCount,
   } = props;
+
   const safeRecentSwaps = Array.isArray(recentSwaps) ? recentSwaps : [];
   const safeActivityCount =
     typeof activityCount === "number" && Number.isFinite(activityCount)
@@ -56,7 +51,6 @@ export default function LiquidityCard(props: any) {
       : 0;
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
-  const [copiedTxLink, setCopiedTxLink] = useState<string | null>(null);
 
   useEffect(() => {
     if (!copiedTxid) return;
@@ -64,30 +58,13 @@ export default function LiquidityCard(props: any) {
     return () => window.clearTimeout(timer);
   }, [copiedTxid]);
 
-  useEffect(() => {
-    if (!copiedTxLink) return;
-    const timer = window.setTimeout(() => setCopiedTxLink(null), 1200);
-    return () => window.clearTimeout(timer);
-  }, [copiedTxLink]);
-
-  const copyText = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const copyTx = async (txid: string) => {
-    const ok = await copyText(txid);
-    if (ok) setCopiedTxid(txid);
-  };
-
-  const copyTxLink = async (txid: string) => {
-    const url = buildExplorerTxUrl(txid, resolvedStacksNetwork);
-    const ok = await copyText(url);
-    if (ok) setCopiedTxLink(txid);
+    try {
+      await navigator.clipboard.writeText(txid);
+      setCopiedTxid(txid);
+    } catch {
+      // ignore
+    }
   };
 
   const tokenXLabel = tokenLabels?.x || "Token X";
@@ -104,9 +81,7 @@ export default function LiquidityCard(props: any) {
   const poolTokenYIsStx = poolTokenIsStx?.y || false;
 
   const renderIcon = (iconUrl: string | null, label: string, isStx: boolean) => {
-    if (iconUrl) {
-      return <img className="token-icon" src={iconUrl} alt="" />;
-    }
+    if (iconUrl) return <img className="token-icon" src={iconUrl} alt="" />;
     const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
     return (
       <span className="token-icon token-icon-fallback">
@@ -124,47 +99,10 @@ export default function LiquidityCard(props: any) {
   const positionX = hasLiquidity ? pool.reserveX * poolShare : 0;
   const positionY = hasLiquidity ? pool.reserveY * poolShare : 0;
 
-  const safeTotals = portfolioTotals || {
-    totalX: 0,
-    totalY: 0,
-    valueInX: 0,
-    valueInY: 0,
-  };
-  const safeMetrics = portfolioMetrics || {
-    pnl24X: null,
-    pnl24Y: null,
-    ilPercent: null,
-    has24h: false,
-  };
-  const safeLp = lpPosition || { x: 0, y: 0 };
-  const safeFees = feeEstimates || {
-    hasFeeData: false,
-    earned24hX: 0,
-    earned24hY: 0,
-    earnedTotalX: 0,
-    earnedTotalY: 0,
-  };
-  const safeClaimable = claimableFees || null;
-  const formatSigned =
-    typeof formatSignedPercent === "function"
-      ? formatSignedPercent
-      : (value: number | null) => {
-          if (value === null || !Number.isFinite(value)) return "N/A";
-          const sign = value > 0 ? "+" : "";
-          return `${sign}${value.toFixed(2)}%`;
-        };
-  const formatFeeLine = (x: number, y: number) =>
-    `${formatNumber(x)} ${poolTokenXLabel} / ${formatNumber(y)} ${poolTokenYLabel}`;
-
   return (
     <div className="lp-stack pool-page">
-      <div className="pool-header">
-        <div>
-          <p className="eyebrow">Pool</p>
-          <h3>Liquidity control</h3>
-        </div>
-      </div>
 
+      {/* Pool overview */}
       <div className="pool-overview">
         <div className="pool-overview-card">
           {(balancesPending || liquidityPending || removeLiquidityPending) && (
@@ -174,15 +112,15 @@ export default function LiquidityCard(props: any) {
                 {balancesPending
                   ? "Refreshing balances..."
                   : liquidityPending
-                    ? "Preparing liquidity..."
-                    : "Preparing withdrawal..."}
+                    ? "Adding liquidity..."
+                    : "Removing liquidity..."}
               </span>
             </div>
           )}
           <div className="pool-overview-head">
             <div>
-              <p className="eyebrow">Pool stats</p>
-              <h3>Pool snapshot</h3>
+              <p className="eyebrow">Pool</p>
+              <h3>Reserves</h3>
             </div>
             {tokenInfo && (
               <strong className="token-inline">
@@ -198,21 +136,19 @@ export default function LiquidityCard(props: any) {
             <div className="pool-stat">
               <span className="muted small">Reserves</span>
               <strong>
-                {formatNumber(pool.reserveX)} {poolTokenXLabel} /{" "}
-                {formatNumber(pool.reserveY)} {poolTokenYLabel}
+                {formatNumber(pool.reserveX)} {poolTokenXLabel}
               </strong>
+              <span className="muted small">
+                {formatNumber(pool.reserveY)} {poolTokenYLabel}
+              </span>
             </div>
             <div className="pool-stat">
-              <span className="muted small">Current ratio</span>
+              <span className="muted small">Price</span>
               <strong>
                 {ratio
-                  ? `1 ${poolTokenXLabel} ~ ${formatNumber(ratio)} ${poolTokenYLabel}`
+                  ? `1 ${poolTokenXLabel} = ${formatNumber(ratio)} ${poolTokenYLabel}`
                   : "No liquidity yet"}
               </strong>
-            </div>
-            <div className="pool-stat">
-              <span className="muted small">Total LP shares</span>
-              <strong>{formatNumber(pool.totalShares)} shares</strong>
             </div>
           </div>
         </div>
@@ -221,7 +157,7 @@ export default function LiquidityCard(props: any) {
           <div className="pool-overview-head">
             <div>
               <p className="eyebrow">Your position</p>
-              <h3>Liquidity footprint</h3>
+              <h3>LP balance</h3>
             </div>
             <span className={`chip ${hasPosition ? "success" : "ghost"}`}>
               {hasPosition ? "Active" : "No position"}
@@ -229,220 +165,63 @@ export default function LiquidityCard(props: any) {
           </div>
           <div className="pool-stats-grid">
             <div className="pool-stat">
-              <span className="muted small">Your LP</span>
+              <span className="muted small">LP shares</span>
               <strong>
                 {balancesPending ? (
                   <span className="skeleton-text skeleton-short" aria-label="Loading LP balance" />
                 ) : (
-                  `${formatNumber(balances.lpShares)} shares`
+                  formatNumber(balances.lpShares)
                 )}
               </strong>
+              <span className="muted small">
+                {(poolShare * 100).toFixed(2)}% of pool
+              </span>
             </div>
             <div className="pool-stat">
-              <span className="muted small">Pool share</span>
-              <strong>{(poolShare * 100).toFixed(2)}%</strong>
-            </div>
-            <div className="pool-stat wide">
-              <span className="muted small">Underlying in pool</span>
+              <span className="muted small">Underlying</span>
               <strong>
                 {hasPosition
-                  ? `${formatNumber(positionX)} ${poolTokenXLabel} / ${formatNumber(
-                      positionY,
-                    )} ${poolTokenYLabel}`
-                  : "No position yet"}
+                  ? `${formatNumber(positionX)} ${poolTokenXLabel}`
+                  : "—"}
               </strong>
+              <span className="muted small">
+                {hasPosition ? `${formatNumber(positionY)} ${poolTokenYLabel}` : "No position yet"}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="pool-overview-card">
-        <div className="pool-overview-head">
-          <div>
-            <p className="eyebrow">LP dashboard</p>
-            <h3>Position performance</h3>
-          </div>
-          <span className="chip ghost">Local estimate</span>
-        </div>
-        <div className="pool-stats-grid">
-          <div className="pool-stat">
-            <span className="muted small">Position value</span>
-            <strong>
-              {formatNumber(safeTotals.valueInX)} {poolTokenXLabel}
-            </strong>
-            <span className="muted small">
-              {formatNumber(safeTotals.valueInY)} {poolTokenYLabel}
-            </span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">Wallet + LP</span>
-            <strong>
-              {formatNumber(safeTotals.totalX)} {poolTokenXLabel}
-            </strong>
-            <span className="muted small">
-              {formatNumber(safeTotals.totalY)} {poolTokenYLabel}
-            </span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">24h PnL</span>
-            <strong>
-              {safeMetrics.has24h
-                ? formatSigned(safeMetrics.pnl24X)
-                : "No 24h baseline"}
-            </strong>
-            <span className="muted small">
-              {safeMetrics.has24h
-                ? formatSigned(safeMetrics.pnl24Y)
-                : "No 24h baseline"}
-            </span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">IL estimate (24h)</span>
-            <strong>
-              {safeMetrics.has24h
-                ? formatSigned(safeMetrics.ilPercent)
-                : "No 24h baseline"}
-            </strong>
-            <span className="muted small">Vs hold over 24h</span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">Fees earned (24h)</span>
-            <strong>
-              {safeFees.hasFeeData
-                ? formatFeeLine(safeFees.earned24hX, safeFees.earned24hY)
-                : "No swap fee data yet"}
-            </strong>
-            <span className="muted small">Est. at current pool share</span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">Fees earned (total)</span>
-            <strong>
-              {safeFees.hasFeeData
-                ? formatFeeLine(safeFees.earnedTotalX, safeFees.earnedTotalY)
-                : "No swap fee data yet"}
-            </strong>
-            <span className="muted small">Local history only</span>
-          </div>
-          <div className="pool-stat">
-            <span className="muted small">Claimable fees</span>
-            <strong>
-              {safeClaimable
-                ? formatFeeLine(safeClaimable.x, safeClaimable.y)
-                : "Coming soon"}
-            </strong>
-            <span className="muted small">Requires on-chain support</span>
-          </div>
-          <div className="pool-stat wide">
-            <span className="muted small">LP exposure</span>
-            <strong>
-              {formatNumber(safeLp.x)} {poolTokenXLabel} /{" "}
-              {formatNumber(safeLp.y)} {poolTokenYLabel}
-            </strong>
-          </div>
-        </div>
-        <p className="muted small">
-          Fees estimate uses local swap previews and your current pool share.
-        </p>
-      </div>
-
-      <div className="pool-recent">
-        <div className="pool-recent-head">
-          <div>
-            <p className="eyebrow">Pool activity</p>
-            <h3>Recent swaps</h3>
-          </div>
-          <div className="pool-recent-actions">
-            <span className="chip ghost">
-              {safeRecentSwaps.length} in activity log
-            </span>
-            {safeActivityCount > 0 && (
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={onViewAllActivity}
-              >
-                View all activity
-              </button>
-            )}
-          </div>
-        </div>
-        {safeRecentSwaps.length === 0 ? (
-          <p className="muted small pool-recent-empty">
-            No swaps recorded yet.
-          </p>
-        ) : (
-          <div className="pool-recent-list">
-            {safeRecentSwaps.slice(0, 5).map((item: any) => (
-              <div className="pool-recent-item" key={item.id}>
-                <div className="pool-recent-main">
-                  <span className={`chip ghost status-${item.status}`}>
-                    {item.status}
-                  </span>
-                  <strong>{item.message}</strong>
-                </div>
-                <div className="pool-recent-meta">
-                  <span className="muted small">
-                    {new Date(item.ts).toLocaleString()}
-                  </span>
-                  {item.txid ? (
-                    <div className="mini-actions">
-                      <a
-                        className="chip ghost"
-                        href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                      </a>
-                      <button
-                        className="tiny ghost"
-                        type="button"
-                        onClick={() => void copyTx(item.txid || "")}
-                      >
-                        {copiedTxid === item.txid ? "Copied" : "Copy"}
-                      </button>
-                      <button
-                        className="tiny ghost"
-                        type="button"
-                        onClick={() => void copyTxLink(item.txid || "")}
-                      >
-                        {copiedTxLink === item.txid ? "Link copied" : "Copy link"}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+      {/* Add liquidity */}
       <div className="token-card pool-card">
         <div className="token-card-head">
           <div>
-            <span className="muted small">Add to pool</span>
-            <strong>Provide balanced liquidity</strong>
+            <p className="eyebrow">Deposit</p>
+            <strong>Add liquidity</strong>
           </div>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
-              Match from X
+              Sync from X
             </button>
             <button className="tiny ghost" onClick={handleSyncToPoolRatioFromY}>
-              Match from Y
+              Sync from Y
             </button>
             <button className="tiny ghost" onClick={setMaxLiquidity}>
-              Max LP
+              Max
             </button>
-              <button
-                className="tiny ghost"
-                onClick={() => handleFaucet()}
-                disabled={faucetPending}
-              >
-                {faucetPending && <span className="loading-spinner tiny-spinner" aria-hidden="true" />}
-                {faucetPending ? "Minting..." : "Faucet both"}
-              </button>
+            <button
+              className="tiny ghost"
+              onClick={() => handleFaucet()}
+              disabled={faucetPending}
+            >
+              {faucetPending && (
+                <span className="loading-spinner tiny-spinner" aria-hidden="true" />
+              )}
+              {faucetPending ? "Minting..." : "Faucet"}
+            </button>
           </div>
         </div>
+
         <div className="dual-input">
           <div>
             <label className="token-inline">
@@ -460,16 +239,13 @@ export default function LiquidityCard(props: any) {
               <span className="muted small">
                 Balance:{" "}
                 {balancesPending ? (
-                  <span className="skeleton-text skeleton-short" aria-label="Loading token X balance" />
+                  <span className="skeleton-text skeleton-short" />
                 ) : (
                   formatNumber(balances.tokenX)
                 )}
               </span>
-              <button
-                className="tiny ghost"
-                onClick={() => fillLiquidityInput("x")}
-              >
-                Use {tokenXLabel} balance
+              <button className="tiny ghost" onClick={() => fillLiquidityInput("x")}>
+                Max
               </button>
             </div>
           </div>
@@ -489,72 +265,69 @@ export default function LiquidityCard(props: any) {
               <span className="muted small">
                 Balance:{" "}
                 {balancesPending ? (
-                  <span className="skeleton-text skeleton-short" aria-label="Loading token Y balance" />
+                  <span className="skeleton-text skeleton-short" />
                 ) : (
                   formatNumber(balances.tokenY)
                 )}
               </span>
-              <button
-                className="tiny ghost"
-                onClick={() => fillLiquidityInput("y")}
-              >
-                Use {tokenYLabel} balance
+              <button className="tiny ghost" onClick={() => fillLiquidityInput("y")}>
+                Max
               </button>
             </div>
           </div>
         </div>
+
         {liquidityPreview && (
-          <div className="pool-helper">
-            <span className="muted small">
+          <div className="swap-breakdown-compact">
+            <span className="chip ghost">
               Est. shares: {formatNumber(liquidityPreview.shares)}
             </span>
-            <span className="muted small">
-              Actual deposit: {formatNumber(liquidityPreview.actualX)}{" "}
-              {tokenXLabel} / {formatNumber(liquidityPreview.actualY)}{" "}
-              {tokenYLabel}
+            <span className="chip ghost">
+              Deposit: {formatNumber(liquidityPreview.actualX)} {tokenXLabel} / {formatNumber(liquidityPreview.actualY)} {tokenYLabel}
             </span>
+            {liquidityPreview.initializing && (
+              <span className="chip ghost">Initializing pool</span>
+            )}
           </div>
         )}
+
         {initialLiquidityTooSmall && (
           <p className="muted small">
-            Initial liquidity too small. Increase amounts to meet minimum
-            shares.
+            Initial liquidity too small — increase amounts to meet minimum shares.
           </p>
         )}
+
         {renderApprovalManager("liquidity")}
+
         <div className="pool-actions">
           <button
             className="primary"
             onClick={handleAddLiquidity}
             disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending}
           >
-            {liquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
-            {liquidityPending ? "Preparing liquidity..." : "Add liquidity"}
+            {liquidityPending && (
+              <span className="loading-spinner button-spinner" aria-hidden="true" />
+            )}
+            {liquidityPending ? "Adding..." : "Add liquidity"}
           </button>
         </div>
       </div>
 
+      {/* Remove liquidity */}
       <div className="token-card pool-card">
         <div className="token-card-head">
           <div>
-            <span className="muted small">Remove from pool</span>
-            <strong>Withdraw your position</strong>
+            <p className="eyebrow">Withdraw</p>
+            <strong>Remove liquidity</strong>
           </div>
           <div className="mini-actions">
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.25)}>
-              25%
-            </button>
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.5)}>
-              50%
-            </button>
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.75)}>
-              75%
-            </button>
-            <button className="tiny ghost" onClick={setMaxBurn}>
-              Max
-            </button>
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.25)}>25%</button>
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.5)}>50%</button>
+            <button className="tiny ghost" onClick={() => setBurnPreset(0.75)}>75%</button>
+            <button className="tiny ghost" onClick={setMaxBurn}>Max</button>
           </div>
         </div>
+
         <div className="token-input">
           <input
             type="number"
@@ -563,51 +336,93 @@ export default function LiquidityCard(props: any) {
             min="0"
             placeholder="0"
           />
-          <span className="token-pill">LP shares</span>
+          <span className="token-badge token-badge--static">LP shares</span>
         </div>
+
         <div className="pool-helper">
           <span className="muted small">
             Your LP:{" "}
             {balancesPending ? (
-              <span className="skeleton-text skeleton-short" aria-label="Loading LP balance" />
+              <span className="skeleton-text skeleton-short" />
             ) : (
               `${formatNumber(balances.lpShares)} shares`
             )}
           </span>
           <span className="muted small">
-            Pool share: {(poolShare * 100).toFixed(2)}%
+            {(poolShare * 100).toFixed(2)}% of pool
           </span>
         </div>
+
         <div className="pool-actions">
           <button
             className="primary"
             onClick={handleRemoveLiquidity}
-            disabled={tokenMismatch || removeLiquidityPending}
+            disabled={tokenMismatch || removeLiquidityPending || !hasPosition}
           >
-            {removeLiquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
-            {removeLiquidityPending ? "Preparing withdrawal..." : "Remove liquidity"}
+            {removeLiquidityPending && (
+              <span className="loading-spinner button-spinner" aria-hidden="true" />
+            )}
+            {removeLiquidityPending ? "Removing..." : "Remove liquidity"}
           </button>
         </div>
       </div>
 
-      <div className="pool-action-bar" aria-label="Pool quick actions">
-        <button
-          className="secondary"
-          onClick={handleRemoveLiquidity}
-          disabled={tokenMismatch || removeLiquidityPending}
-        >
-          {removeLiquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
-          {removeLiquidityPending ? "Preparing withdrawal..." : "Remove liquidity"}
-        </button>
-        <button
-          className="primary"
-          onClick={handleAddLiquidity}
-          disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending}
-        >
-          {liquidityPending && <span className="loading-spinner button-spinner" aria-hidden="true" />}
-          {liquidityPending ? "Preparing liquidity..." : "Add liquidity"}
-        </button>
-      </div>
+      {/* Recent activity */}
+      {safeRecentSwaps.length > 0 && (
+        <div className="pool-recent">
+          <div className="pool-recent-head">
+            <div>
+              <p className="eyebrow">Activity</p>
+              <h3>Recent swaps</h3>
+            </div>
+            <div className="pool-recent-actions">
+              <span className="chip ghost">{safeRecentSwaps.length} in log</span>
+              {safeActivityCount > 0 && (
+                <button className="tiny ghost" type="button" onClick={onViewAllActivity}>
+                  View all
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="pool-recent-list">
+            {safeRecentSwaps.slice(0, 4).map((item: any) => (
+              <div className="pool-recent-item" key={item.id}>
+                <div className="pool-recent-main">
+                  <span className={`chip ghost status-${item.status}`}>
+                    {item.status}
+                  </span>
+                  <strong>{item.message}</strong>
+                </div>
+                <div className="pool-recent-meta">
+                  <span className="muted small">
+                    {new Date(item.ts).toLocaleString()}
+                  </span>
+                  {item.txid && (
+                    <div className="mini-actions">
+                      <a
+                        className="chip ghost"
+                        href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.txid.slice(0, 6)}…{item.txid.slice(-4)}
+                      </a>
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        onClick={() => void copyTx(item.txid || "")}
+                      >
+                        {copiedTxid === item.txid ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
