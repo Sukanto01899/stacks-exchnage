@@ -5960,10 +5960,7 @@ function App() {
                 src="/favicon.png"
                 alt="Clardex logo"
               />
-              <div>
-                <p className="eyebrow">Clardex</p>
-                <h1>Trade</h1>
-              </div>
+              <h1>Clardex</h1>
             </div>
             <nav className="nav-links" aria-label="Primary">
               <button
@@ -5999,7 +5996,10 @@ function App() {
             aria-label="Open search"
             title="Search (Ctrl/Cmd+K or /)"
           >
-            <span className="nav-search-icon">Search</span>
+            <svg className="nav-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
             <span className="nav-search-text">tokens, pools, and wallets</span>
             <span className="nav-search-hint">Ctrl/Cmd+K</span>
           </button>
@@ -6164,7 +6164,12 @@ function App() {
               />
             ) : (
               <button className="wallet-pill" onClick={handleStacksConnect}>
-                Connect Stacks
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <rect x="1" y="3.5" width="12" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+                  <path d="M1 6.5h12" stroke="currentColor" strokeWidth="1.3"/>
+                  <circle cx="10" cy="9" r="1" fill="currentColor"/>
+                </svg>
+                Connect
               </button>
             )}
           </div>
