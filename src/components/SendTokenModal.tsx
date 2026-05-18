@@ -58,6 +58,20 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     }
   }, [open]);
 
+  const parsedAmount = Number(sendAmount) || 0;
+  const currentBalance = sendToken === "x" ? balances.tokenX : balances.tokenY;
+  const sendLabel = selectionLabels[sendToken];
+  const isInsufficient = parsedAmount > 0 && parsedAmount > currentBalance;
+  const afterSendBalance = Math.max(0, currentBalance - parsedAmount);
+  const hasAmount = parsedAmount > 0 && !isInsufficient;
+  const recipientTrimmed = sendRecipient.trim();
+  const isAddressInvalid =
+    recipientTrimmed.length > 0 &&
+    !recipientTrimmed.startsWith("SP") &&
+    !recipientTrimmed.startsWith("ST");
+  const hasValidRecipient = recipientTrimmed.length > 0 && !isAddressInvalid;
+  const showPreview = hasAmount && hasValidRecipient && !sendPending;
+
   return (
     <dialog
       ref={dialogRef}
@@ -71,11 +85,13 @@ export default function SendTokenModal(props: SendTokenModalProps) {
       <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="confirm-modal-head">
           <div>
-            <p className="eyebrow">Send</p>
+            <p className="eyebrow">Transfer</p>
             <h2>Send tokens</h2>
           </div>
           <button className="icon-button" type="button" aria-label="Close" onClick={onClose}>
-            x
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 1l12 12M13 1 1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
 
@@ -98,69 +114,103 @@ export default function SendTokenModal(props: SendTokenModalProps) {
               </div>
             ) : null}
 
+            {/* Token selector */}
             <div className="drawer-send-token-row" role="group" aria-label="Token to send">
-              <button
-                className={`tiny ghost ${sendToken === "x" ? "is-active" : ""}`}
-                type="button"
-                aria-pressed={sendToken === "x"}
-                onClick={() => onSendTokenChange("x")}
-                disabled={sendPending}
-              >
-                {selectionLabels.x}
-              </button>
-              <button
-                className={`tiny ghost ${sendToken === "y" ? "is-active" : ""}`}
-                type="button"
-                aria-pressed={sendToken === "y"}
-                onClick={() => onSendTokenChange("y")}
-                disabled={sendPending}
-              >
-                {selectionLabels.y}
-              </button>
+              {(["x", "y"] as const).map((key) => (
+                <button
+                  key={key}
+                  className={`tiny ghost ${sendToken === key ? "is-active" : ""}`}
+                  type="button"
+                  aria-pressed={sendToken === key}
+                  onClick={() => onSendTokenChange(key)}
+                  disabled={sendPending}
+                >
+                  {selectionLabels[key]}
+                </button>
+              ))}
             </div>
 
-            <div className="drawer-send-meta">
-              <span className="muted small">
-                Available: {formatNumber(sendToken === "x" ? balances.tokenX : balances.tokenY)}{" "}
-                {selectionLabels[sendToken]}
-              </span>
-              <button
-                className="tiny ghost"
-                type="button"
-                onClick={onMax}
-                disabled={!stacksAddress || sendPending}
-              >
-                Max
-              </button>
+            {/* Amount */}
+            <div className="drawer-send-field">
+              <div className="drawer-send-field-head">
+                <span className="muted small">Amount</span>
+                <div className="drawer-send-field-actions">
+                  <span className="muted small">
+                    Available: {formatNumber(currentBalance)} {sendLabel}
+                  </span>
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={onMax}
+                    disabled={!stacksAddress || sendPending}
+                  >
+                    Max
+                  </button>
+                </div>
+              </div>
+              <div className={`drawer-send-amount-wrap${isInsufficient ? " is-error" : ""}`}>
+                <input
+                  className="drawer-send-amount-input"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  value={sendAmount}
+                  onChange={(event) => onAmountChange(event.target.value)}
+                  placeholder="0.00"
+                  disabled={!stacksAddress || sendPending}
+                  aria-label="Amount to send"
+                />
+                <span className="drawer-send-token-label">{sendLabel}</span>
+              </div>
+              {isInsufficient && (
+                <p className="drawer-send-hint is-error">
+                  Exceeds balance by {formatNumber(parsedAmount - currentBalance)} {sendLabel}.
+                </p>
+              )}
+              {hasAmount && (
+                <p className="drawer-send-hint">
+                  Remaining after send: {formatNumber(afterSendBalance)} {sendLabel}
+                </p>
+              )}
             </div>
 
-            <label>
-              Amount
+            {/* Recipient */}
+            <div className="drawer-send-field">
+              <div className="drawer-send-field-head">
+                <span className="muted small">Recipient address</span>
+              </div>
               <input
-                className="drawer-send-input"
-                type="number"
-                min="0"
-                step="any"
-                inputMode="decimal"
-                value={sendAmount}
-                onChange={(event) => onAmountChange(event.target.value)}
-                placeholder="0.00"
-                disabled={!stacksAddress || sendPending}
-              />
-            </label>
-
-            <label>
-              Recipient address
-              <input
-                className="drawer-send-input"
+                className={`drawer-send-input${isAddressInvalid ? " is-error" : ""}`}
                 type="text"
                 value={sendRecipient}
                 onChange={(event) => onRecipientChange(event.target.value)}
                 placeholder={recipientPlaceholder}
                 autoComplete="off"
                 disabled={!stacksAddress || sendPending}
+                aria-label="Recipient Stacks address"
+                aria-invalid={isAddressInvalid}
               />
-            </label>
+              {isAddressInvalid && (
+                <p className="drawer-send-hint is-error">
+                  Stacks addresses start with SP (mainnet) or ST (testnet).
+                </p>
+              )}
+            </div>
+
+            {/* Preview */}
+            {showPreview && (
+              <div className="drawer-send-preview">
+                <span className="muted small">Sending</span>
+                <strong>
+                  {formatNumber(parsedAmount)} {sendLabel}
+                </strong>
+                <span className="muted small">to</span>
+                <span className="drawer-send-preview-address">
+                  {recipientTrimmed.slice(0, 8)}…{recipientTrimmed.slice(-6)}
+                </span>
+              </div>
+            )}
 
             <div className="drawer-send-actions">
               <button
@@ -170,16 +220,21 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   !stacksAddress ||
                   sendPending ||
                   !sendAmount.trim() ||
-                  !sendRecipient.trim()
+                  !sendRecipient.trim() ||
+                  isInsufficient ||
+                  isAddressInvalid
                 }
               >
+                {sendPending && (
+                  <span className="loading-spinner button-spinner" aria-hidden="true" />
+                )}
                 {sendPending ? "Sending..." : "Send"}
               </button>
               <button
                 className="tiny ghost"
                 type="button"
                 onClick={onClear}
-                disabled={sendPending || (!sendAmount && !sendRecipient && !sendMessage)}
+                disabled={sendPending || (!sendAmount && !sendRecipient)}
               >
                 Clear
               </button>
