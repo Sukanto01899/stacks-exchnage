@@ -3388,6 +3388,24 @@ h3 {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.swap-setting-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.swap-setting-row .swap-setting-pills {
+  flex: 1;
+  margin-top: 0;
+}
+
+.swap-setting-row > input.tiny {
+  width: 64px;
+  flex-shrink: 0;
+}
+
 .swap-setting-pills {
   display: flex;
   flex-wrap: wrap;
@@ -3399,6 +3417,16 @@ h3 {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.chip.impact-warn {
+  border-color: rgba(234, 179, 8, 0.4);
+  color: #fde68a;
+}
+
+.chip.impact-high {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
 }
 
 .impact-guardrail {

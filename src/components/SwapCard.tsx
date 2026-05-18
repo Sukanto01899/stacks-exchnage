@@ -78,6 +78,8 @@ export default function SwapCard(props: any) {
 
   const tokenXLabel = tokenLabels?.x || "Token X";
   const tokenYLabel = tokenLabels?.y || "Token Y";
+  const toBalance =
+    swapDirection === "x-to-y" ? balances.tokenY : balances.tokenX;
   const poolTokenXLabel = poolTokenLabels?.x || tokenXLabel;
   const poolTokenYLabel = poolTokenLabels?.y || tokenYLabel;
   const poolTokenXIcon = poolTokenIcons?.x || null;
@@ -262,7 +264,9 @@ export default function SwapCard(props: any) {
             title="Flip"
             onClick={handleFlip}
           >
-            ⇅
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4.5 2v9m0 0L2 8.5M4.5 11l2.5-2.5M11.5 14V5m0 0L14 7.5M11.5 5 9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
         </div>
 
@@ -500,6 +504,15 @@ export default function SwapCard(props: any) {
           </h3>
           <p className="muted small">Expected output</p>
         </div>
+        <div className="swap-balance-row" aria-label="To balance">
+          {balancesPending ? (
+            <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
+          ) : (
+            <span className="muted small">
+              Balance: {formatNumber(toBalance)} {toLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       {(currentPrice || hasPriceImpact || liveSwapOutput) && (
@@ -511,7 +524,7 @@ export default function SwapCard(props: any) {
           )}
           <span className="chip ghost">Fee: {(FEE_BPS / 100).toFixed(2)}%</span>
           {hasPriceImpact && (
-            <span className="chip ghost">
+            <span className={`chip ghost${priceImpact >= PRICE_IMPACT_CONFIRM_PCT ? " impact-high" : priceImpact >= PRICE_IMPACT_WARN_PCT ? " impact-warn" : ""}`}>
               Impact: {priceImpact.toFixed(2)}%
             </span>
           )}

@@ -66,7 +66,9 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
             aria-label="Close"
             onClick={onClose}
           >
-            x
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 1l12 12M13 1 1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
 
@@ -118,7 +120,15 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
             </div>
             <div className="confirm-modal-stat">
               <p className="muted small">Price impact</p>
-              <strong>{draft.priceImpact.toFixed(2)}%</strong>
+              <strong style={{
+                color: draft.priceImpact >= 3
+                  ? "#fca5a5"
+                  : draft.priceImpact >= 1
+                    ? "#fde68a"
+                    : undefined,
+              }}>
+                {draft.priceImpact.toFixed(2)}%
+              </strong>
             </div>
             <div className="confirm-modal-stat">
               <p className="muted small">Estimated fee</p>
