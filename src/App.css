@@ -2315,18 +2315,22 @@ h3 {
 
 .status-submitted {
   border-color: rgba(90, 156, 255, 0.55);
+  color: #93c5fd;
 }
 
 .status-confirmed {
   border-color: rgba(33, 195, 140, 0.65);
+  color: #6ee7b7;
 }
 
 .status-failed {
   border-color: rgba(255, 107, 107, 0.65);
+  color: #fca5a5;
 }
 
 .status-cancelled {
   border-color: rgba(255, 192, 92, 0.65);
+  color: #fde68a;
 }
 
 .portfolio-head {
@@ -2715,8 +2719,36 @@ h3 {
 
 .pool-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: stretch;
   margin-top: 10px;
+}
+
+.pool-actions .primary,
+.pool-actions .secondary {
+  width: 100%;
+}
+
+.pool-share-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pool-share-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.pool-share-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
 }
 
 .pool-recent {

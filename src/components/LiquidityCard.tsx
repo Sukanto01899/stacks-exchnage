@@ -51,6 +51,7 @@ export default function LiquidityCard(props: any) {
       : 0;
 
   const [copiedTxid, setCopiedTxid] = useState<string | null>(null);
+  const [activeBurnPreset, setActiveBurnPreset] = useState<number | "max" | null>(null);
 
   useEffect(() => {
     if (!copiedTxid) return;
@@ -98,6 +99,12 @@ export default function LiquidityCard(props: any) {
   const hasPosition = balances.lpShares > 0;
   const positionX = hasLiquidity ? pool.reserveX * poolShare : 0;
   const positionY = hasLiquidity ? pool.reserveY * poolShare : 0;
+
+  const burnAmount = Number(burnShares) || 0;
+  const burnFraction = pool.totalShares > 0 ? burnAmount / pool.totalShares : 0;
+  const hasBurnPreview = burnAmount > 0 && burnFraction > 0 && hasLiquidity;
+  const burnReceiveX = hasBurnPreview ? burnFraction * pool.reserveX : null;
+  const burnReceiveY = hasBurnPreview ? burnFraction * pool.reserveY : null;
 
   return (
     <div className="lp-stack pool-page">
@@ -189,6 +196,24 @@ export default function LiquidityCard(props: any) {
               </span>
             </div>
           </div>
+          {hasPosition && (
+            <div className="pool-share-bar-wrap">
+              <div
+                className="pool-share-bar"
+                role="progressbar"
+                aria-label={`${(poolShare * 100).toFixed(2)}% of pool`}
+                aria-valuenow={poolShare * 100}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="pool-share-bar-fill"
+                  style={{ width: `${Math.min(poolShare * 100, 100)}%` }}
+                />
+              </div>
+              <span className="muted small">{(poolShare * 100).toFixed(2)}% of pool</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -201,10 +226,10 @@ export default function LiquidityCard(props: any) {
           </div>
           <div className="mini-actions">
             <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
-              Sync from X
+              Sync {tokenXLabel}→{tokenYLabel}
             </button>
             <button className="tiny ghost" onClick={handleSyncToPoolRatioFromY}>
-              Sync from Y
+              Sync {tokenYLabel}→{tokenXLabel}
             </button>
             <button className="tiny ghost" onClick={setMaxLiquidity}>
               Max
@@ -321,10 +346,21 @@ export default function LiquidityCard(props: any) {
             <strong>Remove liquidity</strong>
           </div>
           <div className="mini-actions">
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.25)}>25%</button>
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.5)}>50%</button>
-            <button className="tiny ghost" onClick={() => setBurnPreset(0.75)}>75%</button>
-            <button className="tiny ghost" onClick={setMaxBurn}>Max</button>
+            {([0.25, 0.5, 0.75] as const).map((p) => (
+              <button
+                key={p}
+                className={`tiny ghost${activeBurnPreset === p ? " is-active" : ""}`}
+                onClick={() => { setBurnPreset(p); setActiveBurnPreset(p); }}
+              >
+                {p * 100}%
+              </button>
+            ))}
+            <button
+              className={`tiny ghost${activeBurnPreset === "max" ? " is-active" : ""}`}
+              onClick={() => { setMaxBurn(); setActiveBurnPreset("max"); }}
+            >
+              Max
+            </button>
           </div>
         </div>
 
@@ -332,7 +368,7 @@ export default function LiquidityCard(props: any) {
           <input
             type="number"
             value={burnShares}
-            onChange={(e) => setBurnShares(e.target.value)}
+            onChange={(e) => { setBurnShares(e.target.value); setActiveBurnPreset(null); }}
             min="0"
             placeholder="0"
           />
@@ -352,6 +388,20 @@ export default function LiquidityCard(props: any) {
             {(poolShare * 100).toFixed(2)}% of pool
           </span>
         </div>
+
+        {hasBurnPreview && (
+          <div className="swap-breakdown-compact">
+            <span className="chip ghost">
+              Est. receive: {formatNumber(burnReceiveX!)} {tokenXLabel}
+            </span>
+            <span className="chip ghost">
+              {formatNumber(burnReceiveY!)} {tokenYLabel}
+            </span>
+            <span className="chip ghost">
+              {(burnFraction * 100).toFixed(2)}% of pool
+            </span>
+          </div>
+        )}
 
         <div className="pool-actions">
           <button
