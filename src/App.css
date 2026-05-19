@@ -899,6 +899,19 @@ h3 {
     width: 100%;
     justify-content: center;
   }
+
+  .confirm-modal {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .confirm-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-modal-summary strong {
+    font-size: 14px;
+  }
 }
 
 .simple-mode .dashboard-layout {
@@ -2572,7 +2585,7 @@ h3 {
 .tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 320px;
+  width: min(320px, 100%);
   border-radius: 999px;
   padding: 4px;
   background: #1a1f2d;
@@ -5172,10 +5185,17 @@ label {
   .portfolio-grid,
   .analytics-grid,
   .pool-list-grid,
-  .pool-list-stats,
   .onboarding-grid,
   .alert-builder-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pool-list-panel {
+    padding: 10px;
+  }
+
+  .pool-overview-card {
+    padding: 10px;
   }
 
   .trade-sim-controls,
