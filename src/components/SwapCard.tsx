@@ -480,7 +480,9 @@ export default function SwapCard(props: any) {
           aria-label="Flip swap direction"
           onClick={handleFlip}
         >
-          ⇅
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4.5 2v9m0 0L2 8.5M4.5 11l2.5-2.5M11.5 14V5m0 0L14 7.5M11.5 5 9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       </div>
 
@@ -492,17 +494,26 @@ export default function SwapCard(props: any) {
             {toLabel}
           </span>
         </div>
-        <div className="token-output">
-          <h3 className={outputFlashing && !quoteLoading ? "is-flashing" : ""}>
-            {quoteLoading
-              ? <span className="skeleton-text skeleton-output" aria-label="Loading quote" />
-              : liveSwapOutput !== null
-                ? formatNumber(liveSwapOutput)
-                : pool.reserveX <= 0 || pool.reserveY <= 0
-                  ? "No pool"
-                  : "0.0"}
-          </h3>
-          <p className="muted small">Expected output</p>
+        <div className="token-input">
+          {quoteLoading ? (
+            <span className="skeleton-text skeleton-output" aria-label="Loading quote" />
+          ) : (
+            <input
+              type="text"
+              value={
+                liveSwapOutput !== null && Number.isFinite(liveSwapOutput) && liveSwapOutput > 0
+                  ? formatNumber(liveSwapOutput)
+                  : ""
+              }
+              readOnly
+              placeholder={noLiquidity ? "No pool" : "0.0"}
+              className={outputFlashing && !quoteLoading ? "is-flashing" : ""}
+            />
+          )}
+          <span className="token-badge token-badge--static">
+            {renderIcon(toIcon, toLabel, toIsStx)}
+            <span>{toLabel}</span>
+          </span>
         </div>
         <div className="swap-balance-row" aria-label="To balance">
           {balancesPending ? (
@@ -512,6 +523,7 @@ export default function SwapCard(props: any) {
               Balance: {formatNumber(toBalance)} {toLabel}
             </span>
           )}
+          <span className="muted small">Expected output</span>
         </div>
       </div>
 

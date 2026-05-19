@@ -6193,12 +6193,14 @@ function App() {
                 <h2>Transactions</h2>
               </div>
               <button
-                className="icon-button"
+                className="nav-drawer-close"
                 type="button"
                 aria-label="Close activity drawer"
                 onClick={closeActivityDrawer}
               >
-                x
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M1 1l10 10M11 1 1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </button>
             </div>
             <div className="activity-drawer-controls">
@@ -6559,7 +6561,9 @@ function App() {
                 aria-label="Close menu"
                 onClick={closeNavDrawer}
               >
-                ✕
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M1 1l10 10M11 1 1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </button>
             </div>
 
@@ -6689,7 +6693,12 @@ function App() {
                     setDrawerOpen(false);
                   }}
                 >
-                  Connect Stacks
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <rect x="1" y="3.5" width="12" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+                    <path d="M1 6.5h12" stroke="currentColor" strokeWidth="1.3"/>
+                    <circle cx="10" cy="9" r="1" fill="currentColor"/>
+                  </svg>
+                  Connect
                 </button>
               )}
               <button
