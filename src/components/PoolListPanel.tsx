@@ -306,7 +306,17 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                     onClick={() => setExpandedPool(isExpanded ? null : pool.id)}
                     aria-expanded={isExpanded}
                   >
-                    {isExpanded ? "Hide details ↑" : "Details ↓"}
+                    <svg
+                      className={`pool-details-chevron${isExpanded ? " is-open" : ""}`}
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {isExpanded ? "Less" : "Details"}
                   </button>
                   {isExpanded && (
                     <div className="pool-details">

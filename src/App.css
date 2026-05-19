@@ -2243,6 +2243,9 @@ h3 {
 }
 
 .pool-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
@@ -2255,6 +2258,15 @@ h3 {
 
 .pool-details-toggle:hover {
   color: var(--text);
+}
+
+.pool-details-chevron {
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pool-details-chevron.is-open {
+  transform: rotate(180deg);
 }
 
 .pool-details {
@@ -2711,6 +2723,15 @@ h3 {
 
 .pool-card .token-card-head {
   margin-bottom: 12px;
+}
+
+.pool-input-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .pool-helper {
@@ -4808,6 +4829,13 @@ label {
   padding: 12px;
   font-size: 16px;
   outline: 0;
+}
+
+.dual-input .token-input input {
+  background: transparent;
+  border: 0;
+  padding: 10px 14px;
+  font-size: 20px;
 }
 
 .token-pill {

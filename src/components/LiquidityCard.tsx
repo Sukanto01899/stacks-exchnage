@@ -211,7 +211,6 @@ export default function LiquidityCard(props: any) {
                   style={{ width: `${Math.min(poolShare * 100, 100)}%` }}
                 />
               </div>
-              <span className="muted small">{(poolShare * 100).toFixed(2)}% of pool</span>
             </div>
           )}
         </div>
@@ -225,11 +224,19 @@ export default function LiquidityCard(props: any) {
             <strong>Add liquidity</strong>
           </div>
           <div className="mini-actions">
-            <button className="tiny ghost" onClick={handleSyncToPoolRatio}>
-              Sync {tokenXLabel}→{tokenYLabel}
+            <button
+              className="tiny ghost"
+              onClick={handleSyncToPoolRatio}
+              title={`Auto-fill ${tokenYLabel} to match ${tokenXLabel} at current pool ratio`}
+            >
+              Sync Y
             </button>
-            <button className="tiny ghost" onClick={handleSyncToPoolRatioFromY}>
-              Sync {tokenYLabel}→{tokenXLabel}
+            <button
+              className="tiny ghost"
+              onClick={handleSyncToPoolRatioFromY}
+              title={`Auto-fill ${tokenXLabel} to match ${tokenYLabel} at current pool ratio`}
+            >
+              Sync X
             </button>
             <button className="tiny ghost" onClick={setMaxLiquidity}>
               Max
@@ -249,55 +256,65 @@ export default function LiquidityCard(props: any) {
 
         <div className="dual-input">
           <div>
-            <label className="token-inline">
-              {renderIcon(tokenXIcon, tokenXLabel, tokenXIsStx)}
-              {tokenXLabel}
-            </label>
-            <input
-              type="number"
-              value={liqX}
-              onChange={(e) => setLiqX(e.target.value)}
-              min="0"
-              placeholder="0.0"
-            />
-            <div className="pool-helper">
-              <span className="muted small">
-                Balance:{" "}
-                {balancesPending ? (
-                  <span className="skeleton-text skeleton-short" />
-                ) : (
-                  formatNumber(balances.tokenX)
-                )}
+            <div className="pool-input-head">
+              <span className="token-inline muted small">
+                {renderIcon(tokenXIcon, tokenXLabel, tokenXIsStx)}
+                {tokenXLabel}
               </span>
-              <button className="tiny ghost" onClick={() => fillLiquidityInput("x")}>
-                Max
-              </button>
+              <div className="mini-actions">
+                {balancesPending ? (
+                  <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
+                ) : (
+                  <span className="muted small">{formatNumber(balances.tokenX)}</span>
+                )}
+                <button className="tiny ghost" onClick={() => fillLiquidityInput("x")}>
+                  Max
+                </button>
+              </div>
+            </div>
+            <div className="token-input">
+              <input
+                type="number"
+                value={liqX}
+                onChange={(e) => setLiqX(e.target.value)}
+                min="0"
+                placeholder="0.0"
+              />
+              <span className="token-badge token-badge--static">
+                {renderIcon(tokenXIcon, tokenXLabel, tokenXIsStx)}
+                <span>{tokenXLabel}</span>
+              </span>
             </div>
           </div>
           <div>
-            <label className="token-inline">
-              {renderIcon(tokenYIcon, tokenYLabel, tokenYIsStx)}
-              {tokenYLabel}
-            </label>
-            <input
-              type="number"
-              value={liqY}
-              onChange={(e) => setLiqY(e.target.value)}
-              min="0"
-              placeholder="0.0"
-            />
-            <div className="pool-helper">
-              <span className="muted small">
-                Balance:{" "}
-                {balancesPending ? (
-                  <span className="skeleton-text skeleton-short" />
-                ) : (
-                  formatNumber(balances.tokenY)
-                )}
+            <div className="pool-input-head">
+              <span className="token-inline muted small">
+                {renderIcon(tokenYIcon, tokenYLabel, tokenYIsStx)}
+                {tokenYLabel}
               </span>
-              <button className="tiny ghost" onClick={() => fillLiquidityInput("y")}>
-                Max
-              </button>
+              <div className="mini-actions">
+                {balancesPending ? (
+                  <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
+                ) : (
+                  <span className="muted small">{formatNumber(balances.tokenY)}</span>
+                )}
+                <button className="tiny ghost" onClick={() => fillLiquidityInput("y")}>
+                  Max
+                </button>
+              </div>
+            </div>
+            <div className="token-input">
+              <input
+                type="number"
+                value={liqY}
+                onChange={(e) => setLiqY(e.target.value)}
+                min="0"
+                placeholder="0.0"
+              />
+              <span className="token-badge token-badge--static">
+                {renderIcon(tokenYIcon, tokenYLabel, tokenYIsStx)}
+                <span>{tokenYLabel}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -423,7 +440,7 @@ export default function LiquidityCard(props: any) {
           <div className="pool-recent-head">
             <div>
               <p className="eyebrow">Activity</p>
-              <h3>Recent swaps</h3>
+              <h3>Recent activity</h3>
             </div>
             <div className="pool-recent-actions">
               <span className="chip ghost">{safeRecentSwaps.length} in log</span>
