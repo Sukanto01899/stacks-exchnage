@@ -100,6 +100,8 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     sortDir === "desc" &&
     favoritesOnly === false;
 
+  const maxTvl = pools.reduce((m, p) => Math.max(m, p.tvl), 0);
+
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
   const [expandedPool, setExpandedPool] = useState<string | null>(null);
 
@@ -280,6 +282,21 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                       {pool.apr !== null ? `${pool.apr}%` : "—"}
                     </strong>
                   </div>
+                </div>
+
+                <div
+                  className="pool-tvl-bar"
+                  role="meter"
+                  aria-label={`TVL: ${formatCompactNumber(pool.tvl)}`}
+                  aria-valuenow={pool.tvl}
+                  aria-valuemin={0}
+                  aria-valuemax={maxTvl}
+                  title={`TVL ${formatCompactNumber(pool.tvl)} — ${maxTvl > 0 ? ((pool.tvl / maxTvl) * 100).toFixed(0) : 0}% of deepest pool`}
+                >
+                  <div
+                    className="pool-tvl-bar-fill"
+                    style={{ width: maxTvl > 0 ? `${Math.min((pool.tvl / maxTvl) * 100, 100)}%` : "0%" }}
+                  />
                 </div>
 
                 <div className="pool-list-actions">

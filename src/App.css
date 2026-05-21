@@ -2818,6 +2818,30 @@ h3 {
   min-width: 2px;
 }
 
+.pool-tvl-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.pool-tvl-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+.pool-ratio-hint {
+  margin-top: 10px;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--stroke);
+}
+
 .pool-recent {
   border: 1px solid var(--stroke);
   border-radius: var(--radius-lg);
@@ -3526,6 +3550,10 @@ h3 {
 
 .chip.impact-high {
   border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.is-insufficient {
   color: #fca5a5;
 }
 

@@ -106,6 +106,16 @@ export default function LiquidityCard(props: any) {
   const burnReceiveX = hasBurnPreview ? burnFraction * pool.reserveX : null;
   const burnReceiveY = hasBurnPreview ? burnFraction * pool.reserveY : null;
 
+  const newPoolSharePct =
+    liquidityPreview && !liquidityPreview.initializing && pool.totalShares > 0
+      ? (liquidityPreview.shares / (pool.totalShares + liquidityPreview.shares)) * 100
+      : null;
+
+  const burnPctOfPosition =
+    hasBurnPreview && balances.lpShares > 0
+      ? (burnAmount / balances.lpShares) * 100
+      : null;
+
   return (
     <div className="lp-stack pool-page">
 
@@ -319,6 +329,12 @@ export default function LiquidityCard(props: any) {
           </div>
         </div>
 
+        {ratio !== null && hasLiquidity && (
+          <p className="pool-ratio-hint muted small">
+            Pool ratio · 1 {tokenXLabel} = {formatNumber(ratio)} {tokenYLabel}
+          </p>
+        )}
+
         {liquidityPreview && (
           <div className="swap-breakdown-compact">
             <span className="chip ghost">
@@ -327,6 +343,11 @@ export default function LiquidityCard(props: any) {
             <span className="chip ghost">
               Deposit: {formatNumber(liquidityPreview.actualX)} {tokenXLabel} / {formatNumber(liquidityPreview.actualY)} {tokenYLabel}
             </span>
+            {newPoolSharePct !== null && (
+              <span className="chip ghost">
+                You'll own: {newPoolSharePct < 0.01 ? "<0.01" : newPoolSharePct.toFixed(4)}%
+              </span>
+            )}
             {liquidityPreview.initializing && (
               <span className="chip ghost">Initializing pool</span>
             )}
@@ -417,6 +438,11 @@ export default function LiquidityCard(props: any) {
             <span className="chip ghost">
               {(burnFraction * 100).toFixed(2)}% of pool
             </span>
+            {burnPctOfPosition !== null && (
+              <span className="chip ghost">
+                {burnPctOfPosition > 99.9 ? "100" : burnPctOfPosition.toFixed(1)}% of your LP
+              </span>
+            )}
           </div>
         )}
 

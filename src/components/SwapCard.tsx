@@ -128,6 +128,19 @@ export default function SwapCard(props: any) {
     Number.isFinite(parsedSlippage) &&
     Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
 
+  const exchangeRate =
+    swapAmount > 0 &&
+    liveSwapOutput !== null &&
+    Number.isFinite(liveSwapOutput) &&
+    liveSwapOutput > 0
+      ? liveSwapOutput / swapAmount
+      : null;
+
+  const setAmountFraction = (fraction: number) => {
+    const raw = maxAvailable * fraction;
+    if (raw > 0) setSwapInput(String(+raw.toFixed(6)));
+  };
+
   const [isFlipping, setIsFlipping] = useState(false);
   const [outputFlashing, setOutputFlashing] = useState(false);
 
@@ -212,6 +225,20 @@ export default function SwapCard(props: any) {
               {fromLabel}
             </span>
             <div className="mini-actions">
+              <button
+                className="tiny ghost"
+                onClick={() => setAmountFraction(0.25)}
+                disabled={maxAvailable <= 0}
+              >
+                25%
+              </button>
+              <button
+                className="tiny ghost"
+                onClick={() => setAmountFraction(0.5)}
+                disabled={maxAvailable <= 0}
+              >
+                50%
+              </button>
               <button
                 className="tiny ghost"
                 onClick={setMaxSwap}
@@ -418,6 +445,20 @@ export default function SwapCard(props: any) {
           <div className="mini-actions">
             <button
               className="tiny ghost"
+              onClick={() => setAmountFraction(0.25)}
+              disabled={maxAvailable <= 0}
+            >
+              25%
+            </button>
+            <button
+              className="tiny ghost"
+              onClick={() => setAmountFraction(0.5)}
+              disabled={maxAvailable <= 0}
+            >
+              50%
+            </button>
+            <button
+              className="tiny ghost"
               onClick={setMaxSwap}
               title={fromIsStx ? "Keeps 0.1 STX for transaction fees" : "Use your full balance"}
             >
@@ -458,7 +499,7 @@ export default function SwapCard(props: any) {
           {balancesPending ? (
             <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
           ) : (
-            <span className="muted small">
+            <span className={`muted small${insufficientBalance ? " is-insufficient" : ""}`}>
               Balance: {formatNumber(fromBalance)} {fromLabel}
             </span>
           )}
@@ -523,7 +564,11 @@ export default function SwapCard(props: any) {
               Balance: {formatNumber(toBalance)} {toLabel}
             </span>
           )}
-          <span className="muted small">Expected output</span>
+          <span className="muted small">
+            {exchangeRate !== null
+              ? `1 ${fromLabel} ≈ ${formatNumber(exchangeRate)} ${toLabel}`
+              : "Expected output"}
+          </span>
         </div>
       </div>
 
