@@ -279,6 +279,9 @@ export default function SwapCard(props: any) {
             >
               {renderIcon(fromIcon, fromLabel, fromIsStx)}
               <span>{fromLabel}</span>
+              <svg className="flip-indicator" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M3 1.5v5m0 0L1.5 5M3 6.5l1.5-1.5M7 8.5v-5m0 0L8.5 5M7 3.5 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -295,6 +298,11 @@ export default function SwapCard(props: any) {
               <path d="M4.5 2v9m0 0L2 8.5M4.5 11l2.5-2.5M11.5 14V5m0 0L14 7.5M11.5 5 9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          {exchangeRate !== null && !quoteLoading && (
+            <span className="swap-mid-rate">
+              1 {fromLabel} ≈ {formatNumber(exchangeRate)} {toLabel}
+            </span>
+          )}
         </div>
 
         <div className="token-card">
@@ -493,15 +501,24 @@ export default function SwapCard(props: any) {
           >
             {renderIcon(fromIcon, fromLabel, fromIsStx)}
             <span>{fromLabel}</span>
+            <svg className="flip-indicator" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+              <path d="M3 1.5v5m0 0L1.5 5M3 6.5l1.5-1.5M7 8.5v-5m0 0L8.5 5M7 3.5 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
         </div>
         <div className="swap-balance-row" aria-label="From balance">
           {balancesPending ? (
             <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
           ) : (
-            <span className={`muted small${insufficientBalance ? " is-insufficient" : ""}`}>
+            <button
+              className={`swap-balance-btn${insufficientBalance ? " is-insufficient" : ""}`}
+              type="button"
+              onClick={maxAvailable > 0 ? setMaxSwap : undefined}
+              disabled={maxAvailable <= 0}
+              title={maxAvailable > 0 ? (fromIsStx ? "Click to use max (keeps 0.1 STX for fees)" : "Click to use max balance") : undefined}
+            >
               Balance: {formatNumber(fromBalance)} {fromLabel}
-            </span>
+            </button>
           )}
         </div>
         {swapAmountInvalid && (
@@ -525,6 +542,11 @@ export default function SwapCard(props: any) {
             <path d="M4.5 2v9m0 0L2 8.5M4.5 11l2.5-2.5M11.5 14V5m0 0L14 7.5M11.5 5 9 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
+        {exchangeRate !== null && !quoteLoading && (
+          <span className="swap-mid-rate">
+            1 {fromLabel} ≈ {formatNumber(exchangeRate)} {toLabel}
+          </span>
+        )}
       </div>
 
       <div className="token-card">

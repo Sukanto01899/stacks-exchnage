@@ -2620,6 +2620,7 @@ h3 {
 
 .swap-card .token-card:first-of-type {
   animation: swapCardEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+  border-color: rgba(var(--accent-rgb), 0.18);
 }
 
 .swap-card .token-card:last-of-type {
@@ -2938,10 +2939,24 @@ h3 {
 
 .swap-simple-mid {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   margin: -8px 0;
   position: relative;
   z-index: 1;
+}
+
+.swap-mid-rate {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-card, rgba(24, 30, 44, 0.96));
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 
 .swap-simple-flip {
@@ -3293,12 +3308,19 @@ h3 {
 }
 
 .swap-breakdown-compact {
-  display: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .simple-mode .swap-breakdown-compact {
-  display: flex;
-  flex-wrap: wrap;
+  background: transparent;
+  border: 0;
+  padding: 0;
   gap: 8px;
 }
 
@@ -3555,6 +3577,40 @@ h3 {
 
 .is-insufficient {
   color: #fca5a5;
+}
+
+.swap-balance-btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: inherit;
+  transition: color 0.15s;
+}
+
+.swap-balance-btn:not(:disabled):hover {
+  color: var(--text);
+}
+
+.swap-balance-btn.is-insufficient {
+  color: #fca5a5;
+}
+
+.swap-balance-btn:disabled {
+  cursor: default;
+}
+
+.token-badge .flip-indicator {
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.token-badge:hover .flip-indicator {
+  opacity: 1;
 }
 
 .impact-guardrail {
