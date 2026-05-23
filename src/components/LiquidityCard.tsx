@@ -99,6 +99,11 @@ export default function LiquidityCard(props: any) {
   const hasPosition = balances.lpShares > 0;
   const positionX = hasLiquidity ? pool.reserveX * poolShare : 0;
   const positionY = hasLiquidity ? pool.reserveY * poolShare : 0;
+  // Combined position value denominated in Token X (positionY converted at current ratio)
+  const positionValueInX =
+    hasPosition && ratio !== null && ratio > 0
+      ? positionX + positionY / ratio
+      : null;
 
   const burnAmount = Number(burnShares) || 0;
   const burnFraction = pool.totalShares > 0 ? burnAmount / pool.totalShares : 0;
@@ -192,6 +197,11 @@ export default function LiquidityCard(props: any) {
               </strong>
               <span className="muted small">
                 {(poolShare * 100).toFixed(2)}% of pool
+                {positionValueInX !== null && (
+                  <span className="lp-value-hint">
+                    {" "}· ≈ {formatNumber(positionValueInX)} {poolTokenXLabel}
+                  </span>
+                )}
               </span>
             </div>
             <div className="pool-stat">

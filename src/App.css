@@ -3757,6 +3757,11 @@ h3 {
   flex-wrap: wrap;
 }
 
+.lp-value-hint {
+  color: var(--accent);
+  opacity: 0.85;
+}
+
 .activity-repeat-btn {
   border-color: rgba(var(--accent-rgb), 0.3);
   color: var(--accent);
