@@ -390,6 +390,12 @@ export default function SwapCard(props: any) {
                 ? "Swapping..."
                 : "Swap"}
         </button>
+        <button className="tiny ghost swap-share-btn" type="button" onClick={handleCopySwapLink}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M4.5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7.5M7.5 1H11m0 0v3.5M11 1 5.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Copy link
+        </button>
       </div>
     );
   }
@@ -733,6 +739,12 @@ export default function SwapCard(props: any) {
             : swapPending
               ? "Swapping..."
               : "Swap"}
+      </button>
+      <button className="tiny ghost swap-share-btn" type="button" onClick={handleCopySwapLink}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M4.5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7.5M7.5 1H11m0 0v3.5M11 1 5.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Copy link
       </button>
     </div>
   );
