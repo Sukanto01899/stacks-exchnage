@@ -3757,6 +3757,14 @@ h3 {
   flex-wrap: wrap;
 }
 
+.ratio-mismatch-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 13px;
+}
+
 .swap-share-btn {
   align-self: center;
   gap: 5px;

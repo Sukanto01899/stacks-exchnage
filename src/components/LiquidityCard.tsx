@@ -105,6 +105,19 @@ export default function LiquidityCard(props: any) {
       ? positionX + positionY / ratio
       : null;
 
+  const inputRatio =
+    ratio !== null &&
+    hasLiquidity &&
+    Number(liqX) > 0 &&
+    Number(liqY) > 0
+      ? Number(liqY) / Number(liqX)
+      : null;
+  const ratioDriftPct =
+    inputRatio !== null && ratio !== null
+      ? Math.abs(inputRatio - ratio) / ratio
+      : null;
+  const ratioMismatch = ratioDriftPct !== null && ratioDriftPct > 0.05;
+
   const burnAmount = Number(burnShares) || 0;
   const burnFraction = pool.totalShares > 0 ? burnAmount / pool.totalShares : 0;
   const hasBurnPreview = burnAmount > 0 && burnFraction > 0 && hasLiquidity;
@@ -344,6 +357,21 @@ export default function LiquidityCard(props: any) {
           <p className="pool-ratio-hint muted small">
             Pool ratio · 1 {tokenXLabel} = {formatNumber(ratio)} {tokenYLabel}
           </p>
+        )}
+
+        {ratioMismatch && (
+          <div className="note warning ratio-mismatch-note">
+            <strong>Ratio mismatch ({(ratioDriftPct! * 100).toFixed(1)}% off)</strong>
+            {" — use "}
+            <button className="tiny ghost" type="button" onClick={handleSyncToPoolRatio}>
+              Sync Y
+            </button>
+            {" or "}
+            <button className="tiny ghost" type="button" onClick={handleSyncToPoolRatioFromY}>
+              Sync X
+            </button>
+            {" to match the pool."}
+          </div>
         )}
 
         {liquidityPreview && (
