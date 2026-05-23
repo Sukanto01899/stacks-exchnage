@@ -6493,6 +6493,12 @@ function App() {
                         if (!isFiniteNumber(amountIn) || !isFiniteNumber(amountOut)) {
                           return null;
                         }
+                        const repeatSwap = () => {
+                          setSwapDirection(meta.fromSymbol === "X" ? "x-to-y" : "y-to-x");
+                          setSwapInput(String(+amountIn.toFixed(6)));
+                          setActiveTab("swap");
+                          closeActivityDrawer();
+                        };
                         return (
                           <div className="activity-chip-row">
                             <span className="chip ghost">
@@ -6506,6 +6512,14 @@ function App() {
                                 Fee est {formatNumber(fee)} {meta.feeSymbol}
                               </span>
                             ) : null}
+                            <button
+                              className="chip ghost activity-repeat-btn"
+                              type="button"
+                              onClick={repeatSwap}
+                              title={`Repeat: swap ${formatNumber(amountIn)} ${meta.fromSymbol} → ${meta.toSymbol}`}
+                            >
+                              ↩ Repeat
+                            </button>
                           </div>
                         );
                       })()}

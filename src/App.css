@@ -3757,6 +3757,17 @@ h3 {
   flex-wrap: wrap;
 }
 
+.activity-repeat-btn {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  color: var(--accent);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.activity-repeat-btn:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: rgba(var(--accent-rgb), 0.5);
+}
+
 .activity-load-more {
   align-self: center;
 }
