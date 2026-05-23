@@ -2679,10 +2679,12 @@ h3 {
 
 .pool-overview .pool-overview-card:nth-child(1) {
   animation-delay: 0.04s;
+  border-top-color: rgba(99, 179, 237, 0.3);
 }
 
 .pool-overview .pool-overview-card:nth-child(2) {
   animation-delay: 0.1s;
+  border-top-color: rgba(var(--ok-rgb), 0.22);
 }
 
 .lp-stack > .pool-overview-card {
@@ -2731,7 +2733,8 @@ h3 {
 .pool-stat strong {
   display: block;
   margin-top: 4px;
-  font-size: 14px;
+  font-size: 15px;
+  letter-spacing: -0.01em;
   animation: statCountIn 0.3s ease both;
 }
 
@@ -2837,10 +2840,12 @@ h3 {
 .pool-ratio-hint {
   margin-top: 10px;
   text-align: center;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--stroke);
+  background: rgba(var(--accent-rgb), 0.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.14);
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .pool-recent {
@@ -4905,9 +4910,21 @@ h3 {
 
 .dual-input {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr auto 1fr;
   gap: 8px;
   margin: 8px 0 10px;
+}
+
+.dual-input-sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 300;
+  user-select: none;
+  padding-top: 28px;
 }
 
 label {
@@ -5261,6 +5278,10 @@ label {
 
   .dual-input {
     grid-template-columns: 1fr;
+  }
+
+  .dual-input-sep {
+    display: none;
   }
 
   .sim-body,

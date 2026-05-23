@@ -296,6 +296,7 @@ export default function LiquidityCard(props: any) {
               </span>
             </div>
           </div>
+          <div className="dual-input-sep" aria-hidden="true">+</div>
           <div>
             <div className="pool-input-head">
               <span className="token-inline muted small">
@@ -414,14 +415,20 @@ export default function LiquidityCard(props: any) {
         </div>
 
         <div className="pool-helper">
-          <span className="muted small">
+          <button
+            className="swap-balance-btn"
+            type="button"
+            onClick={balances.lpShares > 0 ? setMaxBurn : undefined}
+            disabled={balances.lpShares <= 0}
+            title={balances.lpShares > 0 ? "Click to use full LP balance" : undefined}
+          >
             Your LP:{" "}
             {balancesPending ? (
               <span className="skeleton-text skeleton-short" />
             ) : (
               `${formatNumber(balances.lpShares)} shares`
             )}
-          </span>
+          </button>
           <span className="muted small">
             {(poolShare * 100).toFixed(2)}% of pool
           </span>
