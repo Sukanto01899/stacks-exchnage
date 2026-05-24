@@ -3085,7 +3085,12 @@ function App() {
 
   const faucetCooldownActive = faucetCooldownRemainingMs > 0;
   const faucetCooldownLabel = faucetCooldownActive
-    ? `${Math.ceil(faucetCooldownRemainingMs / 1000)}s`
+    ? (() => {
+        const totalSecs = Math.ceil(faucetCooldownRemainingMs / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+      })()
     : null;
 
   useEffect(() => {
@@ -3866,7 +3871,7 @@ function App() {
   const handleFaucet = async (token?: "x" | "y") => {
     if (faucetCooldownActive) {
       setFaucetMessage(
-        `Faucet cooldown active. Try again in ${faucetCooldownLabel || "a moment"}.`,
+        `Faucet on cooldown. Ready in ${faucetCooldownLabel || "a moment"}.`,
       );
       return;
     }
@@ -3962,7 +3967,7 @@ function App() {
         actionLabel: faucetPending
           ? "Requesting..."
           : faucetCooldownActive
-            ? `Cooldown ${faucetCooldownLabel}`
+            ? `Ready in ${faucetCooldownLabel}`
             : "Use faucet",
         action: () => handleFaucet(),
       },
@@ -7599,14 +7604,14 @@ function App() {
           disabled={faucetPending || faucetCooldownActive}
           title={
             faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `Ready in ${faucetCooldownLabel}`
               : "Mint token X from faucet"
           }
         >
           {faucetPending
             ? "Loading..."
             : faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `⏳ ${faucetCooldownLabel}`
               : "X Faucet"}
         </button>
         <button
@@ -7615,14 +7620,14 @@ function App() {
           disabled={faucetPending || faucetCooldownActive}
           title={
             faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `Ready in ${faucetCooldownLabel}`
               : "Mint token Y from faucet"
           }
         >
           {faucetPending
             ? "Loading..."
             : faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `⏳ ${faucetCooldownLabel}`
               : "Y Faucet"}
         </button>
         <button
@@ -7631,14 +7636,14 @@ function App() {
           disabled={faucetPending || faucetCooldownActive}
           title={
             faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `Ready in ${faucetCooldownLabel}`
               : "Mint token X and Y from faucet"
           }
         >
           {faucetPending
             ? "Loading..."
             : faucetCooldownActive
-              ? `Cooldown ${faucetCooldownLabel}`
+              ? `⏳ ${faucetCooldownLabel}`
               : "XY Faucet"}
         </button>
       </div>

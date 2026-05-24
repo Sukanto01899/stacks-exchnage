@@ -455,7 +455,7 @@ export default function SwapCard(props: any) {
                 {faucetPending
                   ? "Minting..."
                   : faucetCooldownActive
-                    ? `Cooldown ${faucetCooldownLabel || ""}`.trim()
+                    ? `⏳ Ready in ${faucetCooldownLabel || "..."}`.trim()
                     : "Mint from Faucet"}
               </button>
             )}
