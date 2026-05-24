@@ -353,6 +353,7 @@ function App() {
   const [liqY, setLiqY] = useState("1200");
   const [liqMessage, setLiqMessage] = useState<string | null>(null);
   const [liquidityPending, setLiquidityPending] = useState(false);
+  const [liqRatioConfirmed, setLiqRatioConfirmed] = useState(false);
 
   const [burnShares, setBurnShares] = useState("0");
   const [burnMessage, setBurnMessage] = useState<string | null>(null);
@@ -3097,6 +3098,10 @@ function App() {
     setImpactConfirmed(false);
   }, [swapInput, swapDirection]);
 
+  useEffect(() => {
+    setLiqRatioConfirmed(false);
+  }, [liqX, liqY, pool.reserveX, pool.reserveY]);
+
   const highSlippageRequired = useMemo(() => {
     const parsed = Number(slippageInput);
     return Number.isFinite(parsed) && parsed > 5;
@@ -3687,6 +3692,21 @@ function App() {
       }
     }
     const initializing = pool.totalShares === 0;
+
+    if (!initializing && pool.reserveX > 0 && pool.reserveY > 0 && !liqRatioConfirmed) {
+      const poolRatio = pool.reserveY / pool.reserveX;
+      const inputRatio = amountY / amountX;
+      const drift = Math.abs(inputRatio - poolRatio) / poolRatio;
+      if (drift > 0.05) {
+        pushToast(
+          `Ratio is ${(drift * 100).toFixed(1)}% off the pool — excess tokens will be returned. Click Add liquidity again to proceed.`,
+          "warning",
+        );
+        setLiqRatioConfirmed(true);
+        return;
+      }
+    }
+
     const amountXMicro = BigInt(Math.floor(amountX * TOKEN_DECIMALS));
     const amountYMicro = BigInt(Math.floor(amountY * TOKEN_DECIMALS));
     const minShares = BigInt(0);
@@ -7304,6 +7324,8 @@ function App() {
                     setLiqY={setLiqY}
                     renderApprovalManager={renderApprovalManager}
                     handleAddLiquidity={handleAddLiquidity}
+                    liqRatioConfirmed={liqRatioConfirmed}
+                    setLiqRatioConfirmed={setLiqRatioConfirmed}
                     setBurnPreset={setBurnPreset}
                     setMaxBurn={setMaxBurn}
                     burnShares={burnShares}

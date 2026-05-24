@@ -29,6 +29,8 @@ export default function LiquidityCard(props: any) {
     setLiqY,
     renderApprovalManager,
     handleAddLiquidity,
+    liqRatioConfirmed,
+    setLiqRatioConfirmed,
     setBurnPreset,
     setMaxBurn,
     burnShares,
@@ -399,13 +401,24 @@ export default function LiquidityCard(props: any) {
           </p>
         )}
 
+        {ratioMismatch && liqRatioConfirmed && (
+          <label className="impact-confirm">
+            <input
+              type="checkbox"
+              checked={liqRatioConfirmed}
+              onChange={(e) => setLiqRatioConfirmed(e.target.checked)}
+            />
+            I understand the ratio is off — excess tokens will be returned.
+          </label>
+        )}
+
         {renderApprovalManager("liquidity")}
 
         <div className="pool-actions">
           <button
             className="primary"
             onClick={handleAddLiquidity}
-            disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending}
+            disabled={tokenMismatch || initialLiquidityTooSmall || liquidityPending || (ratioMismatch && !liqRatioConfirmed)}
           >
             {liquidityPending && (
               <span className="loading-spinner button-spinner" aria-hidden="true" />
