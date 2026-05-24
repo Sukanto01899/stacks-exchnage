@@ -242,6 +242,7 @@ export default function SwapCard(props: any) {
               <button
                 className="tiny ghost"
                 onClick={setMaxSwap}
+                disabled={maxAvailable <= 0}
                 title={
                   fromIsStx
                     ? "Keeps 0.1 STX for transaction fees"
@@ -283,6 +284,27 @@ export default function SwapCard(props: any) {
                 <path d="M3 1.5v5m0 0L1.5 5M3 6.5l1.5-1.5M7 8.5v-5m0 0L8.5 5M7 3.5 5.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+          </div>
+          <div className="swap-balance-row" aria-label="From balance">
+            {balancesPending ? (
+              <span className="skeleton-text skeleton-short" aria-label="Loading balance" />
+            ) : (
+              <button
+                className={`swap-balance-btn${insufficientBalance ? " is-insufficient" : ""}`}
+                type="button"
+                onClick={maxAvailable > 0 ? setMaxSwap : undefined}
+                disabled={maxAvailable <= 0}
+                title={
+                  maxAvailable > 0
+                    ? fromIsStx
+                      ? "Click to use max (keeps 0.1 STX for fees)"
+                      : "Click to use max balance"
+                    : undefined
+                }
+              >
+                Balance: {formatNumber(fromBalance)} {fromLabel}
+              </button>
+            )}
           </div>
         </div>
 
@@ -474,6 +496,7 @@ export default function SwapCard(props: any) {
             <button
               className="tiny ghost"
               onClick={setMaxSwap}
+              disabled={maxAvailable <= 0}
               title={fromIsStx ? "Keeps 0.1 STX for transaction fees" : "Use your full balance"}
             >
               Max
