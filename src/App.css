@@ -3757,6 +3757,18 @@ h3 {
   flex-wrap: wrap;
 }
 
+.activity-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.activity-copy-btn.is-copied {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
 .ratio-mismatch-note {
   display: flex;
   align-items: center;

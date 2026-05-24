@@ -284,6 +284,7 @@ function App() {
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
   const [activityDrawerClosing, setActivityDrawerClosing] = useState(false);
+  const [copiedDrawerTxid, setCopiedDrawerTxid] = useState<string | null>(null);
   const [activityFilter, setActivityFilter] =
     useState<ActivityFilter>("all");
   const [activitySearch, setActivitySearch] = useState("");
@@ -1009,6 +1010,12 @@ function App() {
       activityDrawerTimer.current = null;
     }, 220);
   }, [activityDrawerClosing, activityDrawerOpen]);
+
+  useEffect(() => {
+    if (!copiedDrawerTxid) return;
+    const timer = window.setTimeout(() => setCopiedDrawerTxid(null), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copiedDrawerTxid]);
 
   const handleOpenTokenSelector = useCallback(() => {
     if (activeTab !== "swap") {
@@ -6459,14 +6466,31 @@ function App() {
                             {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
                           </a>
                           <button
-                            className="chip ghost"
+                            className={`chip ghost activity-copy-btn${copiedDrawerTxid === item.txid ? " is-copied" : ""}`}
                             type="button"
-                            onClick={() =>
-                              void copyToClipboard("Txid", item.txid || "")
-                            }
-                            aria-label="Copy txid"
+                            onClick={() => {
+                              void copyToClipboard("Txid", item.txid || "");
+                              setCopiedDrawerTxid(item.txid || "");
+                            }}
+                            aria-label="Copy transaction hash"
+                            title={item.txid}
                           >
-                            Copy
+                            {copiedDrawerTxid === item.txid ? (
+                              <>
+                                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                                  <path d="M1.5 5.5l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                                  <rect x="1" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                                  <path d="M3 3V2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                                </svg>
+                                Copy
+                              </>
+                            )}
                           </button>
                           <button
                             className="chip ghost"
