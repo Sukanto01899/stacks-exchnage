@@ -2253,6 +2253,38 @@ h3 {
 .pool-card-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pool-contract-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0;
+  transition: color 0.15s;
+  margin-left: auto;
+  font-family: monospace;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pool-contract-copy-btn:hover {
+  color: var(--text);
+}
+
+.pool-contract-copy-btn.is-copied {
+  color: var(--accent);
 }
 
 .pool-details-toggle {
@@ -3803,6 +3835,30 @@ h3 {
 }
 
 .swap-share-btn:hover {
+  opacity: 1;
+}
+
+.swap-pool-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.swap-pool-copy-btn:hover {
+  opacity: 1;
+}
+
+.swap-pool-copy-btn.is-copied {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.4);
   opacity: 1;
 }
 

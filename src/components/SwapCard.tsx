@@ -143,6 +143,24 @@ export default function SwapCard(props: any) {
 
   const [isFlipping, setIsFlipping] = useState(false);
   const [outputFlashing, setOutputFlashing] = useState(false);
+  const [copiedPool, setCopiedPool] = useState(false);
+
+  useEffect(() => {
+    if (!copiedPool) return;
+    const t = window.setTimeout(() => setCopiedPool(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [copiedPool]);
+
+  const handleCopyPoolContract = async () => {
+    if (!poolContract?.address || !poolContract?.contractName) return;
+    const id = `${poolContract.address}.${poolContract.contractName}`;
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedPool(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   const handleFlip = () => {
     setIsFlipping(true);
@@ -623,7 +641,7 @@ export default function SwapCard(props: any) {
         </div>
       </div>
 
-      {(currentPrice || hasPriceImpact || liveSwapOutput) && (
+      {(currentPrice || hasPriceImpact || liveSwapOutput || poolContract?.contractName) && (
         <div className="swap-breakdown-compact">
           {currentPrice && (
             <span className="chip ghost">
@@ -642,6 +660,32 @@ export default function SwapCard(props: any) {
               {swapDirection === "x-to-y" ? tokenYLabel : tokenXLabel}
             </span>
           ) : null}
+          {poolContract?.contractName && (
+            <button
+              className={`chip ghost swap-pool-copy-btn${copiedPool ? " is-copied" : ""}`}
+              type="button"
+              onClick={() => void handleCopyPoolContract()}
+              title={`Copy pool contract: ${poolContract.address}.${poolContract.contractName}`}
+              aria-label="Copy pool contract address"
+            >
+              {copiedPool ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <rect x="0.75" y="2.75" width="6.5" height="6.5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                    <path d="M2.75 2.75V2A.75.75 0 0 1 3.5 1.25h4.75A.75.75 0 0 1 9 2v4.75a.75.75 0 0 1-.75.75H7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  </svg>
+                  {poolContract.contractName}
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
 

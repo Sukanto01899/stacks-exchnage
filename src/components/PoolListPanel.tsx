@@ -335,6 +335,33 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                     </svg>
                     {isExpanded ? "Less" : "Details"}
                   </button>
+                  <button
+                    className={`pool-contract-copy-btn${copiedPoolId === pool.id ? " is-copied" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      onCopyPoolId(pool.id);
+                      setCopiedPoolId(pool.id);
+                    }}
+                    title={`Copy pool contract: ${pool.id}`}
+                    aria-label="Copy pool contract address"
+                  >
+                    {copiedPoolId === pool.id ? (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                          <rect x="0.75" y="2.75" width="6.5" height="6.5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                          <path d="M2.75 2.75V2A.75.75 0 0 1 3.5 1.25h4.75A.75.75 0 0 1 9 2v4.75a.75.75 0 0 1-.75.75H7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        {pool.id.split(".")[1] ?? pool.id}
+                      </>
+                    )}
+                  </button>
                   {isExpanded && (
                     <div className="pool-details">
                       <div className="pool-details-stat">
