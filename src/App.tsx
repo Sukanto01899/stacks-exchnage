@@ -5982,6 +5982,32 @@ function App() {
             </a>
           ) : null}
         </div>
+        <div className="status-banner__right">
+          {lastPoolRefreshAt && poolRefreshAgeMs !== null && (
+            <span className="status-banner__refresh-age">
+              {poolRefreshAgeMs < 60_000
+                ? `${Math.floor(poolRefreshAgeMs / 1000)}s ago`
+                : `${Math.floor(poolRefreshAgeMs / 60_000)}m ago`}
+            </span>
+          )}
+          <button
+            className={`status-banner__refresh-toggle${autoRefreshEnabled ? " is-on" : ""}`}
+            type="button"
+            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+            title={
+              autoRefreshEnabled
+                ? `Auto-refresh every ${autoRefreshIntervalSec}s — click to disable`
+                : "Auto-refresh is off — click to enable"
+            }
+            aria-pressed={autoRefreshEnabled}
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+              <path d="M9.5 5.5a4 4 0 1 1-1.17-2.83" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M9.5 1.5v2.5H7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {autoRefreshEnabled ? `${autoRefreshIntervalSec}s` : "OFF"}
+          </button>
+        </div>
       </div>
       <header className="nav">
         <div className="nav-inner">
