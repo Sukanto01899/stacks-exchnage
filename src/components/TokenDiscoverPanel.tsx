@@ -328,10 +328,11 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
 
                 <div className="token-discover-actions">
                   <button
-                    className={`tiny ghost ${isFav ? "is-active" : ""}`}
+                    className={`tiny ghost token-discover-fav-btn${isFav ? " is-active" : ""}`}
                     type="button"
                     onClick={() => toggleFavorite(token.id)}
-                    aria-label={isFav ? "Unfavorite token" : "Favorite token"}
+                    aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                    title={isFav ? "Remove from favorites" : "Add to favorites"}
                   >
                     {isFav ? "★" : "☆"}
                   </button>

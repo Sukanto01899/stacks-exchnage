@@ -3236,6 +3236,24 @@ h3 {
   justify-content: flex-end;
 }
 
+.token-discover-fav-btn {
+  font-size: 14px;
+  transition: color 0.15s, transform 0.15s;
+  min-width: 28px;
+}
+
+.token-discover-fav-btn:hover {
+  color: #facc15;
+  transform: scale(1.25);
+}
+
+.token-discover-fav-btn.is-active {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.35);
+  background: rgba(250, 204, 21, 0.08);
+  animation: starPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 .token-output h3 {
   font-size: 34px;
   letter-spacing: -0.03em;
