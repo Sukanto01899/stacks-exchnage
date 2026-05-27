@@ -90,6 +90,7 @@ import {
 
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
 const FAUCET_COOLDOWN_KEY = `faucet-cooldown-${RESOLVED_STACKS_NETWORK}`;
+const THEME_STORAGE_KEY = "clardex-theme";
 const STX_SWAP_FEE_BUFFER = 0.1;
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
@@ -341,6 +342,20 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("theme-light");
+    } else {
+      root.classList.remove("theme-light");
+    }
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // ignore storage errors
+    }
+  }, [theme]);
+
+  useEffect(() => {
     setUnlimitedApprovalConfirmed(false);
   }, [approveUnlimited]);
 
@@ -368,6 +383,15 @@ function App() {
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+    } catch {
+      // ignore storage errors
+    }
+    return "dark";
+  });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
     seenModal: false,
@@ -6200,6 +6224,24 @@ function App() {
               )}
               {pendingTxs.length > 0 && (
                 <span className="activity-badge">{pendingTxs.length}</span>
+              )}
+            </button>
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              {theme === "dark" ? (
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <circle cx="7.5" cy="7.5" r="2.8" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M7.5 1.5v1M7.5 12.5v1M1.5 7.5h1M12.5 7.5h1M3.4 3.4l.7.7M10.9 10.9l.7.7M10.9 4.1l-.7.7M4.1 10.9l-.7.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <path d="M12.5 8.5A5.5 5.5 0 1 1 6.5 2.5a4.5 4.5 0 0 0 6 6z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               )}
             </button>
             <button
