@@ -7623,9 +7623,18 @@ function App() {
               }
             }}
             aria-label="Dismiss notification"
-            title="Dismiss"
+            title="Click to dismiss"
           >
             <div className="toast-item-body">
+              <span className="toast-item-icon" aria-hidden="true">
+                {toast.tone === "success"
+                  ? "✓"
+                  : toast.tone === "error"
+                    ? "✕"
+                    : toast.tone === "warning"
+                      ? "⚠"
+                      : "ℹ"}
+              </span>
               <span className="toast-item-message">{toast.message}</span>
               {toast.actionHref ? (
                 <a
@@ -7638,6 +7647,19 @@ function App() {
                   {toast.actionLabel || "View"}
                 </a>
               ) : null}
+              <button
+                className="toast-dismiss"
+                type="button"
+                aria-label="Dismiss"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  dismissToast(toast.id);
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                  <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
             </div>
           </div>
         ))}
