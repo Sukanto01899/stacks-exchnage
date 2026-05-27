@@ -196,9 +196,32 @@ export default function LiquidityCard(props: any) {
               <p className="eyebrow">Your position</p>
               <h3>LP balance</h3>
             </div>
-            <span className={`chip ${hasPosition ? "success" : "ghost"}`}>
-              {hasPosition ? "Active" : "No position"}
-            </span>
+            <div className="pool-overview-chips">
+              <span className={`chip ${hasPosition ? "success" : "ghost"}`}>
+                {hasPosition ? "Active" : "No position"}
+              </span>
+              {(hasPosition || balancesPending) && (
+                <span
+                  className="chip pool-share-badge"
+                  title={
+                    hasPosition
+                      ? `You own ${(poolShare * 100).toFixed(6)}% of this pool's total liquidity`
+                      : undefined
+                  }
+                >
+                  {balancesPending ? (
+                    <span className="skeleton-text skeleton-short" aria-label="Loading share" />
+                  ) : poolShare * 100 < 0.01 ? (
+                    "< 0.01%"
+                  ) : poolShare * 100 > 99.99 ? (
+                    "> 99.99%"
+                  ) : (
+                    `${(poolShare * 100).toFixed(2)}%`
+                  )}
+                  {!balancesPending && <span className="pool-share-badge-label"> share</span>}
+                </span>
+              )}
+            </div>
           </div>
           <div className="pool-stats-grid">
             <div className="pool-stat">

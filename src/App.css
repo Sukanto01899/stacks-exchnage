@@ -2782,6 +2782,29 @@ h3 {
   flex-wrap: wrap;
 }
 
+.pool-overview-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pool-share-badge {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.32);
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.pool-share-badge-label {
+  font-weight: 400;
+  opacity: 0.75;
+  font-variant-numeric: normal;
+}
+
 .pool-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
