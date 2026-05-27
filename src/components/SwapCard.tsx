@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 
-const SLIPPAGE_PRESETS = ["0.1", "0.5", "1"] as const;
+const SLIPPAGE_PRESETS = ["0.1", "0.5", "1", "3"] as const;
 
 export default function SwapCard(props: any) {
   const {
@@ -378,8 +378,9 @@ export default function SwapCard(props: any) {
               {SLIPPAGE_PRESETS.map((preset) => (
                 <button
                   key={preset}
-                  className={`tiny ghost ${slippageInput === preset ? "is-active" : ""}`}
+                  className={`tiny ghost${slippageInput === preset ? " is-active" : ""}${Number(preset) >= 3 && slippageInput !== preset ? " is-warn" : ""}`}
                   type="button"
+                  title={Number(preset) >= 3 ? "Higher slippage — suits volatile pairs" : undefined}
                   onClick={() => setSlippageInput(preset)}
                   aria-pressed={slippageInput === preset}
                 >

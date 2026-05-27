@@ -3671,6 +3671,17 @@ h3 {
   color: var(--accent);
 }
 
+.swap-setting-pills .tiny.is-warn {
+  border-color: rgba(255, 192, 92, 0.35);
+  color: rgba(255, 192, 92, 0.8);
+}
+
+.swap-setting-pills .tiny.is-warn:hover {
+  border-color: rgba(255, 192, 92, 0.6);
+  color: rgba(255, 192, 92, 1);
+  background: rgba(255, 192, 92, 0.08);
+}
+
 .chip.impact-warn {
   border-color: rgba(234, 179, 8, 0.4);
   color: #fde68a;
