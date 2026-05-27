@@ -90,6 +90,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onResetFilters,
     onOpenPool,
     onCopyPoolId,
+    onCopyPoolLink,
     resolvedStacksNetwork,
     formatCompactNumber,
   } = props;
@@ -103,6 +104,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
   const maxTvl = pools.reduce((m, p) => Math.max(m, p.tvl), 0);
 
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [expandedPool, setExpandedPool] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,6 +112,12 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     const timer = window.setTimeout(() => setCopiedPoolId(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedPoolId]);
+
+  useEffect(() => {
+    if (!copiedLinkId) return;
+    const timer = window.setTimeout(() => setCopiedLinkId(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedLinkId]);
 
   return (
     <section className="pool-list-panel">
@@ -362,6 +370,32 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                       </>
                     )}
                   </button>
+                  <button
+                    className={`pool-contract-copy-btn${copiedLinkId === pool.id ? " is-copied" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      onCopyPoolLink(pool.id, "swap");
+                      setCopiedLinkId(pool.id);
+                    }}
+                    title={`Copy share link for ${pool.tokenXLabel}/${pool.tokenYLabel}`}
+                    aria-label="Copy share link"
+                  >
+                    {copiedLinkId === pool.id ? (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                          <path d="M4.5 2H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.5M7 1h2m0 0v2M9 1 5.5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Share
+                      </>
+                    )}
+                  </button>
                   {isExpanded && (
                     <div className="pool-details">
                       <div className="pool-details-stat">
@@ -382,6 +416,16 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                           }}
                         >
                           {copiedPoolId === pool.id ? "Copied!" : "Copy contract"}
+                        </button>
+                        <button
+                          className="tiny ghost"
+                          type="button"
+                          onClick={() => {
+                            onCopyPoolLink(pool.id, "swap");
+                            setCopiedLinkId(pool.id);
+                          }}
+                        >
+                          {copiedLinkId === pool.id ? "Link copied!" : "Copy link"}
                         </button>
                         {explorerUrl && (
                           <a

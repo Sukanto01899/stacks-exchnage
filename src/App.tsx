@@ -7407,6 +7407,7 @@ function App() {
                     void copyToClipboard(
                       tab === "swap" ? "Trade link" : "Liquidity link",
                       url,
+                      { label: "Open", href: url },
                     );
                   }}
                   onCopyPoolExplorerLink={(id) => {
