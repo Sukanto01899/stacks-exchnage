@@ -12,6 +12,7 @@ type PoolListItem = {
   volume24h: number;
   fees24h: number;
   apr: number | null;
+  priceChange24?: number | null;
 };
 
 type RecentPoolItem = {
@@ -260,6 +261,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                       <span className="pool-pair-name">
                         {pool.tokenXLabel} / {pool.tokenYLabel}
                       </span>
+                      {pool.priceChange24 !== null && pool.priceChange24 !== undefined && Number.isFinite(pool.priceChange24) && (
+                        <span
+                          className={`chip ${pool.priceChange24 >= 0 ? "price-up" : "price-down"}`}
+                          title="24h price change"
+                        >
+                          {pool.priceChange24 >= 0 ? "+" : ""}{pool.priceChange24.toFixed(2)}%
+                        </span>
+                      )}
                       <HealthDot tvl={pool.tvl} />
                     </div>
                   </div>

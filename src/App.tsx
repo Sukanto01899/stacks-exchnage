@@ -1603,7 +1603,14 @@ function App() {
         const tokenYId = buildTokenId(pool.tokenYPrincipal, pool.tokenYIsStx);
         const tokenXLabel = resolveTokenLabel(tokenXId, pool.tokenXIsStx, "Token X");
         const tokenYLabel = resolveTokenLabel(tokenYId, pool.tokenYIsStx, "Token Y");
-        return { ...pool, tokenXId, tokenYId, tokenXLabel, tokenYLabel };
+        return {
+          ...pool,
+          tokenXId,
+          tokenYId,
+          tokenXLabel,
+          tokenYLabel,
+          priceChange24: pool.id === poolContractId ? analytics.priceChange24 : null,
+        };
       })
       .filter((pool) => {
         if (!normalizedSearch) return true;
@@ -1646,6 +1653,8 @@ function App() {
     buildTokenId,
     resolveTokenLabel,
     poolFavoritesOnly,
+    poolContractId,
+    analytics.priceChange24,
   ]);
 
   const poolsCsv = useMemo(() => {
@@ -7340,6 +7349,7 @@ function App() {
                   priceAlerts={priceAlerts}
                   removePriceAlert={removePriceAlert}
                   maxSwap={maxSwap}
+                  priceChange24={analytics.priceChange24}
                   simulator={simulator}
                   curvePreview={curvePreview}
                   renderApprovalManager={renderApprovalManager}

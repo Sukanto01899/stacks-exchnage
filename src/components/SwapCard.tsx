@@ -74,6 +74,7 @@ export default function SwapCard(props: any) {
     faucetCooldownActive,
     faucetCooldownLabel,
     maxSwap,
+    priceChange24,
   } = props;
 
   const tokenXLabel = tokenLabels?.x || "Token X";
@@ -647,6 +648,11 @@ export default function SwapCard(props: any) {
           {currentPrice && (
             <span className="chip ghost">
               1 {poolTokenXLabel} = {formatNumber(currentPrice)} {poolTokenYLabel}
+            </span>
+          )}
+          {priceChange24 !== null && priceChange24 !== undefined && Number.isFinite(priceChange24) && (
+            <span className={`chip ${priceChange24 >= 0 ? "price-up" : "price-down"}`} title="24h price change">
+              {priceChange24 >= 0 ? "+" : ""}{priceChange24.toFixed(2)}% 24h
             </span>
           )}
           <span className="chip ghost">Fee: {(FEE_BPS / 100).toFixed(2)}%</span>

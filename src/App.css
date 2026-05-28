@@ -3715,6 +3715,18 @@ h3 {
   color: #fca5a5;
 }
 
+.chip.price-up {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.chip.price-down {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
 .is-insufficient {
   color: #fca5a5;
 }
