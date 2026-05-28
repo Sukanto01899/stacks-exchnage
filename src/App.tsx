@@ -7423,6 +7423,7 @@ function App() {
                     resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                     onViewAllActivity={() => setActivityDrawerOpen(true)}
                     activityCount={activityItems.length}
+                    stxTxFeeHint={STX_SWAP_FEE_BUFFER}
                   />
                 </Suspense>
               ) : activeTab === "pools" ? (
@@ -7600,6 +7601,7 @@ function App() {
         onConfirm={() => void confirmSwapAndSign()}
         onCopy={(text) => void copyToClipboard("Swap details", text)}
         formatNumber={formatNumber}
+        stxTxFeeHint={STX_SWAP_FEE_BUFFER}
       />
       <WalletMenuModal
         open={walletMenuOpen}

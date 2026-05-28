@@ -44,6 +44,7 @@ export default function LiquidityCard(props: any) {
     resolvedStacksNetwork,
     onViewAllActivity,
     activityCount,
+    stxTxFeeHint,
   } = props;
 
   const safeRecentSwaps = Array.isArray(recentSwaps) ? recentSwaps : [];
@@ -399,24 +400,31 @@ export default function LiquidityCard(props: any) {
           </div>
         )}
 
-        {liquidityPreview && (
-          <div className="swap-breakdown-compact">
-            <span className="chip ghost">
-              Est. shares: {formatNumber(liquidityPreview.shares)}
-            </span>
-            <span className="chip ghost">
-              Deposit: {formatNumber(liquidityPreview.actualX)} {tokenXLabel} / {formatNumber(liquidityPreview.actualY)} {tokenYLabel}
-            </span>
-            {newPoolSharePct !== null && (
+        <div className="swap-breakdown-compact">
+          {liquidityPreview && (
+            <>
               <span className="chip ghost">
-                You'll own: {newPoolSharePct < 0.01 ? "<0.01" : newPoolSharePct.toFixed(4)}%
+                Est. shares: {formatNumber(liquidityPreview.shares)}
               </span>
-            )}
-            {liquidityPreview.initializing && (
-              <span className="chip ghost">Initializing pool</span>
-            )}
-          </div>
-        )}
+              <span className="chip ghost">
+                Deposit: {formatNumber(liquidityPreview.actualX)} {tokenXLabel} / {formatNumber(liquidityPreview.actualY)} {tokenYLabel}
+              </span>
+              {newPoolSharePct !== null && (
+                <span className="chip ghost">
+                  You'll own: {newPoolSharePct < 0.01 ? "<0.01" : newPoolSharePct.toFixed(4)}%
+                </span>
+              )}
+              {liquidityPreview.initializing && (
+                <span className="chip ghost">Initializing pool</span>
+              )}
+            </>
+          )}
+          {stxTxFeeHint != null && Number.isFinite(stxTxFeeHint) && (
+            <span className="chip ghost lp-fee-hint" title="Approximate Stacks network transaction fee">
+              ~{stxTxFeeHint} STX fee
+            </span>
+          )}
+        </div>
 
         {initialLiquidityTooSmall && (
           <p className="muted small">
@@ -508,24 +516,31 @@ export default function LiquidityCard(props: any) {
           </span>
         </div>
 
-        {hasBurnPreview && (
-          <div className="swap-breakdown-compact">
-            <span className="chip ghost">
-              Est. receive: {formatNumber(burnReceiveX!)} {tokenXLabel}
-            </span>
-            <span className="chip ghost">
-              {formatNumber(burnReceiveY!)} {tokenYLabel}
-            </span>
-            <span className="chip ghost">
-              {(burnFraction * 100).toFixed(2)}% of pool
-            </span>
-            {burnPctOfPosition !== null && (
+        <div className="swap-breakdown-compact">
+          {hasBurnPreview && (
+            <>
               <span className="chip ghost">
-                {burnPctOfPosition > 99.9 ? "100" : burnPctOfPosition.toFixed(1)}% of your LP
+                Est. receive: {formatNumber(burnReceiveX!)} {tokenXLabel}
               </span>
-            )}
-          </div>
-        )}
+              <span className="chip ghost">
+                {formatNumber(burnReceiveY!)} {tokenYLabel}
+              </span>
+              <span className="chip ghost">
+                {(burnFraction * 100).toFixed(2)}% of pool
+              </span>
+              {burnPctOfPosition !== null && (
+                <span className="chip ghost">
+                  {burnPctOfPosition > 99.9 ? "100" : burnPctOfPosition.toFixed(1)}% of your LP
+                </span>
+              )}
+            </>
+          )}
+          {stxTxFeeHint != null && Number.isFinite(stxTxFeeHint) && (
+            <span className="chip ghost lp-fee-hint" title="Approximate Stacks network transaction fee">
+              ~{stxTxFeeHint} STX fee
+            </span>
+          )}
+        </div>
 
         <div className="pool-actions">
           <button

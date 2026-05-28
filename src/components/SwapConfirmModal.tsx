@@ -14,6 +14,7 @@ type SwapConfirmModalProps = {
   onConfirm: () => void;
   onCopy: (text: string) => void;
   formatNumber: (value: number) => string;
+  stxTxFeeHint?: number | null;
 };
 
 export default function SwapConfirmModal(props: SwapConfirmModalProps) {
@@ -31,6 +32,7 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
     onConfirm,
     onCopy,
     formatNumber,
+    stxTxFeeHint,
   } = props;
 
   if (!open || !draft) return null;
@@ -135,7 +137,9 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
               <strong>
                 {draft.feeEstimate !== null && draft.feeEstimate !== undefined
                   ? `${formatNumber(draft.feeEstimate)} ${draft.feeSymbol || ""}`.trim()
-                  : "N/A"}
+                  : stxTxFeeHint != null && Number.isFinite(stxTxFeeHint)
+                    ? `~${stxTxFeeHint} STX`
+                    : "N/A"}
               </strong>
             </div>
           </div>
