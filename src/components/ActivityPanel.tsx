@@ -377,21 +377,35 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                 </span>
                 {item.txid ? (
                   <div className="mini-actions">
-                    <a
-                      className="chip ghost"
-                      href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
-                    </a>
-                    <button
-                      className="tiny ghost"
-                      type="button"
-                      onClick={() => void copyTxid(item.txid || "")}
-                    >
-                      {copiedTxid === item.txid ? "Copied" : "Copy"}
-                    </button>
+                    <span className="activity-txid-group">
+                      <a
+                        className="chip ghost"
+                        href={buildExplorerTxUrl(item.txid, resolvedStacksNetwork)}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={item.txid}
+                      >
+                        {item.txid.slice(0, 6)}...{item.txid.slice(-6)}
+                      </a>
+                      <button
+                        className={`activity-copy-hash-btn${copiedTxid === item.txid ? " is-copied" : ""}`}
+                        type="button"
+                        onClick={() => void copyTxid(item.txid || "")}
+                        title={copiedTxid === item.txid ? "Copied!" : "Copy TX hash"}
+                        aria-label="Copy transaction hash"
+                      >
+                        {copiedTxid === item.txid ? (
+                          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                            <path d="M1.5 5.5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                            <rect x="0.75" y="3.25" width="7" height="7" rx="1.25" stroke="currentColor" strokeWidth="1.2"/>
+                            <path d="M3.25 3.25V2.25A1 1 0 0 1 4.25 1.25h4.5a1 1 0 0 1 1 1v4.5a1 1 0 0 1-1 1H7.75" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    </span>
                     <button
                       className="tiny ghost"
                       type="button"
