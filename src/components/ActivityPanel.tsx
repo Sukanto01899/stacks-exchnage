@@ -351,13 +351,23 @@ export default function ActivityPanel(props: ActivityPanelProps) {
         </p>
       )}
       {searchedActivityItems.length === 0 ? (
-        <p className="muted small">
-          {activityItems.length === 0
-            ? "No activity yet."
-            : String(searchQuery || "").trim()
+        activityItems.length === 0 ? (
+          <div className="empty-state">
+            <svg className="empty-state-icon" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <rect x="8" y="11" width="24" height="20" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M14 18h12M14 23h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M26 6l4 5H10l4-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="empty-state-title">No transactions yet</p>
+            <p className="empty-state-sub">Your swap and liquidity history will appear here.</p>
+          </div>
+        ) : (
+          <p className="muted small">
+            {String(searchQuery || "").trim()
               ? "No activity matches the current filter and search."
               : "No activity matches the current filter."}
-        </p>
+          </p>
+        )
       ) : (
         <div className="activity-list">
           {searchedActivityItems.slice(0, visibleCount).map((item) => (

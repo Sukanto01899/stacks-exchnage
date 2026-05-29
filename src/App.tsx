@@ -6872,6 +6872,7 @@ function App() {
                   lpPosition={lpPosition}
                   formatNumber={formatNumber}
                   formatSignedPercent={formatSignedPercent}
+                  walletConnected={!!stacksAddress}
                 />
               </aside>
             )}
