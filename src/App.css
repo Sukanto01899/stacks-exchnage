@@ -3820,6 +3820,36 @@ h3 {
   cursor: default;
 }
 
+.balance-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.balance-refresh-btn:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--text);
+}
+
+.balance-refresh-btn:disabled {
+  cursor: default;
+}
+
+.balance-refresh-btn.is-spinning svg {
+  animation: spinRefresh 1s linear infinite;
+}
+
 .token-badge .flip-indicator {
   opacity: 0.45;
   transition: opacity 0.15s;

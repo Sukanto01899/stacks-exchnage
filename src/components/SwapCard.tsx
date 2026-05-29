@@ -324,6 +324,19 @@ export default function SwapCard(props: any) {
                 Balance: {formatNumber(fromBalance)} {fromLabel}
               </button>
             )}
+            <button
+              className={`balance-refresh-btn${balancesPending || poolPending ? " is-spinning" : ""}`}
+              type="button"
+              onClick={() => void handleManualRefresh()}
+              disabled={balancesPending || poolPending}
+              title="Refresh balances"
+              aria-label="Refresh balances"
+            >
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M10.5 2.5A5 5 0 1 0 11 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M11 1.5v2h-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -569,6 +582,19 @@ export default function SwapCard(props: any) {
               Balance: {formatNumber(fromBalance)} {fromLabel}
             </button>
           )}
+          <button
+            className={`balance-refresh-btn${balancesPending || poolPending ? " is-spinning" : ""}`}
+            type="button"
+            onClick={() => void handleManualRefresh()}
+            disabled={balancesPending || poolPending}
+            title="Refresh balances"
+            aria-label="Refresh balances"
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M10.5 2.5A5 5 0 1 0 11 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M11 1.5v2h-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
         {swapAmountInvalid && (
           <p className="muted small">Enter an amount greater than 0.</p>
