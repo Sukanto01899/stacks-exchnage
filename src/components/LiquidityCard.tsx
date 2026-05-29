@@ -189,6 +189,29 @@ export default function LiquidityCard(props: any) {
               </strong>
             </div>
           </div>
+          {pool.reserveX > 0 && pool.reserveY > 0 && (() => {
+            const total = pool.reserveX + pool.reserveY;
+            const xPct = (pool.reserveX / total) * 100;
+            const yPct = 100 - xPct;
+            return (
+              <div className="pool-composition">
+                <div
+                  className="pool-composition-bar"
+                  role="meter"
+                  aria-label={`Pool composition: ${xPct.toFixed(1)}% ${poolTokenXLabel}, ${yPct.toFixed(1)}% ${poolTokenYLabel}`}
+                >
+                  <div className="pool-composition-x" style={{ width: `${xPct}%` }} />
+                  <div className="pool-composition-y" style={{ width: `${yPct}%` }} />
+                </div>
+                <div className="pool-composition-legend">
+                  <span className="pool-composition-dot pool-composition-dot--x" />
+                  <span className="muted small">{xPct.toFixed(1)}% {poolTokenXLabel}</span>
+                  <span className="pool-composition-dot pool-composition-dot--y" />
+                  <span className="muted small">{yPct.toFixed(1)}% {poolTokenYLabel}</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="pool-overview-card">
