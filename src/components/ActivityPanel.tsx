@@ -141,6 +141,20 @@ export default function ActivityPanel(props: ActivityPanelProps) {
     });
   }, [filteredActivityItems, searchQuery]);
 
+  const activityStats = useMemo(() => {
+    if (activityItems.length === 0) return null;
+    const swaps = activityItems.filter((i) => i.kind === "swap").length;
+    const lp = activityItems.filter(
+      (i) => i.kind === "add-liquidity" || i.kind === "remove-liquidity",
+    ).length;
+    const pending = activityItems.filter((i) => i.status === "submitted").length;
+    const latest = activityItems.reduce(
+      (best, i) => (i.ts > best ? i.ts : best),
+      0,
+    );
+    return { swaps, lp, pending, latest };
+  }, [activityItems]);
+
   const copyCsv = async () => {
     const csv = buildCsv(searchedActivityItems);
     try {
@@ -208,6 +222,43 @@ export default function ActivityPanel(props: ActivityPanelProps) {
         <div>
           <p className="eyebrow">Recent Activity</p>
           <h3>Transactions</h3>
+          {activityStats && (
+            <div className="activity-stats-chips">
+              {activityStats.swaps > 0 && (
+                <button
+                  className={`chip ghost activity-stat-chip${activityFilter === "swap" ? " is-active" : ""}`}
+                  type="button"
+                  onClick={() => setActivityFilter(activityFilter === "swap" ? "all" : "swap")}
+                  title="Filter by swaps"
+                >
+                  {activityStats.swaps} swap{activityStats.swaps !== 1 ? "s" : ""}
+                </button>
+              )}
+              {activityStats.lp > 0 && (
+                <button
+                  className={`chip ghost activity-stat-chip${activityFilter === "add-liquidity" || activityFilter === "remove-liquidity" ? " is-active" : ""}`}
+                  type="button"
+                  onClick={() => setActivityFilter(activityFilter === "add-liquidity" ? "all" : "add-liquidity")}
+                  title="Filter by LP events"
+                >
+                  {activityStats.lp} LP event{activityStats.lp !== 1 ? "s" : ""}
+                </button>
+              )}
+              {activityStats.pending > 0 && (
+                <button
+                  className={`chip activity-stat-chip activity-stat-pending${activityFilter === "submitted" ? " is-active" : ""}`}
+                  type="button"
+                  onClick={() => setActivityFilter(activityFilter === "submitted" ? "all" : "submitted")}
+                  title="Filter by pending transactions"
+                >
+                  {activityStats.pending} pending
+                </button>
+              )}
+              <span className="chip ghost activity-stat-chip activity-stat-latest" title={new Date(activityStats.latest).toLocaleString()}>
+                last {formatRelativeTime(activityStats.latest)}
+              </span>
+            </div>
+          )}
         </div>
         <div className="mini-actions">
           <button

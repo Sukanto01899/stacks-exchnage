@@ -2395,9 +2395,45 @@ h3 {
 
 .activity-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+}
+
+.activity-stats-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.activity-stat-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  height: auto;
+  cursor: pointer;
+}
+
+.activity-stat-chip.is-active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--text);
+}
+
+.activity-stat-pending {
+  border-color: rgba(90, 156, 255, 0.45);
+  background: rgba(90, 156, 255, 0.08);
+  color: #93c5fd;
+}
+
+.activity-stat-pending.is-active {
+  border-color: rgba(90, 156, 255, 0.7);
+  background: rgba(90, 156, 255, 0.18);
+}
+
+.activity-stat-latest {
+  color: var(--text-muted);
+  cursor: default;
 }
 
 .activity-summary {
