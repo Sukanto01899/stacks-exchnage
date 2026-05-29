@@ -421,12 +421,33 @@ export default function ActivityPanel(props: ActivityPanelProps) {
         )
       ) : (
         <div className="activity-list">
-          {searchedActivityItems.slice(0, visibleCount).map((item) => (
+          {searchedActivityItems.slice(0, visibleCount).map((item) => {
+            const pendingAgeMs =
+              item.status === "submitted"
+                ? Math.max(0, now - (item.submittedAt || item.ts))
+                : 0;
+            const isStuck = pendingAgeMs > 30 * 60_000;
+            const pendingAgeLabel =
+              pendingAgeMs > 0
+                ? pendingAgeMs < 60_000
+                  ? "<1m"
+                  : `${Math.floor(pendingAgeMs / 60_000)}m`
+                : null;
+
+            return (
             <div className="activity-item" key={item.id}>
               <div className="activity-main">
                 <span className={`chip ghost status-${item.status}`}>
                   {item.status}
                 </span>
+                {pendingAgeLabel && (
+                  <span
+                    className={`chip pending-age-badge${isStuck ? " is-stuck" : ""}`}
+                    title={`Pending for ${pendingAgeLabel}`}
+                  >
+                    {pendingAgeLabel}
+                  </span>
+                )}
                 <strong>{item.message}</strong>
               </div>
               <div className="activity-meta">
@@ -490,8 +511,14 @@ export default function ActivityPanel(props: ActivityPanelProps) {
                     : ""}
                 </p>
               ) : null}
+              {isStuck && (
+                <p className="muted small pending-stuck-warn">
+                  Taking longer than expected — check the explorer or try resubmitting.
+                </p>
+              )}
             </div>
-          ))}
+            );
+          })}
           {searchedActivityItems.length > 8 && (
             <div className="mini-actions">
               <button

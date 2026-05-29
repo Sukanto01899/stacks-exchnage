@@ -2543,6 +2543,30 @@ h3 {
   color: #fde68a;
 }
 
+.pending-age-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  height: auto;
+  border-color: rgba(90, 156, 255, 0.45);
+  color: #93c5fd;
+}
+
+.pending-age-badge.is-stuck {
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #fde68a;
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+.pending-stuck-warn {
+  color: #fde68a;
+  margin-top: 2px;
+}
+
 .portfolio-head {
   display: flex;
   align-items: center;
