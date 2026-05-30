@@ -4166,6 +4166,25 @@ h3 {
   opacity: 1;
 }
 
+.price-copy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.price-copy-chip:hover {
+  border-color: var(--stroke-strong);
+  background: var(--chip);
+}
+
+.price-copy-chip.is-copied {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+}
+
 .lp-value-hint {
   color: var(--accent);
   opacity: 0.85;

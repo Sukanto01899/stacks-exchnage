@@ -145,12 +145,30 @@ export default function SwapCard(props: any) {
   const [isFlipping, setIsFlipping] = useState(false);
   const [outputFlashing, setOutputFlashing] = useState(false);
   const [copiedPool, setCopiedPool] = useState(false);
+  const [copiedPrice, setCopiedPrice] = useState(false);
 
   useEffect(() => {
     if (!copiedPool) return;
     const t = window.setTimeout(() => setCopiedPool(false), 1500);
     return () => window.clearTimeout(t);
   }, [copiedPool]);
+
+  useEffect(() => {
+    if (!copiedPrice) return;
+    const t = window.setTimeout(() => setCopiedPrice(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [copiedPrice]);
+
+  const handleCopyPrice = async () => {
+    if (!currentPrice) return;
+    const text = `1 ${poolTokenXLabel} = ${formatNumber(currentPrice)} ${poolTokenYLabel}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPrice(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   const handleCopyPoolContract = async () => {
     if (!poolContract?.address || !poolContract?.contractName) return;
@@ -672,9 +690,24 @@ export default function SwapCard(props: any) {
       {(currentPrice || hasPriceImpact || liveSwapOutput || poolContract?.contractName) && (
         <div className="swap-breakdown-compact">
           {currentPrice && (
-            <span className="chip ghost">
-              1 {poolTokenXLabel} = {formatNumber(currentPrice)} {poolTokenYLabel}
-            </span>
+            <button
+              className={`chip ghost price-copy-chip${copiedPrice ? " is-copied" : ""}`}
+              type="button"
+              onClick={() => void handleCopyPrice()}
+              title="Click to copy price"
+              aria-label="Copy current price"
+            >
+              {copiedPrice ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>1 {poolTokenXLabel} = {formatNumber(currentPrice)} {poolTokenYLabel}</>
+              )}
+            </button>
           )}
           {priceChange24 !== null && priceChange24 !== undefined && Number.isFinite(priceChange24) && (
             <span className={`chip ${priceChange24 >= 0 ? "price-up" : "price-down"}`} title="24h price change">
