@@ -128,6 +128,24 @@ export default function SwapCard(props: any) {
     suggestedSlippage !== null &&
     Number.isFinite(parsedSlippage) &&
     Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
+  const slippageTrimmed = String(slippageInput ?? "").trim();
+  const slippageValid =
+    slippageTrimmed !== "" && Number.isFinite(parsedSlippage) && parsedSlippage >= 0;
+  const slippageInvalid =
+    slippageTrimmed !== "" && (!Number.isFinite(parsedSlippage) || parsedSlippage < 0);
+  const slippageIsDefault = slippageValid && Math.abs(parsedSlippage - 0.5) < 0.001;
+  const slippageZero = slippageValid && parsedSlippage === 0;
+  const slippageVeryLow = slippageValid && parsedSlippage > 0 && parsedSlippage < 0.05;
+  const isSlippagePresetActive = (preset: string) =>
+    slippageInput === preset ||
+    (slippageValid && Math.abs(parsedSlippage - Number(preset)) < 0.001);
+  const slippageHint = slippageInvalid
+    ? "Enter a valid slippage % (0–50)."
+    : slippageZero
+      ? "0% slippage will likely cause the swap to fail."
+      : slippageVeryLow
+        ? "Very low slippage may cause the swap to fail."
+        : null;
 
   const exchangeRate =
     swapAmount > 0 &&
@@ -410,11 +428,11 @@ export default function SwapCard(props: any) {
               {SLIPPAGE_PRESETS.map((preset) => (
                 <button
                   key={preset}
-                  className={`tiny ghost${slippageInput === preset ? " is-active" : ""}${Number(preset) >= 3 && slippageInput !== preset ? " is-warn" : ""}`}
+                  className={`tiny ghost${isSlippagePresetActive(preset) ? " is-active" : ""}${Number(preset) >= 3 && !isSlippagePresetActive(preset) ? " is-warn" : ""}`}
                   type="button"
                   title={Number(preset) >= 3 ? "Higher slippage — suits volatile pairs" : undefined}
                   onClick={() => setSlippageInput(preset)}
-                  aria-pressed={slippageInput === preset}
+                  aria-pressed={isSlippagePresetActive(preset)}
                 >
                   {preset}%
                 </button>
@@ -429,7 +447,18 @@ export default function SwapCard(props: any) {
               placeholder="0.5"
               aria-label="Slippage percent"
             />
+            {!slippageIsDefault && onResetSwapSettings && (
+              <button
+                className="tiny ghost"
+                type="button"
+                onClick={onResetSwapSettings}
+                title="Reset slippage to 0.5%"
+              >
+                Reset
+              </button>
+            )}
           </div>
+          {slippageHint && <p className="muted small">{slippageHint}</p>}
         </div>
 
         {renderApprovalManager("swap")}
@@ -762,10 +791,10 @@ export default function SwapCard(props: any) {
             {SLIPPAGE_PRESETS.map((preset) => (
               <button
                 key={preset}
-                className={`tiny ghost ${slippageInput === preset ? "is-active" : ""}`}
+                className={`tiny ghost ${isSlippagePresetActive(preset) ? "is-active" : ""}`}
                 type="button"
                 onClick={() => setSlippageInput(preset)}
-                aria-pressed={slippageInput === preset}
+                aria-pressed={isSlippagePresetActive(preset)}
               >
                 {preset}%
               </button>
@@ -790,7 +819,18 @@ export default function SwapCard(props: any) {
             placeholder="0.5"
             aria-label="Slippage percent"
           />
+          {!slippageIsDefault && onResetSwapSettings && (
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={onResetSwapSettings}
+              title="Reset slippage to 0.5%"
+            >
+              Reset
+            </button>
+          )}
         </div>
+        {slippageHint && <p className="muted small">{slippageHint}</p>}
       </div>
 
       {priceImpact >= PRICE_IMPACT_WARN_PCT && priceImpact < PRICE_IMPACT_CONFIRM_PCT && (
