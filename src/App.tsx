@@ -6212,29 +6212,87 @@ function App() {
                 </button>
               </>
             )}
-            <button
-              className={`activity-pill ${
-                latestActivityStatus ? `is-${latestActivityStatus.status}` : ""
-              }`}
-              type="button"
-              onClick={openActivityDrawer}
-              aria-label="Open activity drawer"
-              title={
-                latestActivityStatus
-                  ? `Latest transaction: ${latestActivityStatus.label}`
-                  : "Open activity drawer"
-              }
-            >
-              Activity
-              {latestActivityStatus && (
-                <span className="activity-status">
-                  {latestActivityStatus.status}
-                </span>
-              )}
-              {pendingTxs.length > 0 && (
-                <span className="activity-badge">{pendingTxs.length}</span>
-              )}
-            </button>
+            <div className="activity-pill-wrap">
+              <button
+                className={`activity-pill ${
+                  latestActivityStatus ? `is-${latestActivityStatus.status}` : ""
+                }`}
+                type="button"
+                onClick={openActivityDrawer}
+                aria-label="Open activity drawer"
+                title={
+                  latestActivityStatus
+                    ? `Latest transaction: ${latestActivityStatus.label}`
+                    : "Open activity drawer"
+                }
+              >
+                Activity
+                {latestActivityStatus && (
+                  <span className="activity-status">
+                    {latestActivityStatus.status}
+                  </span>
+                )}
+                {pendingTxs.length > 0 && (
+                  <span className="activity-badge">{pendingTxs.length}</span>
+                )}
+              </button>
+              <div className="activity-peek" role="menu" aria-label="Recent transactions">
+                <div className="activity-peek-head">
+                  <span className="eyebrow">Recent activity</span>
+                  {pendingTxs.length > 0 && (
+                    <span className="activity-peek-pending">
+                      {pendingTxs.length} pending
+                    </span>
+                  )}
+                </div>
+                {activityItems.length === 0 ? (
+                  <p className="muted small activity-peek-empty">
+                    No transactions yet.
+                  </p>
+                ) : (
+                  <ul className="activity-peek-list">
+                    {activityItems.slice(0, 5).map((item) => (
+                      <li className="activity-peek-item" key={item.id}>
+                        <span
+                          className={`activity-peek-dot status-${item.status}`}
+                          aria-hidden="true"
+                        />
+                        <span className="activity-peek-msg" title={item.message}>
+                          {item.message}
+                        </span>
+                        <span className="activity-peek-time">
+                          {formatRelativeTime(item.ts)}
+                        </span>
+                        {item.txid ? (
+                          <a
+                            className="activity-peek-link"
+                            href={buildExplorerTxUrl(item.txid)}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="View on explorer"
+                            aria-label="View transaction on explorer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                              <path d="M4.5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7.5M7.5 1H11m0 0v3.5M11 1 5.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="activity-peek-link is-empty" aria-hidden="true" />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  className="activity-peek-all"
+                  type="button"
+                  onClick={openActivityDrawer}
+                >
+                  View all activity
+                </button>
+              </div>
+            </div>
             <button
               className="theme-toggle"
               type="button"
