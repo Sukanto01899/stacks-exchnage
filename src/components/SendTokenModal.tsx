@@ -61,6 +61,11 @@ export default function SendTokenModal(props: SendTokenModalProps) {
   const parsedAmount = Number(sendAmount) || 0;
   const currentBalance = sendToken === "x" ? balances.tokenX : balances.tokenY;
   const sendLabel = selectionLabels[sendToken];
+
+  const setAmountFraction = (fraction: number) => {
+    const raw = currentBalance * fraction;
+    if (raw > 0) onAmountChange(String(+raw.toFixed(6)));
+  };
   const isInsufficient = parsedAmount > 0 && parsedAmount > currentBalance;
   const afterSendBalance = Math.max(0, currentBalance - parsedAmount);
   const hasAmount = parsedAmount > 0 && !isInsufficient;
@@ -141,8 +146,24 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   <button
                     className="tiny ghost"
                     type="button"
+                    onClick={() => setAmountFraction(0.25)}
+                    disabled={!stacksAddress || sendPending || currentBalance <= 0}
+                  >
+                    25%
+                  </button>
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() => setAmountFraction(0.5)}
+                    disabled={!stacksAddress || sendPending || currentBalance <= 0}
+                  >
+                    50%
+                  </button>
+                  <button
+                    className="tiny ghost"
+                    type="button"
                     onClick={onMax}
-                    disabled={!stacksAddress || sendPending}
+                    disabled={!stacksAddress || sendPending || currentBalance <= 0}
                   >
                     Max
                   </button>
