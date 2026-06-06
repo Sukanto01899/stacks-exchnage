@@ -37,6 +37,16 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
 
   if (!open || !draft) return null;
 
+  const impact = draft.priceImpact;
+  const impactLevel: "normal" | "elevated" | "high" =
+    impact >= 3 ? "high" : impact >= 1 ? "elevated" : "normal";
+  const impactColor =
+    impactLevel === "high"
+      ? "#fca5a5"
+      : impactLevel === "elevated"
+        ? "#fde68a"
+        : undefined;
+
   const lines = [
     `Swap: ${formatNumber(draft.amount)} ${fromLabel} -> ~${formatNumber(draft.outputPreview)} ${toLabel}`,
     `Min received: ${formatNumber(draft.minReceived)} ${toLabel}`,
@@ -94,6 +104,18 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
               </div>
             </div>
           )}
+          {impactLevel !== "normal" && (
+            <div className={`note ${impactLevel === "high" ? "error" : "warning"}`}>
+              <p className="muted small">
+                Price impact {impactLevel === "high" ? "is high" : "is elevated"}
+              </p>
+              <strong>
+                This swap moves the pool price by {impact.toFixed(2)}%, so you may
+                receive noticeably less than the spot rate
+                {impactLevel === "high" ? " — consider a smaller size." : "."}
+              </strong>
+            </div>
+          )}
           <div className="confirm-modal-summary">
             <p className="muted small">You pay</p>
             <strong>
@@ -122,14 +144,16 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
             </div>
             <div className="confirm-modal-stat">
               <p className="muted small">Price impact</p>
-              <strong style={{
-                color: draft.priceImpact >= 3
-                  ? "#fca5a5"
-                  : draft.priceImpact >= 1
-                    ? "#fde68a"
-                    : undefined,
-              }}>
-                {draft.priceImpact.toFixed(2)}%
+              <strong style={{ color: impactColor }}>
+                {impact.toFixed(2)}%
+                {impactLevel !== "normal" && (
+                  <span
+                    className={`chip ${impactLevel === "high" ? "impact-high" : "impact-warn"}`}
+                    style={{ marginLeft: 6 }}
+                  >
+                    {impactLevel === "high" ? "High" : "Elevated"}
+                  </span>
+                )}
               </strong>
             </div>
             <div className="confirm-modal-stat">
