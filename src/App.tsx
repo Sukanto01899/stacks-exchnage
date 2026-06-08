@@ -355,6 +355,15 @@ function App() {
 
   // True once the user explicitly picks a theme; until then we follow the OS.
   const themeUserSetRef = useRef<boolean>(hasSavedTheme());
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+    } catch {
+      // ignore storage errors
+    }
+    return getSystemTheme();
+  });
 
   useEffect(() => {
     try {
@@ -488,15 +497,6 @@ function App() {
   }, [persistRecentRecipients]);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    try {
-      const saved = localStorage.getItem(THEME_STORAGE_KEY);
-      if (saved === "light" || saved === "dark") return saved;
-    } catch {
-      // ignore storage errors
-    }
-    return getSystemTheme();
-  });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
     seenModal: false,
@@ -1714,7 +1714,7 @@ function App() {
           tokenYId,
           tokenXLabel,
           tokenYLabel,
-          priceChange24: pool.id === poolContractId ? analytics.priceChange24 : null,
+          priceChange24: null as number | null,
         };
       })
       .filter((pool) => {
@@ -1759,7 +1759,6 @@ function App() {
     resolveTokenLabel,
     poolFavoritesOnly,
     poolContractId,
-    analytics.priceChange24,
   ]);
 
   const poolsCsv = useMemo(() => {
@@ -2091,6 +2090,17 @@ function App() {
     dayMs: DAY_MS,
     snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
   });
+
+  // Enrich the current pool with its 24h price change once analytics are available.
+  const poolListWithPriceChange = useMemo(
+    () =>
+      poolList.map((entry) =>
+        entry.id === poolContractId
+          ? { ...entry, priceChange24: analytics.priceChange24 }
+          : entry,
+      ),
+    [poolList, poolContractId, analytics.priceChange24],
+  );
 
   const exportPortfolioHistoryCsv = useCallback(() => {
     const esc = (value: unknown) => {
@@ -7596,7 +7606,7 @@ function App() {
                 </Suspense>
               ) : activeTab === "pools" ? (
                 <PoolListPanel
-                  pools={poolList}
+                  pools={poolListWithPriceChange}
                   search={poolSearch}
                   setSearch={setPoolSearch}
                   favoritesOnly={poolFavoritesOnly}
