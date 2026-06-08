@@ -4789,6 +4789,13 @@ h3 {
   margin-top: 8px;
 }
 
+.drawer-send-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .drawer-send-recent-chips {
   display: flex;
   flex-wrap: wrap;

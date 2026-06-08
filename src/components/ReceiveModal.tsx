@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 type ReceiveModalProps = {
   open: boolean;
   stacksAddress: string | null;
@@ -10,6 +12,15 @@ type ReceiveModalProps = {
 export default function ReceiveModal(props: ReceiveModalProps) {
   const { open, stacksAddress, onClose, onConnect, onCopyAddress, onCopyExplorerLink } = props;
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -21,7 +32,9 @@ export default function ReceiveModal(props: ReceiveModalProps) {
             <h2>Receive tokens</h2>
           </div>
           <button className="icon-button" type="button" aria-label="Close" onClick={onClose}>
-            x
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 1l12 12M13 1 1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
 

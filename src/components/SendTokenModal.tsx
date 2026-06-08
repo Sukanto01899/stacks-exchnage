@@ -19,6 +19,7 @@ type SendTokenModalProps = {
   onAmountChange: (amount: string) => void;
   onRecipientChange: (recipient: string) => void;
   onForgetRecipient: (recipient: string) => void;
+  onClearRecipients: () => void;
   onMax: () => void;
   onClear: () => void;
   onSubmit: () => void;
@@ -44,6 +45,7 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     onAmountChange,
     onRecipientChange,
     onForgetRecipient,
+    onClearRecipients,
     onMax,
     onClear,
     onSubmit,
@@ -253,7 +255,17 @@ export default function SendTokenModal(props: SendTokenModalProps) {
               )}
               {recentRecipients.length > 0 && (
                 <div className="drawer-send-recent" aria-label="Recent recipients">
-                  <span className="muted small">Recent</span>
+                  <div className="drawer-send-recent-head">
+                    <span className="muted small">Recent</span>
+                    <button
+                      className="tiny ghost"
+                      type="button"
+                      onClick={onClearRecipients}
+                      disabled={sendPending}
+                    >
+                      Clear
+                    </button>
+                  </div>
                   <div className="drawer-send-recent-chips">
                     {recentRecipients.map((address) => (
                       <span

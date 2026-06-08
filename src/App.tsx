@@ -413,7 +413,26 @@ function App() {
   const [removeLiquidityPending, setRemoveLiquidityPending] = useState(false);
 
   const [faucetPending, setFaucetPending] = useState(false);
-  const [sendToken, setSendToken] = useState<TokenKey>("x");
+  const sendTokenKey = `send-token-${RESOLVED_STACKS_NETWORK}`;
+  const [sendToken, setSendTokenState] = useState<TokenKey>(() => {
+    try {
+      const saved = localStorage.getItem(sendTokenKey);
+      return saved === "x" || saved === "y" ? saved : "x";
+    } catch {
+      return "x";
+    }
+  });
+  const setSendToken = useCallback(
+    (token: TokenKey) => {
+      setSendTokenState(token);
+      try {
+        localStorage.setItem(sendTokenKey, token);
+      } catch {
+        // ignore storage errors
+      }
+    },
+    [sendTokenKey],
+  );
   const [sendAmount, setSendAmount] = useState("");
   const [sendRecipient, setSendRecipient] = useState("");
   const [sendPending, setSendPending] = useState(false);
@@ -463,6 +482,10 @@ function App() {
     },
     [persistRecentRecipients],
   );
+  const clearRecentRecipients = useCallback(() => {
+    setRecentRecipients([]);
+    persistRecentRecipients([]);
+  }, [persistRecentRecipients]);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -7799,6 +7822,7 @@ function App() {
         onAmountChange={setSendAmount}
         onRecipientChange={setSendRecipient}
         onForgetRecipient={forgetRecipient}
+        onClearRecipients={clearRecentRecipients}
         onMax={() =>
           setSendAmount(String(sendToken === "x" ? balances.tokenX : balances.tokenY))
         }
