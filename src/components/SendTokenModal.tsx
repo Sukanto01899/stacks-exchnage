@@ -12,11 +12,13 @@ type SendTokenModalProps = {
   sendPending: boolean;
   sendMessage: string | null;
   recipientPlaceholder: string;
+  recentRecipients: string[];
   onClose: () => void;
   onConnect: () => void;
   onSendTokenChange: (token: TokenKey) => void;
   onAmountChange: (amount: string) => void;
   onRecipientChange: (recipient: string) => void;
+  onForgetRecipient: (recipient: string) => void;
   onMax: () => void;
   onClear: () => void;
   onSubmit: () => void;
@@ -35,11 +37,13 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     sendPending,
     sendMessage,
     recipientPlaceholder,
+    recentRecipients,
     onClose,
     onConnect,
     onSendTokenChange,
     onAmountChange,
     onRecipientChange,
+    onForgetRecipient,
     onMax,
     onClear,
     onSubmit,
@@ -216,6 +220,39 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                 <p className="drawer-send-hint is-error">
                   Stacks addresses start with SP (mainnet) or ST (testnet).
                 </p>
+              )}
+              {recentRecipients.length > 0 && (
+                <div className="drawer-send-recent" aria-label="Recent recipients">
+                  <span className="muted small">Recent</span>
+                  <div className="drawer-send-recent-chips">
+                    {recentRecipients.map((address) => (
+                      <span
+                        key={address}
+                        className={`recent-chip${address === recipientTrimmed ? " is-active" : ""}`}
+                      >
+                        <button
+                          className="recent-chip-pick"
+                          type="button"
+                          onClick={() => onRecipientChange(address)}
+                          disabled={!stacksAddress || sendPending}
+                          title={address}
+                        >
+                          {address.slice(0, 6)}…{address.slice(-4)}
+                        </button>
+                        <button
+                          className="recent-chip-remove"
+                          type="button"
+                          onClick={() => onForgetRecipient(address)}
+                          disabled={sendPending}
+                          aria-label={`Remove ${address} from recent recipients`}
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 

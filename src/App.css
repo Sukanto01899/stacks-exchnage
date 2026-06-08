@@ -4778,6 +4778,67 @@ h3 {
   color: #fca5a5;
 }
 
+.drawer-send-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.drawer-send-recent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recent-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.recent-chip.is-active {
+  border-color: rgba(var(--accent-rgb), 0.65);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.recent-chip-pick {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono, monospace);
+  padding: 5px 4px 5px 10px;
+  cursor: pointer;
+}
+
+.recent-chip-pick:hover:not(:disabled) {
+  color: rgba(var(--accent-rgb), 0.95);
+}
+
+.recent-chip-remove {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 9px 5px 5px;
+  cursor: pointer;
+}
+
+.recent-chip-remove:hover:not(:disabled) {
+  color: #fca5a5;
+}
+
+.recent-chip-pick:disabled,
+.recent-chip-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .drawer-send-preview {
   display: flex;
   align-items: center;

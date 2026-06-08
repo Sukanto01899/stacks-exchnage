@@ -91,6 +91,26 @@ import {
 const ACTIVE_TAB_STORAGE_KEY = `active-tab-${RESOLVED_STACKS_NETWORK}`;
 const FAUCET_COOLDOWN_KEY = `faucet-cooldown-${RESOLVED_STACKS_NETWORK}`;
 const THEME_STORAGE_KEY = "clardex-theme";
+
+const getSystemTheme = (): "dark" | "light" => {
+  try {
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
+  } catch {
+    return "dark";
+  }
+};
+
+const hasSavedTheme = (): boolean => {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return saved === "light" || saved === "dark";
+  } catch {
+    return false;
+  }
+};
+
 const STX_SWAP_FEE_BUFFER = 0.1;
 
 // TODO: Update price formatting logic if you want to display more/less decimal places or use a different notation for small/large numbers
@@ -333,6 +353,9 @@ function App() {
     useState(false);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
 
+  // True once the user explicitly picks a theme; until then we follow the OS.
+  const themeUserSetRef = useRef<boolean>(hasSavedTheme());
+
   useEffect(() => {
     try {
       localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
@@ -343,17 +366,32 @@ function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("theme-light");
-    } else {
-      root.classList.remove("theme-light");
-    }
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // ignore storage errors
+    root.classList.toggle("theme-light", theme === "light");
+    // Only persist a deliberate choice — otherwise keep following the OS.
+    if (themeUserSetRef.current) {
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch {
+        // ignore storage errors
+      }
     }
   }, [theme]);
+
+  // Follow OS light/dark changes until the user makes an explicit choice.
+  useEffect(() => {
+    let mq: MediaQueryList;
+    try {
+      mq = window.matchMedia("(prefers-color-scheme: light)");
+    } catch {
+      return;
+    }
+    const handler = (event: MediaQueryListEvent) => {
+      if (themeUserSetRef.current) return;
+      setTheme(event.matches ? "light" : "dark");
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     setUnlimitedApprovalConfirmed(false);
@@ -381,6 +419,50 @@ function App() {
   const [sendPending, setSendPending] = useState(false);
   const [sendMessage, setSendMessage] = useState<string | null>(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
+  const recentRecipientsKey = `send-recent-recipients-${RESOLVED_STACKS_NETWORK}`;
+  const [recentRecipients, setRecentRecipients] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(recentRecipientsKey);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((v): v is string => typeof v === "string").slice(0, 5)
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const persistRecentRecipients = useCallback(
+    (next: string[]) => {
+      try {
+        localStorage.setItem(recentRecipientsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+    },
+    [recentRecipientsKey],
+  );
+  const rememberRecipient = useCallback(
+    (address: string) => {
+      const trimmed = address.trim();
+      if (!trimmed) return;
+      setRecentRecipients((prev) => {
+        const next = [trimmed, ...prev.filter((a) => a !== trimmed)].slice(0, 5);
+        persistRecentRecipients(next);
+        return next;
+      });
+    },
+    [persistRecentRecipients],
+  );
+  const forgetRecipient = useCallback(
+    (address: string) => {
+      setRecentRecipients((prev) => {
+        const next = prev.filter((a) => a !== address);
+        persistRecentRecipients(next);
+        return next;
+      });
+    },
+    [persistRecentRecipients],
+  );
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -390,7 +472,7 @@ function App() {
     } catch {
       // ignore storage errors
     }
-    return "dark";
+    return getSystemTheme();
   });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
@@ -3639,6 +3721,7 @@ function App() {
         ],
         onFinish: async (payload) => {
           setSendMessage(`${tokenLabel} send submitted. Txid: ${payload.txId}`);
+          rememberRecipient(recipient);
           pushActivity({
             kind: "send",
             status: "submitted",
@@ -6296,7 +6379,10 @@ function App() {
             <button
               className="theme-toggle"
               type="button"
-              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              onClick={() => {
+                themeUserSetRef.current = true;
+                setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+              }}
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               title={theme === "dark" ? "Light mode" : "Dark mode"}
             >
@@ -7706,11 +7792,13 @@ function App() {
         sendPending={sendPending}
         sendMessage={sendMessage}
         recipientPlaceholder={IS_MAINNET ? "SP..." : "ST..."}
+        recentRecipients={recentRecipients}
         onClose={() => setSendModalOpen(false)}
         onConnect={() => void handleStacksConnect()}
         onSendTokenChange={setSendToken}
         onAmountChange={setSendAmount}
         onRecipientChange={setSendRecipient}
+        onForgetRecipient={forgetRecipient}
         onMax={() =>
           setSendAmount(String(sendToken === "x" ? balances.tokenX : balances.tokenY))
         }
