@@ -53,16 +53,20 @@ export default function SendTokenModal(props: SendTokenModalProps) {
   } = props;
 
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open) {
       if (!dialog.open) dialog.showModal();
+      if (stacksAddress) {
+        window.requestAnimationFrame(() => amountInputRef.current?.focus());
+      }
     } else {
       if (dialog.open) dialog.close();
     }
-  }, [open]);
+  }, [open, stacksAddress]);
 
   const parsedAmount = Number(sendAmount) || 0;
   const currentBalance = sendToken === "x" ? balances.tokenX : balances.tokenY;
@@ -199,6 +203,7 @@ export default function SendTokenModal(props: SendTokenModalProps) {
               </div>
               <div className={`drawer-send-amount-wrap${isInsufficient ? " is-error" : ""}`}>
                 <input
+                  ref={amountInputRef}
                   className="drawer-send-amount-input"
                   type="number"
                   min="0"

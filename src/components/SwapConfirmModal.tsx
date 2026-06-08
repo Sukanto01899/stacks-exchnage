@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { SwapDraft } from "../type";
 
 type SwapConfirmModalProps = {
@@ -34,6 +35,15 @@ export default function SwapConfirmModal(props: SwapConfirmModalProps) {
     formatNumber,
     stxTxFeeHint,
   } = props;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
 
   if (!open || !draft) return null;
 

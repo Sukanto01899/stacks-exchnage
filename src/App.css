@@ -3583,6 +3583,12 @@ h3 {
   font-weight: 700;
 }
 
+.token-discover-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .token-discover-search {
   border: 1px solid var(--stroke);
   border-radius: 999px;
@@ -3593,6 +3599,31 @@ h3 {
   font-weight: 600;
   min-width: 220px;
   outline: 0;
+}
+
+.token-discover-search-wrap .token-discover-search {
+  padding-right: 28px;
+}
+
+.token-discover-search-clear {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.token-discover-search-clear:hover {
+  color: var(--text);
 }
 
 .token-discover-add {

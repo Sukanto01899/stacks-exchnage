@@ -268,13 +268,32 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
             <option value="favorites">Favorites</option>
             <option value="watchlist">Watchlist</option>
           </select>
-          <input
-            className="token-discover-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search symbol, name, or contract…"
-            aria-label="Search tokens"
-          />
+          <div className="token-discover-search-wrap">
+            <input
+              className="token-discover-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && search) {
+                  e.preventDefault();
+                  setSearch("");
+                }
+              }}
+              placeholder="Search symbol, name, or contract…"
+              aria-label="Search tokens"
+            />
+            {search && (
+              <button
+                className="token-discover-search-clear"
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Clear search"
+                title="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -283,6 +302,12 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
           className="token-discover-add-input"
           value={addTokenId}
           onChange={(e) => setAddTokenId(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (!addPending) void handleAddCustom();
+            }
+          }}
           placeholder="Add custom token: SP…contract::asset"
         />
         <button className="tiny" type="button" onClick={() => void handleAddCustom()} disabled={addPending}>

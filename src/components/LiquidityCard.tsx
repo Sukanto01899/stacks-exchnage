@@ -359,6 +359,9 @@ export default function LiquidityCard(props: any) {
                 type="number"
                 value={liqX}
                 onChange={(e) => setLiqX(e.target.value)}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+                }}
                 min="0"
                 placeholder="0.0"
               />
@@ -391,6 +394,9 @@ export default function LiquidityCard(props: any) {
                 type="number"
                 value={liqY}
                 onChange={(e) => setLiqY(e.target.value)}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+                }}
                 min="0"
                 placeholder="0.0"
               />
@@ -513,6 +519,9 @@ export default function LiquidityCard(props: any) {
             type="number"
             value={burnShares}
             onChange={(e) => { setBurnShares(e.target.value); setActiveBurnPreset(null); }}
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+            }}
             min="0"
             placeholder="0"
           />
