@@ -4778,6 +4778,10 @@ h3 {
   color: #fca5a5;
 }
 
+.drawer-send-hint.is-valid {
+  color: #86efac;
+}
+
 .drawer-send-recent {
   display: flex;
   flex-direction: column;

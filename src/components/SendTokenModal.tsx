@@ -78,8 +78,22 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     recipientTrimmed.length > 0 &&
     !recipientTrimmed.startsWith("SP") &&
     !recipientTrimmed.startsWith("ST");
-  const hasValidRecipient = recipientTrimmed.length > 0 && !isAddressInvalid;
+  const isOwnAddress =
+    recipientTrimmed.length > 0 &&
+    !!stacksAddress &&
+    recipientTrimmed === stacksAddress.trim();
+  const hasValidRecipient =
+    recipientTrimmed.length > 0 && !isAddressInvalid && !isOwnAddress;
   const showPreview = hasAmount && hasValidRecipient && !sendPending;
+
+  const handlePaste = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (text) onRecipientChange(text);
+    } catch {
+      // clipboard unavailable or permission denied — ignore
+    }
+  };
 
   return (
     <dialog
@@ -204,9 +218,17 @@ export default function SendTokenModal(props: SendTokenModalProps) {
             <div className="drawer-send-field">
               <div className="drawer-send-field-head">
                 <span className="muted small">Recipient address</span>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => void handlePaste()}
+                  disabled={!stacksAddress || sendPending}
+                >
+                  Paste
+                </button>
               </div>
               <input
-                className={`drawer-send-input${isAddressInvalid ? " is-error" : ""}`}
+                className={`drawer-send-input${isAddressInvalid || isOwnAddress ? " is-error" : ""}`}
                 type="text"
                 value={sendRecipient}
                 onChange={(event) => onRecipientChange(event.target.value)}
@@ -214,12 +236,20 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                 autoComplete="off"
                 disabled={!stacksAddress || sendPending}
                 aria-label="Recipient Stacks address"
-                aria-invalid={isAddressInvalid}
+                aria-invalid={isAddressInvalid || isOwnAddress}
               />
               {isAddressInvalid && (
                 <p className="drawer-send-hint is-error">
                   Stacks addresses start with SP (mainnet) or ST (testnet).
                 </p>
+              )}
+              {isOwnAddress && (
+                <p className="drawer-send-hint is-error">
+                  This is your own connected wallet — pick a different recipient.
+                </p>
+              )}
+              {hasValidRecipient && (
+                <p className="drawer-send-hint is-valid">Valid address ✓</p>
               )}
               {recentRecipients.length > 0 && (
                 <div className="drawer-send-recent" aria-label="Recent recipients">
@@ -280,7 +310,8 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   !sendAmount.trim() ||
                   !sendRecipient.trim() ||
                   isInsufficient ||
-                  isAddressInvalid
+                  isAddressInvalid ||
+                  isOwnAddress
                 }
               >
                 {sendPending && (
