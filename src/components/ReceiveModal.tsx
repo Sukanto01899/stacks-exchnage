@@ -3,6 +3,7 @@ import { useEffect } from "react";
 type ReceiveModalProps = {
   open: boolean;
   stacksAddress: string | null;
+  explorerUrl: string | null;
   onClose: () => void;
   onConnect: () => void;
   onCopyAddress: () => void;
@@ -10,7 +11,15 @@ type ReceiveModalProps = {
 };
 
 export default function ReceiveModal(props: ReceiveModalProps) {
-  const { open, stacksAddress, onClose, onConnect, onCopyAddress, onCopyExplorerLink } = props;
+  const {
+    open,
+    stacksAddress,
+    explorerUrl,
+    onClose,
+    onConnect,
+    onCopyAddress,
+    onCopyExplorerLink,
+  } = props;
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +61,14 @@ export default function ReceiveModal(props: ReceiveModalProps) {
             <>
               <div className="confirm-modal-summary">
                 <p className="muted small">Your address</p>
-                <strong style={{ wordBreak: "break-all" }}>{stacksAddress}</strong>
+                <button
+                  className="receive-address"
+                  type="button"
+                  onClick={onCopyAddress}
+                  title="Click to copy"
+                >
+                  {stacksAddress}
+                </button>
               </div>
               <div className="confirm-modal-actions">
                 <button className="secondary" type="button" onClick={onCopyAddress}>
@@ -61,6 +77,16 @@ export default function ReceiveModal(props: ReceiveModalProps) {
                 <button className="secondary" type="button" onClick={onCopyExplorerLink}>
                   Copy explorer link
                 </button>
+                {explorerUrl && (
+                  <a
+                    className="secondary"
+                    href={explorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in explorer
+                  </a>
+                )}
               </div>
               <p className="muted small">
                 Send tokens to this address from another wallet or exchange.

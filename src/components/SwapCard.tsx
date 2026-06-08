@@ -296,6 +296,13 @@ export default function SwapCard(props: any) {
               </button>
               <button
                 className="tiny ghost"
+                onClick={() => setAmountFraction(0.75)}
+                disabled={maxAvailable <= 0}
+              >
+                75%
+              </button>
+              <button
+                className="tiny ghost"
                 onClick={setMaxSwap}
                 disabled={maxAvailable <= 0}
                 title={
@@ -317,6 +324,10 @@ export default function SwapCard(props: any) {
               value={swapInput}
               onChange={(e) => setSwapInput(e.target.value)}
               onKeyDown={(e) => {
+                if (["e", "E", "+", "-"].includes(e.key)) {
+                  e.preventDefault();
+                  return;
+                }
                 if (e.key === "Escape" && String(swapInput || "").trim()) {
                   e.preventDefault();
                   clearSwapInput();
@@ -575,6 +586,13 @@ export default function SwapCard(props: any) {
             </button>
             <button
               className="tiny ghost"
+              onClick={() => setAmountFraction(0.75)}
+              disabled={maxAvailable <= 0}
+            >
+              75%
+            </button>
+            <button
+              className="tiny ghost"
               onClick={setMaxSwap}
               disabled={maxAvailable <= 0}
               title={fromIsStx ? "Keeps 0.1 STX for transaction fees" : "Use your full balance"}
@@ -592,6 +610,10 @@ export default function SwapCard(props: any) {
             value={swapInput}
             onChange={(e) => setSwapInput(e.target.value)}
             onKeyDown={(e) => {
+              if (["e", "E", "+", "-"].includes(e.key)) {
+                e.preventDefault();
+                return;
+              }
               if (e.key === "Escape" && String(swapInput || "").trim()) {
                 e.preventDefault();
                 clearSwapInput();

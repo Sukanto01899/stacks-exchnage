@@ -182,6 +182,14 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   <button
                     className="tiny ghost"
                     type="button"
+                    onClick={() => setAmountFraction(0.75)}
+                    disabled={!stacksAddress || sendPending || currentBalance <= 0}
+                  >
+                    75%
+                  </button>
+                  <button
+                    className="tiny ghost"
+                    type="button"
                     onClick={onMax}
                     disabled={!stacksAddress || sendPending || currentBalance <= 0}
                   >
@@ -198,6 +206,11 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   inputMode="decimal"
                   value={sendAmount}
                   onChange={(event) => onAmountChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (["e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
                   placeholder="0.00"
                   disabled={!stacksAddress || sendPending}
                   aria-label="Amount to send"

@@ -7793,6 +7793,7 @@ function App() {
       <ReceiveModal
         open={receiveModalOpen}
         stacksAddress={stacksAddress}
+        explorerUrl={stacksAddress ? buildExplorerAddressUrl(stacksAddress) : null}
         onClose={() => setReceiveModalOpen(false)}
         onConnect={() => void handleStacksConnect()}
         onCopyAddress={() => {
