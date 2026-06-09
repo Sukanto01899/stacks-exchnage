@@ -3584,6 +3584,21 @@ function App() {
     setSwapConfirmAddressOverride(activeAddress);
   };
 
+  const canRepeatSwap = (item: ActivityItem) =>
+    item.kind === "swap" &&
+    !!item.meta?.fromSymbol &&
+    !!item.meta?.toSymbol &&
+    isFiniteNumber(item.meta?.amountIn);
+
+  // Refill the swap card from a past swap and jump to the Trade tab.
+  const repeatSwapFromActivity = (item: ActivityItem) => {
+    const meta = item.meta;
+    if (!meta || !canRepeatSwap(item) || !isFiniteNumber(meta.amountIn)) return;
+    setSwapDirection(meta.fromSymbol === "X" ? "x-to-y" : "y-to-x");
+    setSwapInput(String(+meta.amountIn.toFixed(6)));
+    setActiveTab("swap");
+  };
+
   const handleApprove = async (
     token: TokenKey,
     amount?: number,
