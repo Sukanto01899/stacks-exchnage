@@ -106,6 +106,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
 
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [copiedLpLinkId, setCopiedLpLinkId] = useState<string | null>(null);
   const [expandedPool, setExpandedPool] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,6 +120,12 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     const timer = window.setTimeout(() => setCopiedLinkId(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedLinkId]);
+
+  useEffect(() => {
+    if (!copiedLpLinkId) return;
+    const timer = window.setTimeout(() => setCopiedLpLinkId(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedLpLinkId]);
 
   return (
     <section className="pool-list-panel">
@@ -435,6 +442,16 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                           }}
                         >
                           {copiedLinkId === pool.id ? "Link copied!" : "Copy link"}
+                        </button>
+                        <button
+                          className="tiny ghost"
+                          type="button"
+                          onClick={() => {
+                            onCopyPoolLink(pool.id, "liquidity");
+                            setCopiedLpLinkId(pool.id);
+                          }}
+                        >
+                          {copiedLpLinkId === pool.id ? "LP link copied!" : "Copy LP link"}
                         </button>
                         {explorerUrl && (
                           <a

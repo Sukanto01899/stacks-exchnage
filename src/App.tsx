@@ -608,6 +608,10 @@ function App() {
     if (typeof window === "undefined") return null;
     try {
       const url = new URL(window.location.href);
+      // Strip the sharer's personal swap settings so a pool link is canonical.
+      for (const key of ["dir", "amount", "slippage", "deadline"]) {
+        url.searchParams.delete(key);
+      }
       url.searchParams.set("pool", poolId);
       url.searchParams.set("tab", tab);
       return url.toString();
