@@ -793,6 +793,28 @@ h3 {
   visibility: hidden;
 }
 
+.activity-peek-repeat {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+
+.activity-peek-repeat:hover {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
 .activity-peek-all {
   width: 100%;
   margin-top: 8px;

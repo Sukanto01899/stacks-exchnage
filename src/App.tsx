@@ -6394,6 +6394,20 @@ function App() {
                         <span className="activity-peek-time">
                           {formatRelativeTime(item.ts)}
                         </span>
+                        {canRepeatSwap(item) ? (
+                          <button
+                            className="activity-peek-repeat"
+                            type="button"
+                            title={`Repeat: swap ${formatNumber(Number(item.meta?.amountIn))} ${item.meta?.fromSymbol} → ${item.meta?.toSymbol}`}
+                            aria-label="Repeat this swap"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              repeatSwapFromActivity(item);
+                            }}
+                          >
+                            ↩
+                          </button>
+                        ) : null}
                         {item.txid ? (
                           <a
                             className="activity-peek-link"
@@ -6812,9 +6826,7 @@ function App() {
                           return null;
                         }
                         const repeatSwap = () => {
-                          setSwapDirection(meta.fromSymbol === "X" ? "x-to-y" : "y-to-x");
-                          setSwapInput(String(+amountIn.toFixed(6)));
-                          setActiveTab("swap");
+                          repeatSwapFromActivity(item);
                           closeActivityDrawer();
                         };
                         return (
