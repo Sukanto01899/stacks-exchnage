@@ -210,8 +210,15 @@ const inferToastTone = (
   ) {
     return "warning";
   }
+  // A submitted tx is pending, not done — show it as neutral until it resolves.
   if (
     normalized.includes("submitted") ||
+    normalized.includes("waiting") ||
+    normalized.includes("pending")
+  ) {
+    return "info";
+  }
+  if (
     normalized.includes("loaded") ||
     normalized.includes("enabled") ||
     normalized.includes("sent") ||
@@ -4537,11 +4544,17 @@ function App() {
     for (const [source, message] of entries) {
       if (!message || lastToastMessages.current[source] === message) continue;
       lastToastMessages.current[source] = message;
-      pushToast(message, inferToastTone(source, message));
+      // Make pending-tx toasts actionable: link straight to the explorer.
+      const txidMatch = message.match(/Txid:\s*(\S+)/);
+      const action = txidMatch
+        ? { label: "Explorer", href: buildExplorerTxUrl(txidMatch[1]) }
+        : undefined;
+      pushToast(message, inferToastTone(source, message), action);
     }
   }, [
     alertMessage,
     approvalMessage,
+    buildExplorerTxUrl,
     burnMessage,
     faucetMessage,
     frontendMessage,
