@@ -452,6 +452,18 @@ export default function SwapCard(props: any) {
                   {preset}%
                 </button>
               ))}
+              {suggestedSlippage !== null && (
+                <button
+                  className={`tiny ghost${slippageMatchesSuggestion ? " is-active" : ""}`}
+                  type="button"
+                  onClick={() => setSlippageInput(String(suggestedSlippage))}
+                  disabled={slippageMatchesSuggestion}
+                  title={`Suggested from current price impact (${suggestedSlippage}%)`}
+                  aria-pressed={slippageMatchesSuggestion}
+                >
+                  Auto {suggestedSlippage}%
+                </button>
+              )}
             </div>
             <input
               className="tiny"
