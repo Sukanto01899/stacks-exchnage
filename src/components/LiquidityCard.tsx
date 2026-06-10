@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { buildExplorerTxUrl } from "../lib/explorer";
+import { tokenAvatarStyle } from "../lib/helper";
 
 export default function LiquidityCard(props: any) {
   const {
@@ -88,7 +89,10 @@ export default function LiquidityCard(props: any) {
     if (iconUrl) return <img className="token-icon" src={iconUrl} alt="" />;
     const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
     return (
-      <span className="token-icon token-icon-fallback">
+      <span
+        className="token-icon token-icon-fallback"
+        style={tokenAvatarStyle(isStx ? "STX" : label)}
+      >
         <span className="token-icon-text">{text}</span>
       </span>
     );

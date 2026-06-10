@@ -36,3 +36,26 @@ export const formatCompactNumber = (value: number) =>
     notation: "compact",
     maximumFractionDigits: value >= 100 ? 1 : 2,
   });
+
+// Deterministic FNV-1a hash so the same token symbol always maps to the same color.
+const hashString = (value: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+// A stable gradient + readable text color derived from a token's symbol/label,
+// used as the avatar fallback when a token has no cached image.
+export const tokenAvatarStyle = (seed: string): { background: string; color: string } => {
+  const key = (seed || "?").trim().toUpperCase();
+  const hash = hashString(key);
+  const hue = hash % 360;
+  const hue2 = (hue + 38) % 360;
+  return {
+    background: `linear-gradient(135deg, hsl(${hue} 68% 52%), hsl(${hue2} 70% 42%))`,
+    color: "#fff",
+  };
+};

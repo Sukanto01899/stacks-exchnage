@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
+import { tokenAvatarStyle } from "../lib/helper";
 
 const SLIPPAGE_PRESETS = ["0.1", "0.5", "1", "3"] as const;
 
@@ -237,7 +238,10 @@ export default function SwapCard(props: any) {
     }
     const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
     return (
-      <span className="token-icon token-icon-fallback">
+      <span
+        className="token-icon token-icon-fallback"
+        style={tokenAvatarStyle(isStx ? "STX" : label)}
+      >
         <span className="token-icon-text">{text}</span>
       </span>
     );

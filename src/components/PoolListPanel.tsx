@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { buildExplorerContractUrl } from "../lib/explorer";
+import { tokenAvatarStyle } from "../lib/helper";
 
 type PoolListItem = {
   id: string;
@@ -59,7 +60,11 @@ const SORT_OPTIONS: { value: "tvl" | "volume" | "fees" | "apr"; label: string }[
 function PairIcon({ label, isStx }: { label: string; isStx: boolean }) {
   const text = isStx ? "STX" : label.slice(0, 1).toUpperCase();
   return (
-    <span className="pool-pair-icon" aria-hidden="true">
+    <span
+      className="pool-pair-icon"
+      style={tokenAvatarStyle(isStx ? "STX" : label)}
+      aria-hidden="true"
+    >
       {text}
     </span>
   );
