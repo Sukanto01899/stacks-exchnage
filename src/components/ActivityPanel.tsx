@@ -15,6 +15,14 @@ type ActivityItem = {
   submittedAt?: number;
   lastCheckedAt?: number;
   chainStatus?: string;
+  meta?: {
+    fee?: number | null;
+    feeSymbol?: "X" | "Y";
+    amountIn?: number | null;
+    amountOut?: number | null;
+    fromSymbol?: "X" | "Y";
+    toSymbol?: "X" | "Y";
+  };
 };
 
 import {
@@ -107,14 +115,36 @@ export default function ActivityPanel(props: ActivityPanelProps) {
   };
 
   const buildCsv = (items: ActivityItem[]) => {
-    const header = ["timestamp", "kind", "status", "txid", "message", "detail"];
+    const header = [
+      "timestamp",
+      "kind",
+      "status",
+      "amount_in",
+      "from",
+      "amount_out",
+      "to",
+      "fee",
+      "fee_symbol",
+      "txid",
+      "message",
+      "detail",
+    ];
+    const numCell = (value: number | null | undefined) =>
+      escapeCsvCell(typeof value === "number" && Number.isFinite(value) ? value : "");
     const lines = [header.map(escapeCsvCell).join(",")];
     for (const item of items) {
+      const meta = item.meta;
       lines.push(
         [
           escapeCsvCell(new Date(item.ts).toISOString()),
           escapeCsvCell(item.kind),
           escapeCsvCell(item.status),
+          numCell(meta?.amountIn),
+          escapeCsvCell(meta?.fromSymbol || ""),
+          numCell(meta?.amountOut),
+          escapeCsvCell(meta?.toSymbol || ""),
+          numCell(meta?.fee),
+          escapeCsvCell(meta?.feeSymbol || ""),
           escapeCsvCell(item.txid || ""),
           escapeCsvCell(item.message),
           escapeCsvCell(item.detail || ""),
