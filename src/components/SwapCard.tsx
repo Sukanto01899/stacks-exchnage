@@ -21,6 +21,9 @@ export default function SwapCard(props: any) {
     setSwapInput,
     swapDirection,
     setSwapDirection,
+    recentSwaps,
+    onApplyRecentSwap,
+    onClearRecentSwaps,
     balances,
     balancesPending,
     formatNumber,
@@ -567,6 +570,34 @@ export default function SwapCard(props: any) {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {Array.isArray(recentSwaps) && recentSwaps.length > 0 && (
+        <div className="recent-swaps-row">
+          <span className="muted small">Recent</span>
+          <div className="recent-swaps-chips">
+            {recentSwaps.map((entry: any) => (
+              <button
+                key={`${entry.poolId}-${entry.direction}`}
+                type="button"
+                className="chip recent-swap-chip"
+                title={`Swap ${entry.fromLabel} → ${entry.toLabel}`}
+                onClick={() => onApplyRecentSwap?.(entry)}
+              >
+                {entry.fromLabel} → {entry.toLabel}
+              </button>
+            ))}
+          </div>
+          {onClearRecentSwaps && (
+            <button
+              type="button"
+              className="tiny ghost"
+              onClick={() => onClearRecentSwaps()}
+            >
+              Clear
+            </button>
+          )}
         </div>
       )}
 

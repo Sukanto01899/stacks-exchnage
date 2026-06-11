@@ -897,6 +897,28 @@ h3 {
   background: transparent;
 }
 
+.recent-swaps-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.recent-swaps-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.recent-swap-chip {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
 .chip.success {
   background: rgba(var(--ok-rgb), 0.14);
   border-color: rgba(var(--ok-rgb), 0.46);

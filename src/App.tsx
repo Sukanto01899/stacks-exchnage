@@ -253,6 +253,14 @@ type RecentPoolEntry = {
   openedAt: number;
 };
 
+type RecentSwapEntry = {
+  poolId: string;
+  direction: "x-to-y" | "y-to-x";
+  fromLabel: string;
+  toLabel: string;
+  usedAt: number;
+};
+
 // TODO: Update this function if your contract uses a different swap formula or if you want to include fees, slippage, or price impact calculations in the quote logic
 function App() {
   const [faucetTxids, setFaucetTxids] = useState<string[]>([]);
@@ -520,6 +528,7 @@ function App() {
   const [favoritePools, setFavoritePools] = useState<string[]>([]);
   const [poolFavoritesOnly, setPoolFavoritesOnly] = useState(false);
   const [recentPools, setRecentPools] = useState<RecentPoolEntry[]>([]);
+  const [recentSwaps, setRecentSwaps] = useState<RecentSwapEntry[]>([]);
   const lastToastMessages = useRef<Record<string, string | null>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
@@ -1371,6 +1380,10 @@ function App() {
   );
   const recentPoolsKey = useMemo(
     () => `pool-recent-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
+    [stacksAddress],
+  );
+  const recentSwapsKey = useMemo(
+    () => `swap-recent-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
   const { pool, tokenInfo, poolPending, lastPoolRefreshAt, fetchPoolState } = usePool({
@@ -2509,6 +2522,45 @@ function App() {
 
   useEffect(() => {
     try {
+      const raw = localStorage.getItem(recentSwapsKey);
+      if (!raw) {
+        setRecentSwaps([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) {
+        setRecentSwaps([]);
+        return;
+      }
+      const next = parsed
+        .map((item): RecentSwapEntry | null => {
+          if (!item || typeof item !== "object") return null;
+          const record = item as Partial<RecentSwapEntry>;
+          if (typeof record.poolId !== "string") return null;
+          if (record.direction !== "x-to-y" && record.direction !== "y-to-x")
+            return null;
+          return {
+            poolId: record.poolId,
+            direction: record.direction,
+            fromLabel:
+              typeof record.fromLabel === "string" ? record.fromLabel : "Token X",
+            toLabel:
+              typeof record.toLabel === "string" ? record.toLabel : "Token Y",
+            usedAt:
+              typeof record.usedAt === "number" && Number.isFinite(record.usedAt)
+                ? record.usedAt
+                : 0,
+          };
+        })
+        .filter(Boolean) as RecentSwapEntry[];
+      setRecentSwaps(next.slice(0, 4));
+    } catch {
+      setRecentSwaps([]);
+    }
+  }, [recentSwapsKey]);
+
+  useEffect(() => {
+    try {
       const raw = localStorage.getItem(favoritePoolsOnlyKey);
       if (!raw) {
         setPoolFavoritesOnly(false);
@@ -3538,6 +3590,7 @@ function App() {
         functionArgs: draft.functionArgs,
         onFinish: async (payload) => {
           setSwapMessage(`Swap submitted. Txid: ${payload.txId}`);
+          recordRecentSwap(draft.fromSymbol === "X" ? "x-to-y" : "y-to-x");
           pushActivity({
             kind: "swap",
             status: "submitted",
@@ -4294,6 +4347,55 @@ function App() {
     setActiveTab(target);
     setTokenSelectHighlight(true);
     window.setTimeout(() => setTokenSelectHighlight(false), 1400);
+  };
+
+  // Remember the pool + direction of a submitted swap so it can be replayed
+  // with one tap from the chip row above the swap card.
+  const recordRecentSwap = (direction: "x-to-y" | "y-to-x") => {
+    const fromX = direction === "x-to-y";
+    const entry: RecentSwapEntry = {
+      poolId: poolContractId,
+      direction,
+      fromLabel: fromX ? selectionLabels.x : selectionLabels.y,
+      toLabel: fromX ? selectionLabels.y : selectionLabels.x,
+      usedAt: Date.now(),
+    };
+    setRecentSwaps((prev) => {
+      const next = [
+        entry,
+        ...prev.filter(
+          (item) =>
+            !(item.poolId === entry.poolId && item.direction === entry.direction),
+        ),
+      ].slice(0, 4);
+      try {
+        localStorage.setItem(recentSwapsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
+  const applyRecentSwap = (entry: RecentSwapEntry) => {
+    if (entry.poolId && entry.poolId !== poolContractId) {
+      setPoolContractId(entry.poolId);
+      setTokenValidation({ x: { status: "idle" }, y: { status: "idle" } });
+      setTokenSelectMessage("Switching pool...");
+      setTokenSelectHighlight(true);
+      window.setTimeout(() => setTokenSelectHighlight(false), 1400);
+    }
+    setSwapDirection(entry.direction);
+    setActiveTab("swap");
+  };
+
+  const clearRecentSwaps = () => {
+    setRecentSwaps([]);
+    try {
+      localStorage.setItem(recentSwapsKey, JSON.stringify([]));
+    } catch {
+      // ignore storage errors
+    }
   };
 
   const toggleFavoritePool = (poolId: string) => {
@@ -7510,6 +7612,9 @@ function App() {
                   setSwapInput={setSwapInput}
                   swapDirection={swapDirection}
                   setSwapDirection={setSwapDirection}
+                  recentSwaps={recentSwaps}
+                  onApplyRecentSwap={applyRecentSwap}
+                  onClearRecentSwaps={clearRecentSwaps}
                   balances={balances}
                   balancesPending={balancesPending}
                   formatNumber={formatNumber}
