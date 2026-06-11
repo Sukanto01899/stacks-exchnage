@@ -57,6 +57,9 @@ export default function SwapCard(props: any) {
     setImpactConfirmed,
     slippageInput,
     setSlippageInput,
+    slippageAuto,
+    onToggleSlippageAuto,
+    onDisableSlippageAuto,
     highSlippageRequired,
     highSlippageConfirmed,
     setHighSlippageConfirmed,
@@ -130,10 +133,6 @@ export default function SwapCard(props: any) {
   const suggestedSlippage =
     hasSuggestedSlippage ? Number(suggestedSlippagePercent) : null;
   const parsedSlippage = Number(slippageInput);
-  const slippageMatchesSuggestion =
-    suggestedSlippage !== null &&
-    Number.isFinite(parsedSlippage) &&
-    Math.abs(parsedSlippage - suggestedSlippage) < 0.01;
   const slippageTrimmed = String(slippageInput ?? "").trim();
   const slippageValid =
     slippageTrimmed !== "" && Number.isFinite(parsedSlippage) && parsedSlippage >= 0;
@@ -143,8 +142,17 @@ export default function SwapCard(props: any) {
   const slippageZero = slippageValid && parsedSlippage === 0;
   const slippageVeryLow = slippageValid && parsedSlippage > 0 && parsedSlippage < 0.05;
   const isSlippagePresetActive = (preset: string) =>
-    slippageInput === preset ||
-    (slippageValid && Math.abs(parsedSlippage - Number(preset)) < 0.001);
+    !slippageAuto &&
+    (slippageInput === preset ||
+      (slippageValid && Math.abs(parsedSlippage - Number(preset)) < 0.001));
+
+  // Any manual slippage edit (typing or a preset) drops out of auto mode.
+  const applyManualSlippage = (value: string) => {
+    if (slippageAuto && typeof onDisableSlippageAuto === "function") {
+      onDisableSlippageAuto();
+    }
+    setSlippageInput(value);
+  };
   const slippageHint = slippageInvalid
     ? "Enter a valid slippage % (0–50)."
     : slippageZero
@@ -469,20 +477,19 @@ export default function SwapCard(props: any) {
                   className={`tiny ghost${isSlippagePresetActive(preset) ? " is-active" : ""}${Number(preset) >= 3 && !isSlippagePresetActive(preset) ? " is-warn" : ""}`}
                   type="button"
                   title={Number(preset) >= 3 ? "Higher slippage — suits volatile pairs" : undefined}
-                  onClick={() => setSlippageInput(preset)}
+                  onClick={() => applyManualSlippage(preset)}
                   aria-pressed={isSlippagePresetActive(preset)}
                 >
                   {preset}%
                 </button>
               ))}
-              {suggestedSlippage !== null && (
+              {suggestedSlippage !== null && onToggleSlippageAuto && (
                 <button
-                  className={`tiny ghost${slippageMatchesSuggestion ? " is-active" : ""}`}
+                  className={`tiny ghost${slippageAuto ? " is-active" : ""}`}
                   type="button"
-                  onClick={() => setSlippageInput(String(suggestedSlippage))}
-                  disabled={slippageMatchesSuggestion}
-                  title={`Suggested from current price impact (${suggestedSlippage}%)`}
-                  aria-pressed={slippageMatchesSuggestion}
+                  onClick={onToggleSlippageAuto}
+                  title={`Auto-track slippage from price impact (currently ${suggestedSlippage}%)`}
+                  aria-pressed={!!slippageAuto}
                 >
                   Auto {suggestedSlippage}%
                 </button>
@@ -492,7 +499,7 @@ export default function SwapCard(props: any) {
               className="tiny"
               inputMode="decimal"
               value={slippageInput}
-              onChange={(e) => setSlippageInput(e.target.value)}
+              onChange={(e) => applyManualSlippage(e.target.value)}
               onBlur={normalizeSlippageInput}
               placeholder="0.5"
               aria-label="Slippage percent"
@@ -882,17 +889,18 @@ export default function SwapCard(props: any) {
                 key={preset}
                 className={`tiny ghost ${isSlippagePresetActive(preset) ? "is-active" : ""}`}
                 type="button"
-                onClick={() => setSlippageInput(preset)}
+                onClick={() => applyManualSlippage(preset)}
                 aria-pressed={isSlippagePresetActive(preset)}
               >
                 {preset}%
               </button>
             ))}
-            {suggestedSlippage !== null && (
+            {suggestedSlippage !== null && onToggleSlippageAuto && (
               <button
-                className={`tiny ghost ${slippageMatchesSuggestion ? "is-active" : ""}`}
-                onClick={() => setSlippageInput(String(suggestedSlippage))}
-                disabled={slippageMatchesSuggestion}
+                className={`tiny ghost ${slippageAuto ? "is-active" : ""}`}
+                onClick={onToggleSlippageAuto}
+                title={`Auto-track slippage from price impact (currently ${suggestedSlippage}%)`}
+                aria-pressed={!!slippageAuto}
                 type="button"
               >
                 Auto {suggestedSlippage}%
@@ -903,7 +911,7 @@ export default function SwapCard(props: any) {
             className="tiny"
             inputMode="decimal"
             value={slippageInput}
-            onChange={(e) => setSlippageInput(e.target.value)}
+            onChange={(e) => applyManualSlippage(e.target.value)}
             onBlur={normalizeSlippageInput}
             placeholder="0.5"
             aria-label="Slippage percent"

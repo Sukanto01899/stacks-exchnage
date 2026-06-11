@@ -311,6 +311,8 @@ function App() {
   const [lastFaucetAt, setLastFaucetAt] = useState<number | null>(null);
   const [faucetCooldownRemainingMs, setFaucetCooldownRemainingMs] = useState(0);
   const [slippageInput, setSlippageInput] = useState("0.5");
+  // When true, slippage tolerance tracks the live price-impact suggestion.
+  const [slippageAuto, setSlippageAuto] = useState(false);
   const [highSlippageConfirmed, setHighSlippageConfirmed] = useState(false);
   const [customTokenConfirmed, setCustomTokenConfirmed] = useState(false);
   const [swapConfirmDraft, setSwapConfirmDraft] = useState<SwapDraft | null>(
@@ -2728,6 +2730,7 @@ function App() {
         const parsed = JSON.parse(raw) as
           | {
               slippageInput?: unknown;
+              slippageAuto?: unknown;
               deadlineMinutesInput?: unknown;
               swapDirection?: unknown;
             }
@@ -2735,6 +2738,9 @@ function App() {
         if (parsed && typeof parsed === "object") {
           if (typeof parsed.slippageInput === "string") {
             setSlippageInput(parsed.slippageInput);
+          }
+          if (typeof parsed.slippageAuto === "boolean") {
+            setSlippageAuto(parsed.slippageAuto);
           }
           if (typeof parsed.deadlineMinutesInput === "string") {
             setDeadlineMinutesInput(parsed.deadlineMinutesInput);
@@ -2850,12 +2856,23 @@ function App() {
     try {
       localStorage.setItem(
         swapSettingsKey,
-        JSON.stringify({ slippageInput, deadlineMinutesInput, swapDirection }),
+        JSON.stringify({
+          slippageInput,
+          slippageAuto,
+          deadlineMinutesInput,
+          swapDirection,
+        }),
       );
     } catch {
       // ignore storage errors
     }
-  }, [deadlineMinutesInput, slippageInput, swapDirection, swapSettingsKey]);
+  }, [
+    deadlineMinutesInput,
+    slippageInput,
+    slippageAuto,
+    swapDirection,
+    swapSettingsKey,
+  ]);
 
   useEffect(() => {
     try {
@@ -2952,6 +2969,7 @@ function App() {
 
   const resetSwapSettings = useCallback(() => {
     setSlippageInput("0.5");
+    setSlippageAuto(false);
     setDeadlineMinutesInput("30");
     setHighSlippageConfirmed(false);
     setImpactConfirmed(false);
@@ -4567,6 +4585,22 @@ function App() {
     const suggested = clamp(0.3 + priceImpact * 0.2, 0.1, 3);
     return Math.round(suggested * 10) / 10;
   }, [priceImpact]);
+
+  // While auto mode is on, keep the slippage field pinned to the live
+  // suggestion as price impact (and therefore the suggestion) changes.
+  useEffect(() => {
+    if (!slippageAuto) return;
+    const next = String(suggestedSlippagePercent);
+    setSlippageInput((prev) => (prev === next ? prev : next));
+  }, [slippageAuto, suggestedSlippagePercent]);
+
+  const toggleSlippageAuto = useCallback(() => {
+    setSlippageAuto((prev) => !prev);
+  }, []);
+
+  const disableSlippageAuto = useCallback(() => {
+    setSlippageAuto(false);
+  }, []);
   const splitSuggestionCount = useMemo(() => {
     if (!priceImpact || priceImpact <= PRICE_IMPACT_TARGET_PCT) return 1;
     return Math.max(2, Math.ceil(priceImpact / PRICE_IMPACT_TARGET_PCT));
@@ -7709,6 +7743,9 @@ function App() {
                   setImpactConfirmed={setImpactConfirmed}
                   slippageInput={slippageInput}
                   setSlippageInput={setSlippageInput}
+                  slippageAuto={slippageAuto}
+                  onToggleSlippageAuto={toggleSlippageAuto}
+                  onDisableSlippageAuto={disableSlippageAuto}
                   highSlippageRequired={highSlippageRequired}
                   highSlippageConfirmed={highSlippageConfirmed}
                   setHighSlippageConfirmed={setHighSlippageConfirmed}
