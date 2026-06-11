@@ -2762,6 +2762,45 @@ h3 {
   gap: 10px;
 }
 
+.portfolio-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chip.is-active {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.18);
+  color: #fff2d8;
+}
+
+.usd-price-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--chip);
+}
+
+.usd-price-field input {
+  width: 56px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  outline: none;
+}
+
+.portfolio-usd {
+  color: var(--accent);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

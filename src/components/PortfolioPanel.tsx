@@ -25,7 +25,19 @@ type PortfolioPanelProps = {
   formatNumber: (value: number) => string;
   formatSignedPercent: (value: number | null) => string;
   walletConnected: boolean;
+  usdEnabled?: boolean;
+  onToggleUsd?: () => void;
+  stxUsdPriceInput?: string;
+  onStxUsdPriceChange?: (value: string) => void;
+  portfolioUsd?: number | null;
+  usdAvailable?: boolean;
 };
+
+const formatUsd = (value: number) =>
+  `$${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 export default function PortfolioPanel(props: PortfolioPanelProps) {
   const {
@@ -36,6 +48,12 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
     formatNumber,
     formatSignedPercent,
     walletConnected,
+    usdEnabled = false,
+    onToggleUsd,
+    stxUsdPriceInput = "",
+    onStxUsdPriceChange,
+    portfolioUsd = null,
+    usdAvailable = false,
   } = props;
 
   const isEmpty =
@@ -95,9 +113,35 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
           <p className="eyebrow">Portfolio</p>
           <h3>PnL & Position</h3>
         </div>
-        <span className="chip ghost">
-          {portfolioMetrics.has24h ? "24h window" : "Building 24h data"}
-        </span>
+        <div className="portfolio-head-actions">
+          {onToggleUsd && (
+            <button
+              type="button"
+              className={`chip ghost${usdEnabled ? " is-active" : ""}`}
+              onClick={onToggleUsd}
+              title="Show rough USD estimates using your STX price"
+            >
+              {usdEnabled ? "USD on" : "USD"}
+            </button>
+          )}
+          {usdEnabled && usdAvailable && onStxUsdPriceChange && (
+            <label className="usd-price-field" title="Your STX price in USD">
+              <span className="muted small">STX $</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={stxUsdPriceInput}
+                onChange={(e) => onStxUsdPriceChange(e.target.value)}
+                aria-label="STX price in USD"
+              />
+            </label>
+          )}
+          <span className="chip ghost">
+            {portfolioMetrics.has24h ? "24h window" : "Building 24h data"}
+          </span>
+        </div>
       </div>
       <div className="portfolio-grid">
         <div>
@@ -113,6 +157,13 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
           <p className="muted small">
             {formatNumber(portfolioTotals.valueInY)} Y
           </p>
+          {usdEnabled && (
+            <p className="muted small portfolio-usd">
+              {portfolioUsd !== null
+                ? `≈ ${formatUsd(portfolioUsd)}`
+                : "≈ $— (needs an STX pair)"}
+            </p>
+          )}
         </div>
         <div>
           <p className="muted small">24h PnL</p>

@@ -298,6 +298,10 @@ function App() {
   // regardless of whether the flip came from the button, hotkey, or palette.
   const [swapFlipNonce, setSwapFlipNonce] = useState(0);
   const [swapInput, setSwapInput] = useState("100");
+  // Optional, user-set STX/USD price used to show rough $ estimates. Off by
+  // default so nobody mistakes the estimate for a real oracle price.
+  const [showUsdValues, setShowUsdValues] = useState(false);
+  const [stxUsdPriceInput, setStxUsdPriceInput] = useState("1.50");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
   const [impactConfirmed, setImpactConfirmed] = useState(false);
@@ -1356,6 +1360,10 @@ function App() {
       `portfolio-history-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}`,
     [stacksAddress],
   );
+  const usdSettingsKey = useMemo(
+    () => `usd-settings-${RESOLVED_STACKS_NETWORK}`,
+    [],
+  );
   const activityKey = useMemo(
     () =>
       `activity-${RESOLVED_STACKS_NETWORK}-${stacksAddress || "guest"}-${poolContractId || "unknown"}`,
@@ -2107,6 +2115,46 @@ function App() {
     lpPosition.y,
     currentPrice,
   ]);
+
+  const stxUsdPrice = useMemo(() => {
+    const parsed = Number(stxUsdPriceInput);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [stxUsdPriceInput]);
+
+  // Total portfolio value in USD, only when one side of the pool is STX (so we
+  // can anchor the estimate to the user-supplied STX price). Otherwise null.
+  const portfolioUsd = useMemo(() => {
+    if (stxUsdPrice === null) return null;
+    if (tokenInfo?.tokenXIsStx) return portfolioTotals.valueInX * stxUsdPrice;
+    if (tokenInfo?.tokenYIsStx) return portfolioTotals.valueInY * stxUsdPrice;
+    return null;
+  }, [portfolioTotals, stxUsdPrice, tokenInfo]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(usdSettingsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<{
+        enabled: boolean;
+        price: string;
+      }>;
+      if (typeof parsed?.enabled === "boolean") setShowUsdValues(parsed.enabled);
+      if (typeof parsed?.price === "string") setStxUsdPriceInput(parsed.price);
+    } catch {
+      // ignore storage errors
+    }
+  }, [usdSettingsKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        usdSettingsKey,
+        JSON.stringify({ enabled: showUsdValues, price: stxUsdPriceInput }),
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [usdSettingsKey, showUsdValues, stxUsdPriceInput]);
   const { analytics, portfolioMetrics, portfolioHistory, clearPortfolioHistory } = useAnalytics({
     stacksAddress,
     portfolioHistoryKey,
@@ -7201,6 +7249,14 @@ function App() {
                   formatNumber={formatNumber}
                   formatSignedPercent={formatSignedPercent}
                   walletConnected={!!stacksAddress}
+                  usdEnabled={showUsdValues}
+                  onToggleUsd={() => setShowUsdValues((prev) => !prev)}
+                  stxUsdPriceInput={stxUsdPriceInput}
+                  onStxUsdPriceChange={setStxUsdPriceInput}
+                  portfolioUsd={portfolioUsd}
+                  usdAvailable={
+                    !!(tokenInfo?.tokenXIsStx || tokenInfo?.tokenYIsStx)
+                  }
                 />
               </aside>
             )}
