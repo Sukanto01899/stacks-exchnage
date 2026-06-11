@@ -294,6 +294,9 @@ function App() {
   const [swapDirection, setSwapDirection] = useState<"x-to-y" | "y-to-x">(
     "x-to-y",
   );
+  // Bumped on every flip so the swap card can replay its spin animation
+  // regardless of whether the flip came from the button, hotkey, or palette.
+  const [swapFlipNonce, setSwapFlipNonce] = useState(0);
   const [swapInput, setSwapInput] = useState("100");
   const [swapMessage, setSwapMessage] = useState<string | null>(null);
   const [swapPending, setSwapPending] = useState(false);
@@ -4398,6 +4401,20 @@ function App() {
     }
   };
 
+  // Single entry point for flipping swap direction so the button, the `x`
+  // hotkey and the command palette all toast and trigger the spin animation.
+  const flipSwapDirection = useCallback(() => {
+    setSwapDirection((prev) => {
+      const next = prev === "x-to-y" ? "y-to-x" : "x-to-y";
+      pushToast(
+        `Swap direction: ${next === "x-to-y" ? "X → Y" : "Y → X"}.`,
+        "success",
+      );
+      return next;
+    });
+    setSwapFlipNonce((n) => n + 1);
+  }, [pushToast]);
+
   const toggleFavoritePool = (poolId: string) => {
     setFavoritePools((prev) => {
       const exists = prev.includes(poolId);
@@ -5196,16 +5213,9 @@ function App() {
 	        });
 	        return;
 	      }
-	      if (key === "x" && activeTab === "swap") {
+	      if ((key === "x" || event.key === "ArrowUp" || event.key === "ArrowDown") && activeTab === "swap") {
 	        event.preventDefault();
-	        setSwapDirection((prev) => {
-	          const next = prev === "x-to-y" ? "y-to-x" : "x-to-y";
-	          pushToast(
-	            `Swap direction: ${next === "x-to-y" ? "X \u2192 Y" : "Y \u2192 X"}.`,
-	            "success",
-	          );
-	          return next;
-	        });
+	        flipSwapDirection();
 	        return;
 	      }
 	      if (activeTab === "swap" && (key === "1" || key === "2" || key === "3" || key === "4")) {
@@ -5293,6 +5303,7 @@ function App() {
 	    setAutoRefreshEnabled,
 	    setAutoRefreshIntervalSec,
 	    setSwapDirection,
+	    flipSwapDirection,
 	    setSwapPreset,
 	    setMaxSwap,
 	    clearSwapInput,
@@ -5946,14 +5957,7 @@ function App() {
 	        hotkey: "X",
 	        run: () => {
 	          setActiveTab("swap");
-	          setSwapDirection((prev) => {
-	            const next = prev === "x-to-y" ? "y-to-x" : "x-to-y";
-	            pushToast(
-	              `Swap direction: ${next === "x-to-y" ? "X \u2192 Y" : "Y \u2192 X"}.`,
-	              "success",
-	            );
-	            return next;
-	          });
+	          flipSwapDirection();
 	          closeCommandPalette();
 	        },
 	      },
@@ -6215,6 +6219,7 @@ function App() {
 	    setActiveTab,
 	    setShowOnboarding,
 	    setSwapDirection,
+	    flipSwapDirection,
 	    setSwapPreset,
 	    setMaxSwap,
 	    setBurnPreset,
@@ -7612,6 +7617,8 @@ function App() {
                   setSwapInput={setSwapInput}
                   swapDirection={swapDirection}
                   setSwapDirection={setSwapDirection}
+                  onFlip={flipSwapDirection}
+                  swapFlipNonce={swapFlipNonce}
                   recentSwaps={recentSwaps}
                   onApplyRecentSwap={applyRecentSwap}
                   onClearRecentSwaps={clearRecentSwaps}

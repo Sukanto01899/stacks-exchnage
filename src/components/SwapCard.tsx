@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TOKEN_DECIMALS } from "../constant";
 import { tokenAvatarStyle } from "../lib/helper";
 
@@ -21,6 +21,8 @@ export default function SwapCard(props: any) {
     setSwapInput,
     swapDirection,
     setSwapDirection,
+    onFlip,
+    swapFlipNonce,
     recentSwaps,
     onApplyRecentSwap,
     onClearRecentSwaps,
@@ -204,12 +206,30 @@ export default function SwapCard(props: any) {
   };
 
   const handleFlip = () => {
+    // When the parent owns flipping (button + hotkey + palette stay in sync),
+    // defer to it; the spin is replayed via the swapFlipNonce effect below.
+    if (typeof onFlip === "function") {
+      onFlip();
+      return;
+    }
     setIsFlipping(true);
     setSwapDirection((prev: "x-to-y" | "y-to-x") =>
       prev === "x-to-y" ? "y-to-x" : "x-to-y"
     );
     window.setTimeout(() => setIsFlipping(false), 320);
   };
+
+  // Replay the flip animation whenever the parent bumps the nonce, so flips
+  // triggered by the keyboard or command palette spin the button too.
+  const flipNonceRef = useRef(swapFlipNonce);
+  useEffect(() => {
+    if (swapFlipNonce === undefined || swapFlipNonce === flipNonceRef.current)
+      return;
+    flipNonceRef.current = swapFlipNonce;
+    setIsFlipping(true);
+    const t = window.setTimeout(() => setIsFlipping(false), 320);
+    return () => window.clearTimeout(t);
+  }, [swapFlipNonce]);
 
   useEffect(() => {
     if (liveSwapOutput === null || !Number.isFinite(liveSwapOutput)) return;
