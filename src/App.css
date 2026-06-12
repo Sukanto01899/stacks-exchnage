@@ -4896,6 +4896,17 @@ h3 {
   color: #86efac;
 }
 
+.receive-qr {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.receive-qr svg {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+}
+
 .receive-address {
   display: block;
   width: 100%;

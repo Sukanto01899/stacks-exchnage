@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 type ReceiveModalProps = {
   open: boolean;
@@ -59,6 +60,15 @@ export default function ReceiveModal(props: ReceiveModalProps) {
             </div>
           ) : (
             <>
+              <div className="receive-qr" aria-label="Address QR code">
+                <QRCodeSVG
+                  value={stacksAddress}
+                  size={168}
+                  marginSize={2}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+              </div>
               <div className="confirm-modal-summary">
                 <p className="muted small">Your address</p>
                 <button

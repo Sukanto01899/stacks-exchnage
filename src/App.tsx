@@ -1504,10 +1504,6 @@ function App() {
   useEffect(() => {
     setActivityLimit(10);
   }, [activityFilter, activitySearch]);
-  const recentSwaps = useMemo(
-    () => activityItems.filter((item) => item.kind === "swap"),
-    [activityItems],
-  );
   const poolShare = useMemo(() => {
     if (pool.totalShares === 0) return 0;
     return balances.lpShares / pool.totalShares;
