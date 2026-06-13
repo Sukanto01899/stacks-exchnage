@@ -3556,6 +3556,30 @@ h3 {
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+.swap-usd-prefix {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.simple-mode .swap-usd-prefix {
+  font-size: 44px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: -0.04em;
+}
+
+.swap-usd-hint {
+  margin-top: 2px;
+}
+
+.token-input--usd input {
+  color: var(--text);
+}
+
 .token-input input {
   background: transparent;
   border: 0;

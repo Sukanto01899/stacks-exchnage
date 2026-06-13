@@ -413,7 +413,10 @@ export default function SwapCard(props: any) {
               </button>
             </div>
           </div>
-          <div className="token-input">
+          <div className={`token-input${usdMode && usdModeAvailable ? " token-input--usd" : ""}`}>
+            {usdMode && usdModeAvailable && (
+              <span className="swap-usd-prefix" aria-hidden="true">$</span>
+            )}
             <input
               type="number"
               value={usdMode && usdModeAvailable ? usdInput : swapInput}
@@ -438,7 +441,7 @@ export default function SwapCard(props: any) {
               onBlur={usdMode ? undefined : handleSwapAmountBlur}
               min="0"
               step={usdMode ? "0.01" : "0.000001"}
-              placeholder={usdMode ? "$0.00" : "0.0"}
+              placeholder={usdMode ? "0.00" : "0.0"}
               aria-label={usdMode ? "Amount in USD" : undefined}
             />
             <button
@@ -488,6 +491,9 @@ export default function SwapCard(props: any) {
               </svg>
             </button>
           </div>
+          {usdEquivalentHint && (
+            <p className="muted small swap-usd-hint">{usdEquivalentHint}</p>
+          )}
         </div>
 
         <div className="swap-simple-mid">
@@ -741,30 +747,52 @@ export default function SwapCard(props: any) {
             >
               Max
             </button>
+            {usdModeAvailable && (
+              <button
+                className={`tiny ghost${usdMode ? " is-active" : ""}`}
+                type="button"
+                onClick={() => setUsdMode((prev) => !prev)}
+                aria-pressed={usdMode}
+                title={`Enter the amount in USD (1 ${fromLabel} ≈ $${formatNumber(fromUsdPrice)})`}
+              >
+                USD
+              </button>
+            )}
             <button className="tiny ghost" onClick={clearSwapInput}>
               Clear
             </button>
           </div>
         </div>
-        <div className="token-input">
+        <div className={`token-input${usdMode && usdModeAvailable ? " token-input--usd" : ""}`}>
+          {usdMode && usdModeAvailable && (
+            <span className="swap-usd-prefix" aria-hidden="true">$</span>
+          )}
           <input
             type="number"
-            value={swapInput}
-            onChange={(e) => setSwapInput(e.target.value)}
+            value={usdMode && usdModeAvailable ? usdInput : swapInput}
+            onChange={(e) =>
+              usdMode && usdModeAvailable
+                ? handleUsdInputChange(e.target.value)
+                : setSwapInput(e.target.value)
+            }
             onKeyDown={(e) => {
               if (["e", "E", "+", "-"].includes(e.key)) {
                 e.preventDefault();
                 return;
               }
-              if (e.key === "Escape" && String(swapInput || "").trim()) {
+              if (
+                e.key === "Escape" &&
+                String((usdMode ? usdInput : swapInput) || "").trim()
+              ) {
                 e.preventDefault();
                 clearSwapInput();
               }
             }}
-            onBlur={handleSwapAmountBlur}
+            onBlur={usdMode ? undefined : handleSwapAmountBlur}
             min="0"
-            step="0.000001"
-            placeholder="0.0"
+            step={usdMode ? "0.01" : "0.000001"}
+            placeholder={usdMode ? "0.00" : "0.0"}
+            aria-label={usdMode ? "Amount in USD" : undefined}
           />
           <button
             className="token-badge"
@@ -814,6 +842,9 @@ export default function SwapCard(props: any) {
           <p className="muted small">
             Amount is below minimum ({minSwapAmount.toFixed(6)} {fromLabel}).
           </p>
+        )}
+        {usdEquivalentHint && (
+          <p className="muted small swap-usd-hint">{usdEquivalentHint}</p>
         )}
       </div>
 
