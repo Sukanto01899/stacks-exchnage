@@ -4931,6 +4931,14 @@ h3 {
   border: 1px solid var(--stroke);
 }
 
+.receive-qr-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 .receive-address {
   display: block;
   width: 100%;
