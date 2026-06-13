@@ -5019,6 +5019,52 @@ h3 {
   opacity: 0.5;
 }
 
+.drawer-contact-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  animation: guardrailSlideDown 0.18s ease both;
+}
+
+.drawer-contact-label-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  padding: 5px 9px;
+  outline: 0;
+}
+
+.drawer-contact-label-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.contact-chip .recent-chip-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 4px 6px 10px;
+}
+
+.contact-chip-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.contact-chip-addr {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--mono, monospace);
+}
+
 .drawer-send-preview {
   display: flex;
   align-items: center;

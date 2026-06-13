@@ -472,6 +472,48 @@ function App() {
   const [sendMessage, setSendMessage] = useState<string | null>(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const recentRecipientsKey = `send-recent-recipients-${RESOLVED_STACKS_NETWORK}`;
+  const addressBookKey = `send-address-book-${RESOLVED_STACKS_NETWORK}`;
+  type ContactEntry = { address: string; label: string };
+  const [addressBook, setAddressBook] = useState<ContactEntry[]>(() => {
+    try {
+      const raw = localStorage.getItem(addressBookKey);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (v): v is ContactEntry =>
+          typeof v === "object" &&
+          v !== null &&
+          typeof (v as ContactEntry).address === "string" &&
+          typeof (v as ContactEntry).label === "string",
+      );
+    } catch {
+      return [];
+    }
+  });
+  const saveContact = useCallback(
+    (address: string, label: string) => {
+      const a = address.trim();
+      const l = label.trim();
+      if (!a || !l) return;
+      setAddressBook((prev) => {
+        const next = [{ address: a, label: l }, ...prev.filter((c) => c.address !== a)];
+        try { localStorage.setItem(addressBookKey, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    },
+    [addressBookKey],
+  );
+  const removeContact = useCallback(
+    (address: string) => {
+      setAddressBook((prev) => {
+        const next = prev.filter((c) => c.address !== address);
+        try { localStorage.setItem(addressBookKey, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    },
+    [addressBookKey],
+  );
   const [recentRecipients, setRecentRecipients] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(recentRecipientsKey);
@@ -3006,6 +3048,7 @@ function App() {
       swapSettingsKey,
       approvalSettingsKey,
       targetSettingsKey,
+      addressBookKey,
     ];
 
     for (const key of keys) {
@@ -3031,6 +3074,7 @@ function App() {
     swapSettingsKey,
     targetSettingsKey,
     tokenSelectionKey,
+    addressBookKey,
   ]);
 
   useEffect(() => {
@@ -8094,6 +8138,9 @@ function App() {
         onRecipientChange={setSendRecipient}
         onForgetRecipient={forgetRecipient}
         onClearRecipients={clearRecentRecipients}
+        addressBook={addressBook}
+        onSaveContact={saveContact}
+        onRemoveContact={removeContact}
         onMax={() =>
           setSendAmount(String(sendToken === "x" ? balances.tokenX : balances.tokenY))
         }

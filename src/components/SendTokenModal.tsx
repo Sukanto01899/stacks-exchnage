@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TokenKey } from "../type";
+
+type ContactEntry = { address: string; label: string };
 
 type SendTokenModalProps = {
   open: boolean;
@@ -20,6 +22,9 @@ type SendTokenModalProps = {
   onRecipientChange: (recipient: string) => void;
   onForgetRecipient: (recipient: string) => void;
   onClearRecipients: () => void;
+  addressBook: ContactEntry[];
+  onSaveContact: (address: string, label: string) => void;
+  onRemoveContact: (address: string) => void;
   onMax: () => void;
   onClear: () => void;
   onSubmit: () => void;
@@ -46,6 +51,9 @@ export default function SendTokenModal(props: SendTokenModalProps) {
     onRecipientChange,
     onForgetRecipient,
     onClearRecipients,
+    addressBook,
+    onSaveContact,
+    onRemoveContact,
     onMax,
     onClear,
     onSubmit,
@@ -67,6 +75,10 @@ export default function SendTokenModal(props: SendTokenModalProps) {
       if (dialog.open) dialog.close();
     }
   }, [open, stacksAddress]);
+
+  // null = not saving; "" or typed string = save-label input is open
+  const [savingLabel, setSavingLabel] = useState<string | null>(null);
+  const saveLabelRef = useRef<HTMLInputElement>(null);
 
   const parsedAmount = Number(sendAmount) || 0;
   const currentBalance = sendToken === "x" ? balances.tokenX : balances.tokenY;
@@ -91,6 +103,8 @@ export default function SendTokenModal(props: SendTokenModalProps) {
   const hasValidRecipient =
     recipientTrimmed.length > 0 && !isAddressInvalid && !isOwnAddress;
   const showPreview = hasAmount && hasValidRecipient && !sendPending;
+  const existingContact = addressBook.find((c) => c.address === recipientTrimmed) ?? null;
+  const isInBook = existingContact !== null;
 
   const handlePaste = async () => {
     try {
@@ -238,14 +252,40 @@ export default function SendTokenModal(props: SendTokenModalProps) {
             <div className="drawer-send-field">
               <div className="drawer-send-field-head">
                 <span className="muted small">Recipient address</span>
-                <button
-                  className="tiny ghost"
-                  type="button"
-                  onClick={() => void handlePaste()}
-                  disabled={!stacksAddress || sendPending}
-                >
-                  Paste
-                </button>
+                <div className="drawer-send-field-actions">
+                  {hasValidRecipient && !sendPending && (
+                    isInBook ? (
+                      <button
+                        className="tiny ghost is-active"
+                        type="button"
+                        title={`Saved as "${existingContact.label}" — click to remove`}
+                        onClick={() => { onRemoveContact(recipientTrimmed); setSavingLabel(null); }}
+                      >
+                        ★ Saved
+                      </button>
+                    ) : savingLabel === null ? (
+                      <button
+                        className="tiny ghost"
+                        type="button"
+                        title="Save this address to your contacts"
+                        onClick={() => {
+                          setSavingLabel("");
+                          window.requestAnimationFrame(() => saveLabelRef.current?.focus());
+                        }}
+                      >
+                        ☆ Save
+                      </button>
+                    ) : null
+                  )}
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() => void handlePaste()}
+                    disabled={!stacksAddress || sendPending}
+                  >
+                    Paste
+                  </button>
+                </div>
               </div>
               <input
                 className={`drawer-send-input${isAddressInvalid || isOwnAddress ? " is-error" : ""}`}
@@ -270,6 +310,87 @@ export default function SendTokenModal(props: SendTokenModalProps) {
               )}
               {hasValidRecipient && (
                 <p className="drawer-send-hint is-valid">Valid address ✓</p>
+              )}
+              {savingLabel !== null && !isInBook && hasValidRecipient && (
+                <div className="drawer-contact-save">
+                  <input
+                    ref={saveLabelRef}
+                    className="drawer-contact-label-input"
+                    type="text"
+                    value={savingLabel}
+                    onChange={(e) => setSavingLabel(e.target.value)}
+                    placeholder="Label (e.g. Alice)"
+                    maxLength={32}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (savingLabel.trim()) {
+                          onSaveContact(recipientTrimmed, savingLabel.trim());
+                          setSavingLabel(null);
+                        }
+                      }
+                      if (e.key === "Escape") setSavingLabel(null);
+                    }}
+                  />
+                  <button
+                    className="tiny"
+                    type="button"
+                    disabled={!savingLabel.trim()}
+                    onClick={() => {
+                      if (savingLabel.trim()) {
+                        onSaveContact(recipientTrimmed, savingLabel.trim());
+                        setSavingLabel(null);
+                      }
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="tiny ghost"
+                    type="button"
+                    onClick={() => setSavingLabel(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {addressBook.length > 0 && (
+                <div className="drawer-send-recent" aria-label="Contacts">
+                  <div className="drawer-send-recent-head">
+                    <span className="muted small">Contacts</span>
+                  </div>
+                  <div className="drawer-send-recent-chips">
+                    {addressBook.map((contact) => (
+                      <span
+                        key={contact.address}
+                        className={`recent-chip contact-chip${contact.address === recipientTrimmed ? " is-active" : ""}`}
+                      >
+                        <button
+                          className="recent-chip-pick"
+                          type="button"
+                          onClick={() => { onRecipientChange(contact.address); setSavingLabel(null); }}
+                          disabled={!stacksAddress || sendPending}
+                          title={contact.address}
+                        >
+                          <span className="contact-chip-label">{contact.label}</span>
+                          <span className="contact-chip-addr">
+                            {contact.address.slice(0, 5)}…{contact.address.slice(-4)}
+                          </span>
+                        </button>
+                        <button
+                          className="recent-chip-remove"
+                          type="button"
+                          onClick={() => onRemoveContact(contact.address)}
+                          disabled={sendPending}
+                          aria-label={`Remove ${contact.label} from contacts`}
+                          title="Remove from contacts"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
               {recentRecipients.length > 0 && (
                 <div className="drawer-send-recent" aria-label="Recent recipients">
