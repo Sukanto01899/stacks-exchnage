@@ -1661,6 +1661,8 @@ function App() {
       tokenYPrincipal: string | null;
       tokenXIsStx: boolean;
       tokenYIsStx: boolean;
+      reserveX: number;
+      reserveY: number;
       tvl: number;
       volume24h: number;
       fees24h: number;
@@ -1727,6 +1729,8 @@ function App() {
                 tokenYPrincipal,
                 tokenXIsStx,
                 tokenYIsStx,
+                reserveX: parsedReserves.reserveX,
+                reserveY: parsedReserves.reserveY,
                 tvl,
                 volume24h: 0,
                 fees24h: 0,

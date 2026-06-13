@@ -9,6 +9,8 @@ type PoolListItem = {
   tokenYLabel: string;
   tokenXIsStx: boolean;
   tokenYIsStx: boolean;
+  reserveX: number;
+  reserveY: number;
   tvl: number;
   volume24h: number;
   fees24h: number;
@@ -320,7 +322,14 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                   aria-valuenow={pool.tvl}
                   aria-valuemin={0}
                   aria-valuemax={maxTvl}
-                  title={`TVL ${formatCompactNumber(pool.tvl)} — ${maxTvl > 0 ? ((pool.tvl / maxTvl) * 100).toFixed(0) : 0}% of deepest pool`}
+                  title={[
+                    `TVL ${formatCompactNumber(pool.tvl)} (${maxTvl > 0 ? ((pool.tvl / maxTvl) * 100).toFixed(0) : 0}% of deepest pool)`,
+                    `${pool.tokenXLabel}: ${formatNumber(pool.reserveX)}`,
+                    `${pool.tokenYLabel}: ${formatNumber(pool.reserveY)}`,
+                    pool.volume24h > 0 ? `Vol 24h: ${formatCompactNumber(pool.volume24h)}` : null,
+                    pool.fees24h > 0 ? `Fees 24h: ${formatCompactNumber(pool.fees24h)}` : null,
+                    pool.apr !== null ? `APR: ${pool.apr}%` : null,
+                  ].filter(Boolean).join("\n")}
                 >
                   <div
                     className="pool-tvl-bar-fill"
