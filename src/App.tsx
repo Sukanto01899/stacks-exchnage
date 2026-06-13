@@ -2128,6 +2128,20 @@ function App() {
     return null;
   }, [portfolioTotals, stxUsdPrice, tokenInfo]);
 
+  // USD price of the swap's "from" token: the user-set STX price directly when
+  // that side is STX, otherwise derived through the pool price when the other
+  // side is STX. Null when neither side is STX (no USD anchor).
+  const swapFromUsdPrice = useMemo(() => {
+    if (stxUsdPrice === null) return null;
+    let xUsd = tokenInfo?.tokenXIsStx ? stxUsdPrice : null;
+    let yUsd = tokenInfo?.tokenYIsStx ? stxUsdPrice : null;
+    if (Number.isFinite(currentPrice) && currentPrice > 0) {
+      if (xUsd === null && yUsd !== null) xUsd = currentPrice * yUsd;
+      if (yUsd === null && xUsd !== null) yUsd = xUsd / currentPrice;
+    }
+    return swapDirection === "x-to-y" ? xUsd : yUsd;
+  }, [stxUsdPrice, tokenInfo, currentPrice, swapDirection]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(usdSettingsKey);
@@ -7717,6 +7731,7 @@ function App() {
                   quoteLoading={quoteLoading}
                   liveSwapOutput={liveSwapOutput}
                   currentPrice={currentPrice}
+                  fromUsdPrice={swapFromUsdPrice}
                   pool={pool}
                   handleManualRefresh={handleManualRefresh}
                   poolPending={poolPending}

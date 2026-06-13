@@ -35,6 +35,7 @@ export default function SwapCard(props: any) {
     quoteLoading,
     liveSwapOutput,
     currentPrice,
+    fromUsdPrice,
     pool,
     handleManualRefresh,
     poolPending,
@@ -178,6 +179,54 @@ export default function SwapCard(props: any) {
   const [outputFlashing, setOutputFlashing] = useState(false);
   const [copiedPool, setCopiedPool] = useState(false);
   const [copiedPrice, setCopiedPrice] = useState(false);
+
+  // USD entry mode: type a dollar amount and convert it to the from-token
+  // amount (swapInput stays the source of truth for quoting).
+  const usdModeAvailable =
+    typeof fromUsdPrice === "number" &&
+    Number.isFinite(fromUsdPrice) &&
+    fromUsdPrice > 0;
+  const [usdMode, setUsdMode] = useState(false);
+  const [usdInput, setUsdInput] = useState("");
+  // Token amount last derived from the USD field, so the sync effect can tell
+  // our own conversions apart from external edits (Max, presets, recents).
+  const usdDerivedToken = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (usdMode && !usdModeAvailable) setUsdMode(false);
+  }, [usdMode, usdModeAvailable]);
+
+  useEffect(() => {
+    if (!usdMode || !usdModeAvailable) return;
+    if (swapInput === usdDerivedToken.current) return;
+    usdDerivedToken.current = swapInput;
+    const amount = Number(swapInput || 0);
+    setUsdInput(
+      Number.isFinite(amount) && amount > 0
+        ? String(+(amount * fromUsdPrice).toFixed(2))
+        : "",
+    );
+  }, [swapInput, usdMode, usdModeAvailable, fromUsdPrice]);
+
+  const handleUsdInputChange = (value: string) => {
+    setUsdInput(value);
+    const usd = Number(value);
+    if (usdModeAvailable && Number.isFinite(usd) && usd > 0) {
+      const tokens = String(+(usd / fromUsdPrice).toFixed(6));
+      usdDerivedToken.current = tokens;
+      setSwapInput(tokens);
+    } else {
+      usdDerivedToken.current = "";
+      setSwapInput("");
+    }
+  };
+
+  const usdEquivalentHint =
+    usdModeAvailable && hasSwapInput && swapAmountIsFinite && swapAmount > 0
+      ? usdMode
+        ? `≈ ${formatNumber(swapAmount)} ${fromLabel}`
+        : `≈ $${(swapAmount * fromUsdPrice).toFixed(2)}`
+      : null;
 
   useEffect(() => {
     if (!copiedPool) return;
@@ -348,6 +397,17 @@ export default function SwapCard(props: any) {
               >
                 Max
               </button>
+              {usdModeAvailable && (
+                <button
+                  className={`tiny ghost${usdMode ? " is-active" : ""}`}
+                  type="button"
+                  onClick={() => setUsdMode((prev) => !prev)}
+                  aria-pressed={usdMode}
+                  title={`Enter the amount in USD (1 ${fromLabel} ≈ $${formatNumber(fromUsdPrice)})`}
+                >
+                  USD
+                </button>
+              )}
               <button className="tiny ghost" onClick={clearSwapInput}>
                 Clear
               </button>
@@ -356,22 +416,30 @@ export default function SwapCard(props: any) {
           <div className="token-input">
             <input
               type="number"
-              value={swapInput}
-              onChange={(e) => setSwapInput(e.target.value)}
+              value={usdMode && usdModeAvailable ? usdInput : swapInput}
+              onChange={(e) =>
+                usdMode && usdModeAvailable
+                  ? handleUsdInputChange(e.target.value)
+                  : setSwapInput(e.target.value)
+              }
               onKeyDown={(e) => {
                 if (["e", "E", "+", "-"].includes(e.key)) {
                   e.preventDefault();
                   return;
                 }
-                if (e.key === "Escape" && String(swapInput || "").trim()) {
+                if (
+                  e.key === "Escape" &&
+                  String((usdMode ? usdInput : swapInput) || "").trim()
+                ) {
                   e.preventDefault();
                   clearSwapInput();
                 }
               }}
-              onBlur={handleSwapAmountBlur}
+              onBlur={usdMode ? undefined : handleSwapAmountBlur}
               min="0"
-              step="0.000001"
-              placeholder="0.0"
+              step={usdMode ? "0.01" : "0.000001"}
+              placeholder={usdMode ? "$0.00" : "0.0"}
+              aria-label={usdMode ? "Amount in USD" : undefined}
             />
             <button
               className="token-badge"
