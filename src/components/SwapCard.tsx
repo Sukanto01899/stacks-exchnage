@@ -179,6 +179,7 @@ export default function SwapCard(props: any) {
   const [outputFlashing, setOutputFlashing] = useState(false);
   const [copiedPool, setCopiedPool] = useState(false);
   const [copiedPrice, setCopiedPrice] = useState(false);
+  const [copiedOutput, setCopiedOutput] = useState(false);
 
   // USD entry mode: type a dollar amount and convert it to the from-token
   // amount (swapInput stays the source of truth for quoting).
@@ -239,6 +240,22 @@ export default function SwapCard(props: any) {
     const t = window.setTimeout(() => setCopiedPrice(false), 1500);
     return () => window.clearTimeout(t);
   }, [copiedPrice]);
+
+  useEffect(() => {
+    if (!copiedOutput) return;
+    const t = window.setTimeout(() => setCopiedOutput(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [copiedOutput]);
+
+  const handleCopyOutput = async () => {
+    if (liveSwapOutput === null || !Number.isFinite(liveSwapOutput) || liveSwapOutput <= 0) return;
+    try {
+      await navigator.clipboard.writeText(String(liveSwapOutput));
+      setCopiedOutput(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   const handleCopyPrice = async () => {
     if (!currentPrice) return;
@@ -544,6 +561,26 @@ export default function SwapCard(props: any) {
                 readOnly
                 placeholder="0.0"
               />
+            )}
+            {!quoteLoading && outputText && (
+              <button
+                className={`swap-output-copy-btn${copiedOutput ? " is-copied" : ""}`}
+                type="button"
+                onClick={() => void handleCopyOutput()}
+                title={copiedOutput ? "Copied!" : "Copy output amount"}
+                aria-label="Copy output amount"
+              >
+                {copiedOutput ? (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path d="M1.5 6l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <rect x="0.75" y="3.25" width="7.5" height="7.5" rx="1.25" stroke="currentColor" strokeWidth="1.2"/>
+                    <path d="M3.25 3.25V2.5A1.25 1.25 0 0 1 4.5 1.25h5.25A1.25 1.25 0 0 1 11 2.5v5.25A1.25 1.25 0 0 1 9.75 9H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </button>
             )}
             <span className="token-badge token-badge--static">
               {renderIcon(toIcon, toLabel, toIsStx)}
@@ -900,6 +937,26 @@ export default function SwapCard(props: any) {
               placeholder={noLiquidity ? "No pool" : "0.0"}
               className={outputFlashing && !quoteLoading ? "is-flashing" : ""}
             />
+          )}
+          {!quoteLoading && liveSwapOutput !== null && Number.isFinite(liveSwapOutput) && liveSwapOutput > 0 && (
+            <button
+              className={`swap-output-copy-btn${copiedOutput ? " is-copied" : ""}`}
+              type="button"
+              onClick={() => void handleCopyOutput()}
+              title={copiedOutput ? "Copied!" : "Copy output amount"}
+              aria-label="Copy output amount"
+            >
+              {copiedOutput ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M1.5 6l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <rect x="0.75" y="3.25" width="7.5" height="7.5" rx="1.25" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M3.25 3.25V2.5A1.25 1.25 0 0 1 4.5 1.25h5.25A1.25 1.25 0 0 1 11 2.5v5.25A1.25 1.25 0 0 1 9.75 9H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              )}
+            </button>
           )}
           <span className="token-badge token-badge--static">
             {renderIcon(toIcon, toLabel, toIsStx)}

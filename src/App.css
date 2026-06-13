@@ -3643,6 +3643,31 @@ h3 {
   pointer-events: none;
 }
 
+.swap-output-copy-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.swap-output-copy-btn:hover {
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.5);
+}
+
+.swap-output-copy-btn.is-copied {
+  color: #21c38c;
+  border-color: #21c38c;
+}
+
 .token-badge--static:hover {
   background: #2d3246;
   border-color: var(--stroke);
