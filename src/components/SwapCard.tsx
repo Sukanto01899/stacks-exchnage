@@ -295,6 +295,14 @@ export default function SwapCard(props: any) {
     return () => window.clearTimeout(t);
   }, [liveSwapOutput]);
 
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!e.altKey || maxAvailable <= 0) return;
+    if (e.key === "1") { e.preventDefault(); setAmountFraction(0.25); }
+    else if (e.key === "2") { e.preventDefault(); setAmountFraction(0.5); }
+    else if (e.key === "3") { e.preventDefault(); setAmountFraction(0.75); }
+    else if (e.key === "4") { e.preventDefault(); setMaxSwap(); }
+  };
+
   const handleSwapAmountBlur = () => {
     if (!hasSwapInput || !swapAmountIsFinite) return;
     if (maxAvailable > 0 && swapAmount > maxAvailable) {
@@ -341,7 +349,7 @@ export default function SwapCard(props: any) {
         : "";
 
     return (
-      <div className="swap-card">
+      <div className="swap-card" onKeyDown={handleCardKeyDown}>
         {(networkMismatch || tokenMismatch || noLiquidity || insufficientBalance) && (
           <div className={`note ${networkMismatch || noLiquidity ? "error" : "warning"}`}>
             <strong>
@@ -368,6 +376,7 @@ export default function SwapCard(props: any) {
                 className="tiny ghost"
                 onClick={() => setAmountFraction(0.25)}
                 disabled={maxAvailable <= 0}
+                title="25% of balance (Alt+1)"
               >
                 25%
               </button>
@@ -375,6 +384,7 @@ export default function SwapCard(props: any) {
                 className="tiny ghost"
                 onClick={() => setAmountFraction(0.5)}
                 disabled={maxAvailable <= 0}
+                title="50% of balance (Alt+2)"
               >
                 50%
               </button>
@@ -382,6 +392,7 @@ export default function SwapCard(props: any) {
                 className="tiny ghost"
                 onClick={() => setAmountFraction(0.75)}
                 disabled={maxAvailable <= 0}
+                title="75% of balance (Alt+3)"
               >
                 75%
               </button>
@@ -391,8 +402,8 @@ export default function SwapCard(props: any) {
                 disabled={maxAvailable <= 0}
                 title={
                   fromIsStx
-                    ? "Keeps 0.1 STX for transaction fees"
-                    : "Use your full balance"
+                    ? "Keeps 0.1 STX for transaction fees (Alt+4)"
+                    : "Use your full balance (Alt+4)"
                 }
               >
                 Max
