@@ -130,6 +130,16 @@ export default function SwapCard(props: any) {
   const impactNeedsConfirm =
     priceImpact >= PRICE_IMPACT_CONFIRM_PCT && priceImpact < PRICE_IMPACT_BLOCK_PCT;
   const missingImpactConfirm = impactNeedsConfirm && !impactConfirmed;
+  const impactRingClass =
+    hasPriceImpact && hasSwapInput
+      ? priceImpact >= PRICE_IMPACT_BLOCK_PCT
+        ? " swap-btn--impact-blocked"
+        : priceImpact >= PRICE_IMPACT_CONFIRM_PCT
+          ? " swap-btn--impact-high"
+          : priceImpact >= PRICE_IMPACT_WARN_PCT
+            ? " swap-btn--impact-warn"
+            : " swap-btn--impact-low"
+      : "";
   const hasSuggestedSlippage = Number.isFinite(Number(suggestedSlippagePercent));
   const suggestedSlippage =
     hasSuggestedSlippage ? Number(suggestedSlippagePercent) : null;
@@ -646,7 +656,7 @@ export default function SwapCard(props: any) {
         {renderApprovalManager("swap")}
 
         <button
-          className="primary"
+          className={`primary${impactRingClass}`}
           onClick={handleSimpleSwap}
           disabled={
             quoteLoading ||
@@ -1155,7 +1165,7 @@ export default function SwapCard(props: any) {
       {renderApprovalManager("swap")}
 
       <button
-        className="primary"
+        className={`primary${impactRingClass}`}
         onClick={handleSwap}
         disabled={
           quoteLoading ||

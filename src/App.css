@@ -5732,7 +5732,20 @@ h3 {
   transition:
     filter 160ms ease,
     transform 120ms ease,
-    box-shadow 160ms ease;
+    box-shadow 220ms ease;
+}
+
+.swap-btn--impact-low {
+  box-shadow: 0 0 0 2.5px rgba(74, 222, 128, 0.55);
+}
+.swap-btn--impact-warn {
+  box-shadow: 0 0 0 2.5px rgba(250, 204, 21, 0.65);
+}
+.swap-btn--impact-high {
+  box-shadow: 0 0 0 2.5px rgba(251, 146, 60, 0.7);
+}
+.swap-btn--impact-blocked {
+  box-shadow: 0 0 0 2.5px rgba(248, 113, 113, 0.75);
 }
 
 .secondary {
