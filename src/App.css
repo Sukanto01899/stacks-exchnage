@@ -4270,6 +4270,11 @@ h3 {
   animation: spinRefresh 1s linear infinite;
 }
 
+.pool-refresh-age {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .token-badge .flip-indicator {
   opacity: 0.45;
   transition: opacity 0.15s;

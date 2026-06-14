@@ -190,6 +190,16 @@ export default function SwapCard(props: any) {
   const [copiedPool, setCopiedPool] = useState(false);
   const [copiedPrice, setCopiedPrice] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
+  const [secondsAgo, setSecondsAgo] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!lastPoolRefreshAt) { setSecondsAgo(null); return; }
+    const tick = () =>
+      setSecondsAgo(Math.floor((Date.now() - lastPoolRefreshAt) / 1000));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [lastPoolRefreshAt]);
 
   // USD entry mode: type a dollar amount and convert it to the from-token
   // amount (swapInput stays the source of truth for quoting).
@@ -531,6 +541,9 @@ export default function SwapCard(props: any) {
                 <path d="M11 1.5v2h-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
+            {secondsAgo !== null && (
+              <span className="pool-refresh-age muted small">· {secondsAgo}s ago</span>
+            )}
           </div>
           {usdEquivalentHint && (
             <p className="muted small swap-usd-hint">{usdEquivalentHint}</p>
@@ -898,6 +911,9 @@ export default function SwapCard(props: any) {
               <path d="M11 1.5v2h-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          {secondsAgo !== null && (
+            <span className="pool-refresh-age muted small">· {secondsAgo}s ago</span>
+          )}
         </div>
         {swapAmountInvalid && (
           <p className="muted small">Enter an amount greater than 0.</p>
