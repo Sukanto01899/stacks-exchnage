@@ -387,6 +387,9 @@ export default function SwapCard(props: any) {
             <span className="token-inline muted small">
               {renderIcon(fromIcon, fromLabel, fromIsStx)}
               {fromLabel}
+              {!balancesPending && fromBalance > 0 && (
+                <span className="token-inline-balance">· {formatNumber(fromBalance)}</span>
+              )}
             </span>
             <div className="mini-actions">
               <button
@@ -764,6 +767,9 @@ export default function SwapCard(props: any) {
           <span className="token-inline muted small">
             {renderIcon(fromIcon, fromLabel, fromIsStx)}
             {fromLabel}
+            {!balancesPending && fromBalance > 0 && (
+              <span className="token-inline-balance">· {formatNumber(fromBalance)}</span>
+            )}
           </span>
           <div className="mini-actions">
             <button

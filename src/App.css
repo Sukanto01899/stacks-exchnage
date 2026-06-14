@@ -5233,6 +5233,12 @@ h3 {
   gap: 6px;
 }
 
+.token-inline-balance {
+  opacity: 0.55;
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+}
+
 .token-icon {
   width: 18px;
   height: 18px;
