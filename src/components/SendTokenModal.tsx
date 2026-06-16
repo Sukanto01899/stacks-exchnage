@@ -445,8 +445,10 @@ export default function SendTokenModal(props: SendTokenModalProps) {
                   {formatNumber(parsedAmount)} {sendLabel}
                 </strong>
                 <span className="muted small">to</span>
-                <span className="drawer-send-preview-address">
-                  {recipientTrimmed.slice(0, 8)}…{recipientTrimmed.slice(-6)}
+                <span className="drawer-send-preview-address" title={recipientTrimmed}>
+                  {existingContact
+                    ? existingContact.label
+                    : `${recipientTrimmed.slice(0, 8)}…${recipientTrimmed.slice(-6)}`}
                 </span>
               </div>
             )}
