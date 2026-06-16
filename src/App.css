@@ -486,6 +486,35 @@ body {
   outline-offset: -2px;
 }
 
+.address-pill-copy {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.address-pill-copy:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.address-pill-copy.is-copied {
+  color: var(--green, #4ade80);
+}
+
+.address-pill-copy:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: -2px;
+}
+
 .address-pill.is-warning {
   border-color: rgba(var(--accent-strong-rgb), 0.55);
   box-shadow: 0 0 0 2px rgba(var(--accent-strong-rgb), 0.12);
