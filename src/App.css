@@ -1520,6 +1520,20 @@ h3 {
   white-space: nowrap;
 }
 
+.price-sparkline {
+  display: block;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.price-sparkline.is-up {
+  color: var(--ok);
+}
+
+.price-sparkline.is-down {
+  color: #ef4444;
+}
+
 .price-board-price-cell {
   display: flex;
   flex-direction: column;

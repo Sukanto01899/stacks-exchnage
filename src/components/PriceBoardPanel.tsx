@@ -126,6 +126,41 @@ const DEFAULT_PRESETS: AlertPreset[] = [
   },
 ];
 
+const SparkLine = ({ values }: { values: number[] }) => {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 64;
+  const h = 20;
+  const points = values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const isUp = values[values.length - 1] >= values[0];
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className={`price-sparkline${isUp ? " is-up" : " is-down"}`}
+      aria-hidden="true"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
 const PriceBoardPanel = ({
   markets,
   formatNumber,
@@ -999,6 +1034,7 @@ const PriceBoardPanel = ({
                 <span className="muted small price-board-market-label">
                   {row.label}
                 </span>
+                <SparkLine values={row.history} />
               </div>
               <div className="price-board-price-cell">
                 <span className={`price-board-price ${row.lastMove}`}>
