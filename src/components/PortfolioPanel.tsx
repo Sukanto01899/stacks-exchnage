@@ -183,7 +183,20 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
       <p
         className={`note ${portfolioMetrics.ilPercent !== null ? "subtle" : ""}`}
       >
-        Estimated IL vs hold: {formatSignedPercent(portfolioMetrics.ilPercent)}.
+        Estimated IL vs hold:{" "}
+        <span
+          className={
+            portfolioMetrics.ilPercent === null
+              ? ""
+              : portfolioMetrics.ilPercent > 0
+                ? "il-value il-value--positive"
+                : portfolioMetrics.ilPercent < 0
+                  ? "il-value il-value--negative"
+                  : "il-value"
+          }
+        >
+          {formatSignedPercent(portfolioMetrics.ilPercent)}
+        </span>.
       </p>
     </section>
   );

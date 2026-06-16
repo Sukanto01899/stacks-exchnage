@@ -2857,6 +2857,16 @@ h3 {
   color: var(--accent);
 }
 
+.il-value--positive {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.il-value--negative {
+  color: #ef4444;
+  font-weight: 600;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
