@@ -1000,9 +1000,24 @@ const PriceBoardPanel = ({
                   {row.label}
                 </span>
               </div>
-              <span className={`price-board-price ${row.lastMove}`}>
-                {formatNumber(row.lastPrice)}
-              </span>
+              <div className="price-board-price-cell">
+                <span className={`price-board-price ${row.lastMove}`}>
+                  {formatNumber(row.lastPrice)}
+                </span>
+                <span
+                  className={`chip price-board-24h-badge ${
+                    row.change24h > 0
+                      ? "price-up"
+                      : row.change24h < 0
+                        ? "price-down"
+                        : "ghost"
+                  }`}
+                  title="24h change"
+                >
+                  {row.change24h > 0 ? "+" : ""}
+                  {row.change24h.toFixed(2)}%
+                </span>
+              </div>
               <span className={`price-board-change ${change1hClass}`}>
                 {formatSignedPercent(row.change1h)}
               </span>
