@@ -69,8 +69,26 @@ export default function ReceiveModal(props: ReceiveModalProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
+  const canShare =
+    typeof navigator !== "undefined" && typeof navigator.share === "function";
+
   const getSvgEl = () =>
     qrWrapRef.current?.querySelector<SVGSVGElement>("svg") ?? null;
+
+  const handleShare = async () => {
+    if (!stacksAddress) return;
+    try {
+      await navigator.share({
+        title: "My Stacks address",
+        text: stacksAddress,
+      });
+    } catch (error) {
+      // user cancelled the share sheet, or share is unsupported — ignore
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.warn("Share failed", error);
+      }
+    }
+  };
 
   const handleDownloadQR = async () => {
     const svg = getSvgEl();
@@ -204,6 +222,11 @@ export default function ReceiveModal(props: ReceiveModalProps) {
                 <button className="secondary" type="button" onClick={onCopyExplorerLink}>
                   Copy explorer link
                 </button>
+                {canShare && (
+                  <button className="secondary" type="button" onClick={() => void handleShare()}>
+                    Share
+                  </button>
+                )}
                 {explorerUrl && (
                   <a
                     className="secondary"
