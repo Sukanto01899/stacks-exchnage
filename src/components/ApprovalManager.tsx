@@ -295,8 +295,8 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
       {tokenMismatch && (
         <p className="muted small">Fix token selection to continue.</p>
       )}
-      <p className="muted small">
-        Spender: {spenderContractId}{" "}
+      <p className="muted small" title={spenderContractId || undefined}>
+        Spender: {spenderContractId.split(".")[1] ?? spenderContractId}{" "}
         <button
           className="tiny ghost"
           type="button"
