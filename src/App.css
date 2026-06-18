@@ -1684,8 +1684,14 @@ h3 {
   flex-wrap: wrap;
 }
 
-.trade-sim-stats {
+.trade-sim-stats-head {
   margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trade-sim-stats {
+  margin-top: 8px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;

@@ -29,6 +29,13 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
   const [target, setTarget] = useState("");
   const [size, setSize] = useState("100");
   const [lastPrice, setLastPrice] = useState(0);
+  const [planCopied, setPlanCopied] = useState(false);
+
+  useEffect(() => {
+    if (!planCopied) return;
+    const timer = window.setTimeout(() => setPlanCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [planCopied]);
 
   useEffect(() => {
     if (!marketId) return;
@@ -128,6 +135,26 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
     markets.find((market) => market.id === marketId)?.tokenXLabel ?? "";
   const marketQuote =
     markets.find((market) => market.id === marketId)?.tokenYLabel ?? "";
+
+  const handleCopyPlan = async () => {
+    const lines = [
+      `Market: ${marketLabel}/${marketQuote}`,
+      `Direction: ${direction}`,
+      `Entry: ${entryNum !== null ? formatNumber(entryNum) : "—"} ${marketQuote}`,
+      `Stop: ${stopNum !== null ? formatNumber(stopNum) : "—"} ${marketQuote}`,
+      `Target: ${targetNum !== null ? formatNumber(targetNum) : "—"} ${marketQuote}`,
+      `Position size: ${sizeNum || "—"} ${marketLabel}`,
+      `Risk amount: ${riskAmount !== null ? formatNumber(riskAmount) : "—"} ${marketQuote}`,
+      `Reward amount: ${rewardAmount !== null ? formatNumber(rewardAmount) : "—"} ${marketQuote}`,
+      `Risk/Reward: ${rr !== null ? rr.toFixed(2) : "—"}`,
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setPlanCopied(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   return (
     <div className="trade-sim-panel">
@@ -257,6 +284,11 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
         </div>
       </div>
 
+      <div className="trade-sim-stats-head">
+        <button className="tiny ghost" type="button" onClick={() => void handleCopyPlan()}>
+          {planCopied ? "Copied!" : "Copy plan"}
+        </button>
+      </div>
       <div className="trade-sim-stats">
         <div>
           <span className="muted small">Risk / unit</span>
