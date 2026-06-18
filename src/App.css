@@ -3762,6 +3762,11 @@ h3 {
   gap: 10px;
 }
 
+.token-discover-count {
+  margin-top: 6px;
+  display: inline-flex;
+}
+
 .token-discover-head {
   display: flex;
   align-items: center;

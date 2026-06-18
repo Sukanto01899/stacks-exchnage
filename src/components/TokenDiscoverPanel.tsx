@@ -129,7 +129,7 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
     }
   }, [customKey, customTokens]);
 
-  const tokenRows = useMemo(() => {
+  const mergedTokens = useMemo(() => {
     const seen = new Set<string>();
     const merged: Array<{
       id: string;
@@ -177,13 +177,17 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
         }),
       );
 
+    return merged;
+  }, [customTokens, getTokenPrincipal, metadataByPrincipal, seedTokens]);
+
+  const tokenRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = q
-      ? merged.filter((row) => {
+      ? mergedTokens.filter((row) => {
           const hay = `${row.id} ${row.principal} ${row.label}`.toLowerCase();
           return hay.includes(q);
         })
-      : merged;
+      : mergedTokens;
 
     const asSet = (list: string[]) => new Set(list);
     const favSet = asSet(favorites);
@@ -205,16 +209,9 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
       if (aVerified !== bVerified) return bVerified - aVerified;
       return a.label.localeCompare(b.label);
     });
-  }, [
-    customTokens,
-    favorites,
-    filterMode,
-    getTokenPrincipal,
-    metadataByPrincipal,
-    search,
-    seedTokens,
-    watchlist,
-  ]);
+  }, [favorites, filterMode, mergedTokens, search, watchlist]);
+
+  const isTokenListFiltered = search.trim().length > 0 || filterMode !== "all";
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -256,6 +253,11 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
         <div>
           <p className="muted small">Discover tokens</p>
           <strong>Search, favorite, and watch</strong>
+          <span className="chip ghost token-discover-count">
+            {isTokenListFiltered
+              ? `${tokenRows.length} of ${mergedTokens.length} tokens`
+              : `${mergedTokens.length} tokens`}
+          </span>
         </div>
         <div className="token-discover-controls">
           <select
