@@ -105,6 +105,13 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
     setEntry(String(lastPrice));
   };
 
+  const handleReset = () => {
+    setEntry(String(lastPrice || ""));
+    setStop("");
+    setTarget("");
+    setSize("100");
+  };
+
   const handleQuickStop = (percent: number) => {
     if (entryNum === null) return;
     const multiplier = direction === "long" ? 1 - percent : 1 + percent;
@@ -134,6 +141,9 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
           <strong>
             {formatNumber(lastPrice)} {marketQuote}
           </strong>
+          <button className="tiny ghost" type="button" onClick={handleReset}>
+            Reset
+          </button>
         </div>
       </div>
 
