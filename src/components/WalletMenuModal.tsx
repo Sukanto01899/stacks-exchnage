@@ -39,6 +39,14 @@ export default function WalletMenuModal(props: WalletMenuModalProps) {
     return () => window.clearTimeout(timer);
   }, [copiedLink]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div
       className="wallet-menu-backdrop"
