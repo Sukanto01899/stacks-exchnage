@@ -99,6 +99,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onOpenPool,
     onCopyPoolId,
     onCopyPoolLink,
+    onCopyPoolExplorerLink,
     onCopyPoolsCsv,
     onDownloadPoolsCsv,
     resolvedStacksNetwork,
@@ -117,6 +118,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
   const [copiedPoolId, setCopiedPoolId] = useState<string | null>(null);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
   const [copiedLpLinkId, setCopiedLpLinkId] = useState<string | null>(null);
+  const [copiedExplorerId, setCopiedExplorerId] = useState<string | null>(null);
   const [expandedPool, setExpandedPool] = useState<string | null>(null);
 
   useEffect(() => {
@@ -136,6 +138,12 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     const timer = window.setTimeout(() => setCopiedLpLinkId(null), 1200);
     return () => window.clearTimeout(timer);
   }, [copiedLpLinkId]);
+
+  useEffect(() => {
+    if (!copiedExplorerId) return;
+    const timer = window.setTimeout(() => setCopiedExplorerId(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [copiedExplorerId]);
 
   return (
     <section className="pool-list-panel">
@@ -497,6 +505,18 @@ export default function PoolListPanel(props: PoolListPanelProps) {
                           >
                             Explorer ↗
                           </a>
+                        )}
+                        {explorerUrl && (
+                          <button
+                            className="tiny ghost"
+                            type="button"
+                            onClick={() => {
+                              onCopyPoolExplorerLink(pool.id);
+                              setCopiedExplorerId(pool.id);
+                            }}
+                          >
+                            {copiedExplorerId === pool.id ? "Link copied!" : "Copy explorer link"}
+                          </button>
                         )}
                         {favoritesOnly && favorites.length > 0 && (
                           <button className="tiny ghost" type="button" onClick={clearFavorites}>
