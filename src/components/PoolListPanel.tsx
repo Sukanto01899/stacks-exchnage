@@ -99,8 +99,11 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     onOpenPool,
     onCopyPoolId,
     onCopyPoolLink,
+    onCopyPoolsCsv,
+    onDownloadPoolsCsv,
     resolvedStacksNetwork,
     formatCompactNumber,
+    formatNumber,
   } = props;
 
   const isDefaultFilters =
@@ -139,6 +142,24 @@ export default function PoolListPanel(props: PoolListPanelProps) {
       <div className="pool-list-head">
         <h2 className="pool-list-title">Pools</h2>
         <span className="chip ghost">{pools.length} pools</span>
+        <div className="mini-actions">
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={onCopyPoolsCsv}
+            disabled={pools.length === 0}
+          >
+            Copy CSV
+          </button>
+          <button
+            className="tiny ghost"
+            type="button"
+            onClick={onDownloadPoolsCsv}
+            disabled={pools.length === 0}
+          >
+            Download CSV
+          </button>
+        </div>
       </div>
 
       <div className="pool-list-controls">

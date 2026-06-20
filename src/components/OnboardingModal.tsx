@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 type OnboardingStep = {
   id: string;
   title: string;
@@ -24,6 +26,14 @@ export default function OnboardingModal(props: OnboardingModalProps) {
     faucetPending,
   } = props;
   const nextStep = onboardingSteps.find((step) => !step.complete) || null;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeOnboarding(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closeOnboarding]);
 
   return (
     <div className="onboarding-backdrop" onClick={() => closeOnboarding(false)}>
