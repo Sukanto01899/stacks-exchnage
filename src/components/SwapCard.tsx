@@ -35,6 +35,7 @@ export default function SwapCard(props: any) {
     recentSwaps,
     onApplyRecentSwap,
     onClearRecentSwaps,
+    onRemoveRecentSwap,
     balances,
     balancesPending,
     formatNumber,
@@ -770,15 +771,30 @@ export default function SwapCard(props: any) {
           <span className="muted small">Recent</span>
           <div className="recent-swaps-chips">
             {recentSwaps.map((entry: any) => (
-              <button
+              <span
                 key={`${entry.poolId}-${entry.direction}`}
-                type="button"
                 className="chip recent-swap-chip"
-                title={`Swap ${entry.fromLabel} → ${entry.toLabel}`}
-                onClick={() => onApplyRecentSwap?.(entry)}
               >
-                {entry.fromLabel} → {entry.toLabel}
-              </button>
+                <button
+                  type="button"
+                  className="recent-swap-chip-pick"
+                  title={`Swap ${entry.fromLabel} → ${entry.toLabel}`}
+                  onClick={() => onApplyRecentSwap?.(entry)}
+                >
+                  {entry.fromLabel} → {entry.toLabel}
+                </button>
+                {onRemoveRecentSwap && (
+                  <button
+                    type="button"
+                    className="recent-swap-chip-remove"
+                    onClick={() => onRemoveRecentSwap(entry)}
+                    aria-label={`Remove ${entry.fromLabel} → ${entry.toLabel} from recent swaps`}
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
             ))}
           </div>
           {onClearRecentSwaps && (

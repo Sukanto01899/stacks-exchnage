@@ -944,8 +944,34 @@ h3 {
 }
 
 .recent-swap-chip {
-  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.recent-swap-chip-pick {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 11px;
+  padding: 5px 4px 5px 10px;
+  cursor: pointer;
+}
+
+.recent-swap-chip-remove {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 5px 8px 5px 4px;
+  cursor: pointer;
+}
+
+.recent-swap-chip-remove:hover {
+  color: #fca5a5;
 }
 
 .chip.success {

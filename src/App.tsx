@@ -4555,6 +4555,21 @@ function App() {
     }
   };
 
+  const removeRecentSwap = (entry: RecentSwapEntry) => {
+    setRecentSwaps((prev) => {
+      const next = prev.filter(
+        (item) =>
+          !(item.poolId === entry.poolId && item.direction === entry.direction),
+      );
+      try {
+        localStorage.setItem(recentSwapsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
   // Single entry point for flipping swap direction so the button, the `x`
   // hotkey and the command palette all toast and trigger the spin animation.
   const flipSwapDirection = useCallback(() => {
@@ -7800,6 +7815,7 @@ function App() {
                   recentSwaps={recentSwaps}
                   onApplyRecentSwap={applyRecentSwap}
                   onClearRecentSwaps={clearRecentSwaps}
+                  onRemoveRecentSwap={removeRecentSwap}
                   balances={balances}
                   balancesPending={balancesPending}
                   formatNumber={formatNumber}
