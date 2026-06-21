@@ -581,6 +581,7 @@ function App() {
   const [recentPools, setRecentPools] = useState<RecentPoolEntry[]>([]);
   const [recentSwaps, setRecentSwaps] = useState<RecentSwapEntry[]>([]);
   const lastToastMessages = useRef<Record<string, string | null>>({});
+  const toastTimers = useRef<Record<string, number>>({});
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
   const tokenSelectRef = useRef<HTMLDivElement | null>(null);
@@ -594,6 +595,15 @@ function App() {
 
   const buildExplorerAddressUrl = useCallback((address: string) => {
     return buildExplorerAddressUrlBase(address, RESOLVED_STACKS_NETWORK);
+  }, []);
+
+  const scheduleToastDismiss = useCallback((id: string, delay: number) => {
+    const existing = toastTimers.current[id];
+    if (existing) window.clearTimeout(existing);
+    toastTimers.current[id] = window.setTimeout(() => {
+      delete toastTimers.current[id];
+      setToasts((prev) => prev.filter((item) => item.id !== id));
+    }, delay);
   }, []);
 
   const pushToast = useCallback((
@@ -612,16 +622,36 @@ function App() {
         actionHref: action?.href,
       },
     ]);
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((item) => item.id !== id));
-    }, 4200);
+    scheduleToastDismiss(id, 4200);
+  }, [scheduleToastDismiss]);
+
+  // Hovering a toast clears its timer; leaving restarts the full countdown
+  // so a notification never disappears mid-read.
+  const pauseToastDismiss = useCallback((id: string) => {
+    const existing = toastTimers.current[id];
+    if (existing) {
+      window.clearTimeout(existing);
+      delete toastTimers.current[id];
+    }
   }, []);
 
+  const resumeToastDismiss = useCallback(
+    (id: string) => scheduleToastDismiss(id, 4200),
+    [scheduleToastDismiss],
+  );
+
   const dismissToast = useCallback((id: string) => {
+    const existing = toastTimers.current[id];
+    if (existing) {
+      window.clearTimeout(existing);
+      delete toastTimers.current[id];
+    }
     setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
   const clearToasts = useCallback(() => {
+    Object.values(toastTimers.current).forEach((timerId) => window.clearTimeout(timerId));
+    toastTimers.current = {};
     setToasts([]);
   }, []);
 
@@ -8163,6 +8193,8 @@ function App() {
             className={`toast-item toast-${toast.tone}`}
             role="status"
             onClick={() => dismissToast(toast.id)}
+            onMouseEnter={() => pauseToastDismiss(toast.id)}
+            onMouseLeave={() => resumeToastDismiss(toast.id)}
             tabIndex={0}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
