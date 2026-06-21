@@ -4,6 +4,15 @@ import { TOKEN_DECIMALS } from "../constant";
 import { tokenAvatarStyle } from "../lib/helper";
 
 const SLIPPAGE_PRESETS = ["0.1", "0.5", "1", "3"] as const;
+const USD_MODE_KEY = "clardex_swap_usd_mode_v1";
+
+const loadStoredUsdMode = () => {
+  try {
+    return localStorage.getItem(USD_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
 export default function SwapCard(props: any) {
   const {
@@ -207,7 +216,7 @@ export default function SwapCard(props: any) {
     typeof fromUsdPrice === "number" &&
     Number.isFinite(fromUsdPrice) &&
     fromUsdPrice > 0;
-  const [usdMode, setUsdMode] = useState(false);
+  const [usdMode, setUsdMode] = useState(loadStoredUsdMode);
   const [usdInput, setUsdInput] = useState("");
   // Token amount last derived from the USD field, so the sync effect can tell
   // our own conversions apart from external edits (Max, presets, recents).
@@ -216,6 +225,14 @@ export default function SwapCard(props: any) {
   useEffect(() => {
     if (usdMode && !usdModeAvailable) setUsdMode(false);
   }, [usdMode, usdModeAvailable]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(USD_MODE_KEY, usdMode ? "1" : "0");
+    } catch {
+      // ignore storage errors
+    }
+  }, [usdMode]);
 
   useEffect(() => {
     if (!usdMode || !usdModeAvailable) return;
