@@ -221,6 +221,15 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
     setWatchlist((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  const customTokenIds = useMemo(
+    () => new Set(customTokens.map((token) => token.id)),
+    [customTokens],
+  );
+
+  const removeCustomToken = (id: string) => {
+    setCustomTokens((prev) => prev.filter((token) => token.id !== id));
+  };
+
   const handleAddCustom = async () => {
     const raw = addTokenId.trim();
     setAddMessage(null);
@@ -413,6 +422,16 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
                   >
                     Set Y
                   </button>
+                  {customTokenIds.has(token.id) && (
+                    <button
+                      className="tiny ghost"
+                      type="button"
+                      onClick={() => removeCustomToken(token.id)}
+                      title="Remove this custom token from your list"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               </div>
             );
