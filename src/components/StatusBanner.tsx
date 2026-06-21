@@ -39,7 +39,7 @@ export default function StatusBanner() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const loadStatus = async () => {
       try {
         const res = await fetch("/status.json", { cache: "no-store" });
         if (!res.ok) return;
@@ -49,9 +49,12 @@ export default function StatusBanner() {
       } catch {
         // ignore
       }
-    })();
+    };
+    void loadStatus();
+    const interval = window.setInterval(() => void loadStatus(), 5 * 60 * 1000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 
