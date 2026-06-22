@@ -39,6 +39,7 @@ import type {
   OnboardingState,
   PriceAlert,
   SwapDraft,
+  ToastHistoryItem,
   ToastItem,
   ToastTone,
   TokenKey,
@@ -563,6 +564,7 @@ function App() {
   }, [persistRecentRecipients]);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [toastHistory, setToastHistory] = useState<ToastHistoryItem[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
     seenModal: false,
@@ -622,6 +624,10 @@ function App() {
         actionHref: action?.href,
       },
     ]);
+    setToastHistory((prev) => [
+      { id, message, tone, actionLabel: action?.label, actionHref: action?.href, ts: Date.now() },
+      ...prev,
+    ].slice(0, 20));
     scheduleToastDismiss(id, 4200);
   }, [scheduleToastDismiss]);
 
@@ -653,6 +659,10 @@ function App() {
     Object.values(toastTimers.current).forEach((timerId) => window.clearTimeout(timerId));
     toastTimers.current = {};
     setToasts([]);
+  }, []);
+
+  const clearToastHistory = useCallback(() => {
+    setToastHistory([]);
   }, []);
 
   const copyToClipboard = useCallback(
@@ -6745,6 +6755,74 @@ function App() {
                 >
                   View all activity
                 </button>
+              </div>
+            </div>
+            <div className="notif-pill-wrap">
+              <button
+                className="notif-pill"
+                type="button"
+                aria-label="Notification history"
+                title="Notification history"
+              >
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <path d="M7.5 1.8c-1.7 0-3 1.3-3 3v1.6c0 .9-.3 1.7-.9 2.4l-.5.6c-.5.6-.1 1.5.7 1.5h7.4c.8 0 1.2-.9.7-1.5l-.5-.6c-.6-.7-.9-1.5-.9-2.4V4.8c0-1.7-1.3-3-3-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                  <path d="M6 12.3a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+                {toastHistory.length > 0 && (
+                  <span className="notif-badge">{toastHistory.length}</span>
+                )}
+              </button>
+              <div className="notif-peek" role="menu" aria-label="Notification history">
+                <div className="activity-peek-head">
+                  <span className="eyebrow">Notifications</span>
+                  {toastHistory.length > 0 && (
+                    <button
+                      className="notif-peek-clear"
+                      type="button"
+                      onClick={clearToastHistory}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {toastHistory.length === 0 ? (
+                  <p className="muted small activity-peek-empty">
+                    No notifications yet.
+                  </p>
+                ) : (
+                  <ul className="activity-peek-list">
+                    {toastHistory.map((item) => (
+                      <li className="activity-peek-item" key={item.id}>
+                        <span
+                          className={`notif-peek-dot toast-${item.tone}`}
+                          aria-hidden="true"
+                        />
+                        <span className="activity-peek-msg" title={item.message}>
+                          {item.message}
+                        </span>
+                        <span className="activity-peek-time">
+                          {formatRelativeTime(item.ts)}
+                        </span>
+                        {item.actionHref ? (
+                          <a
+                            className="activity-peek-link"
+                            href={item.actionHref}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={item.actionLabel || "View"}
+                            aria-label={item.actionLabel || "View"}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                              <path d="M4.5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7.5M7.5 1H11m0 0v3.5M11 1 5.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="activity-peek-link is-empty" aria-hidden="true" />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
             <button

@@ -104,6 +104,7 @@ export type ToastItem = {
   actionLabel?: string;
   actionHref?: string;
 };
+export type ToastHistoryItem = ToastItem & { ts: number };
 
 export type AppTab = "swap" | "liquidity" | "analytics" | "pools";
 export type OnboardingState = {
