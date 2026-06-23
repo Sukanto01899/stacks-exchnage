@@ -4565,6 +4565,28 @@ function App() {
     }
   };
 
+  const exportRecentSwaps = () => {
+    const esc = (value: unknown) => {
+      const raw = value === null || value === undefined ? "" : String(value);
+      const needsQuotes = /[",\n\r]/.test(raw);
+      const cleaned = raw.replaceAll('"', '""');
+      return needsQuotes ? `"${cleaned}"` : cleaned;
+    };
+    const header = ["usedAt", "poolId", "direction", "fromLabel", "toLabel"].join(",");
+    const rows = recentSwaps.map((entry) =>
+      [
+        esc(new Date(entry.usedAt).toISOString()),
+        esc(entry.poolId),
+        esc(entry.direction),
+        esc(entry.fromLabel),
+        esc(entry.toLabel),
+      ].join(","),
+    );
+    const csv = [header, ...rows].join("\n");
+    downloadTextFile(`recent-swaps-${Date.now()}.csv`, csv, "text/csv");
+    pushToast(`Downloaded ${recentSwaps.length} recent swap${recentSwaps.length === 1 ? "" : "s"}.`, "success");
+  };
+
   const removeRecentSwap = (entry: RecentSwapEntry) => {
     setRecentSwaps((prev) => {
       const next = prev.filter(
@@ -7893,6 +7915,7 @@ function App() {
                   recentSwaps={recentSwaps}
                   onApplyRecentSwap={applyRecentSwap}
                   onClearRecentSwaps={clearRecentSwaps}
+                  onExportRecentSwaps={exportRecentSwaps}
                   onRemoveRecentSwap={removeRecentSwap}
                   balances={balances}
                   balancesPending={balancesPending}

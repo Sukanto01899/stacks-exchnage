@@ -35,6 +35,7 @@ export default function SwapCard(props: any) {
     recentSwaps,
     onApplyRecentSwap,
     onClearRecentSwaps,
+    onExportRecentSwaps,
     onRemoveRecentSwap,
     balances,
     balancesPending,
@@ -811,6 +812,16 @@ export default function SwapCard(props: any) {
               </span>
             ))}
           </div>
+          {onExportRecentSwaps && (
+            <button
+              type="button"
+              className="tiny ghost"
+              onClick={() => onExportRecentSwaps()}
+              title="Download recent swaps as CSV"
+            >
+              Export
+            </button>
+          )}
           {onClearRecentSwaps && (
             <button
               type="button"
