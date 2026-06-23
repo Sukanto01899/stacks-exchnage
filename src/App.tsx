@@ -6776,6 +6776,23 @@ function App() {
                           </button>
                         ) : null}
                         {item.txid ? (
+                          <button
+                            className="activity-peek-link"
+                            type="button"
+                            title="Copy transaction ID"
+                            aria-label="Copy transaction ID"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void copyToClipboard("Transaction ID", item.txid || "");
+                            }}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                              <rect x="0.75" y="3.25" width="7" height="7" rx="1.25" stroke="currentColor" strokeWidth="1.2"/>
+                              <path d="M3.25 3.25V2.25A1 1 0 0 1 4.25 1.25h4.5a1 1 0 0 1 1 1v4.5a1 1 0 0 1-1 1H7.75" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                            </svg>
+                          </button>
+                        ) : null}
+                        {item.txid ? (
                           <a
                             className="activity-peek-link"
                             href={buildExplorerTxUrl(item.txid)}

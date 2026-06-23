@@ -809,8 +809,12 @@ h3 {
   place-items: center;
   width: 20px;
   height: 20px;
+  border: none;
   border-radius: 6px;
+  background: transparent;
   color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
 }
 
 .activity-peek-link:hover {
