@@ -565,6 +565,9 @@ function App() {
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [toastHistory, setToastHistory] = useState<ToastHistoryItem[]>([]);
+  const [notifPulsing, setNotifPulsing] = useState(false);
+  const notifPulseTimer = useRef<number | null>(null);
+  const prevToastHistoryLength = useRef(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingState>({
     seenModal: false,
@@ -664,6 +667,17 @@ function App() {
   const clearToastHistory = useCallback(() => {
     setToastHistory([]);
   }, []);
+
+  // Briefly pulse the notification bell when a new toast lands in history,
+  // so it draws the eye even if the toast popup itself goes unnoticed.
+  useEffect(() => {
+    if (toastHistory.length > prevToastHistoryLength.current) {
+      setNotifPulsing(true);
+      if (notifPulseTimer.current) window.clearTimeout(notifPulseTimer.current);
+      notifPulseTimer.current = window.setTimeout(() => setNotifPulsing(false), 700);
+    }
+    prevToastHistoryLength.current = toastHistory.length;
+  }, [toastHistory.length]);
 
   const copyToClipboard = useCallback(
     async (
@@ -6781,7 +6795,7 @@ function App() {
             </div>
             <div className="notif-pill-wrap">
               <button
-                className="notif-pill"
+                className={`notif-pill${notifPulsing ? " is-pulsing" : ""}`}
                 type="button"
                 aria-label="Notification history"
                 title="Notification history"
