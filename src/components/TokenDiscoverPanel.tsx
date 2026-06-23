@@ -221,6 +221,10 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
     setWatchlist((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  const clearFavorites = () => setFavorites([]);
+
+  const clearWatchlist = () => setWatchlist([]);
+
   const customTokenIds = useMemo(
     () => new Set(customTokens.map((token) => token.id)),
     [customTokens],
@@ -279,6 +283,26 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
             <option value="favorites">Favorites</option>
             <option value="watchlist">Watchlist</option>
           </select>
+          {filterMode === "favorites" && favorites.length > 0 && (
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={clearFavorites}
+              title="Remove all favorites"
+            >
+              Clear favorites
+            </button>
+          )}
+          {filterMode === "watchlist" && watchlist.length > 0 && (
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={clearWatchlist}
+              title="Remove all watchlist tokens"
+            >
+              Clear watchlist
+            </button>
+          )}
           <div className="token-discover-search-wrap">
             <input
               className="token-discover-search"
