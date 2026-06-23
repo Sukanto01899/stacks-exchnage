@@ -4661,6 +4661,18 @@ function App() {
     }
   };
 
+  const removeRecentPool = (id: string, target: "swap" | "liquidity") => {
+    setRecentPools((prev) => {
+      const next = prev.filter((item) => !(item.id === id && item.target === target));
+      try {
+        localStorage.setItem(recentPoolsKey, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
+
   const setSwapPreset = (percent: number) => {
     const balance =
       swapDirection === "x-to-y" ? balances.tokenX : balances.tokenY;
@@ -8089,6 +8101,7 @@ function App() {
                   clearFavorites={clearFavoritePools}
                   recentPools={recentPoolsForPanel}
                   clearRecentPools={clearRecentPools}
+                  onRemoveRecentPool={removeRecentPool}
                   onResetFilters={() => {
                     setPoolSearch("");
                     setPoolFavoritesOnly(false);

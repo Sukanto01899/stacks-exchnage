@@ -41,6 +41,7 @@ type PoolListPanelProps = {
   clearFavorites: () => void;
   recentPools: RecentPoolItem[];
   clearRecentPools: () => void;
+  onRemoveRecentPool: (poolId: string, target: "swap" | "liquidity") => void;
   onResetFilters: () => void;
   onOpenPool: (poolId: string, target: "swap" | "liquidity") => void;
   onCopyPoolId: (poolId: string) => void;
@@ -95,6 +96,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     clearFavorites,
     recentPools,
     clearRecentPools,
+    onRemoveRecentPool,
     onResetFilters,
     onOpenPool,
     onCopyPoolId,
@@ -240,16 +242,26 @@ export default function PoolListPanel(props: PoolListPanelProps) {
           <span className="muted small">Recent</span>
           <div className="chip-row">
             {recentPools.map((pool) => (
-              <button
-                key={`${pool.id}-${pool.target}`}
-                className="chip ghost"
-                type="button"
-                onClick={() => onOpenPool(pool.id, pool.target)}
-                title={pool.target === "swap" ? "Open in Trade" : "Open in Liquidity"}
-              >
-                {pool.tokenXLabel}/{pool.tokenYLabel}
-                <span className="muted small"> · {pool.target === "swap" ? "Trade" : "Liquidity"}</span>
-              </button>
+              <span key={`${pool.id}-${pool.target}`} className="chip ghost recent-swap-chip">
+                <button
+                  className="recent-swap-chip-pick"
+                  type="button"
+                  onClick={() => onOpenPool(pool.id, pool.target)}
+                  title={pool.target === "swap" ? "Open in Trade" : "Open in Liquidity"}
+                >
+                  {pool.tokenXLabel}/{pool.tokenYLabel}
+                  <span className="muted small"> · {pool.target === "swap" ? "Trade" : "Liquidity"}</span>
+                </button>
+                <button
+                  className="recent-swap-chip-remove"
+                  type="button"
+                  onClick={() => onRemoveRecentPool(pool.id, pool.target)}
+                  aria-label={`Remove ${pool.tokenXLabel}/${pool.tokenYLabel} from recent pools`}
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </span>
             ))}
             <button className="tiny ghost" type="button" onClick={clearRecentPools}>
               Clear
