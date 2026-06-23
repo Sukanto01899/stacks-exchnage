@@ -162,6 +162,8 @@ export default function SwapCard(props: any) {
   const slippageIsDefault = slippageValid && Math.abs(parsedSlippage - 0.5) < 0.001;
   const slippageZero = slippageValid && parsedSlippage === 0;
   const slippageVeryLow = slippageValid && parsedSlippage > 0 && parsedSlippage < 0.05;
+  const slippageHigh = slippageValid && parsedSlippage > 3 && parsedSlippage <= 10;
+  const slippageVeryHigh = slippageValid && parsedSlippage > 10;
   const isSlippagePresetActive = (preset: string) =>
     !slippageAuto &&
     (slippageInput === preset ||
@@ -180,7 +182,11 @@ export default function SwapCard(props: any) {
       ? "0% slippage will likely cause the swap to fail."
       : slippageVeryLow
         ? "Very low slippage may cause the swap to fail."
-        : null;
+        : slippageVeryHigh
+          ? "Slippage above 10% may execute at a very unfavorable price."
+          : slippageHigh
+            ? "High slippage — you may receive a noticeably worse rate."
+            : null;
 
   const exchangeRate =
     swapAmount > 0 &&
@@ -670,6 +676,14 @@ export default function SwapCard(props: any) {
               placeholder="0.5"
               aria-label="Slippage percent"
             />
+            {(slippageHigh || slippageVeryHigh) && (
+              <span
+                className={`chip ghost${slippageVeryHigh ? " impact-high" : " impact-warn"}`}
+                title="High slippage tolerance increases the risk of a worse execution price"
+              >
+                High
+              </span>
+            )}
             {!slippageIsDefault && onResetSwapSettings && (
               <button
                 className="tiny ghost"
@@ -1148,6 +1162,14 @@ export default function SwapCard(props: any) {
             placeholder="0.5"
             aria-label="Slippage percent"
           />
+          {(slippageHigh || slippageVeryHigh) && (
+            <span
+              className={`chip ghost${slippageVeryHigh ? " impact-high" : " impact-warn"}`}
+              title="High slippage tolerance increases the risk of a worse execution price"
+            >
+              High
+            </span>
+          )}
           {!slippageIsDefault && onResetSwapSettings && (
             <button
               className="tiny ghost"
