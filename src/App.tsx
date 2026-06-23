@@ -3804,6 +3804,14 @@ function App() {
         kind: "swap",
         status: "failed",
         message: "Swap submission failed",
+        meta: {
+          fee: draft.feeEstimate ?? null,
+          feeSymbol: draft.feeSymbol,
+          amountIn: draft.amount,
+          amountOut: draft.outputPreview,
+          fromSymbol: draft.fromSymbol,
+          toSymbol: draft.toSymbol,
+        },
       });
       setSwapMessage(
         error instanceof Error
@@ -7298,9 +7306,9 @@ function App() {
                               className="chip ghost activity-repeat-btn"
                               type="button"
                               onClick={repeatSwap}
-                              title={`Repeat: swap ${formatNumber(amountIn)} ${meta.fromSymbol} → ${meta.toSymbol}`}
+                              title={`${item.status === "failed" ? "Retry" : "Repeat"}: swap ${formatNumber(amountIn)} ${meta.fromSymbol} → ${meta.toSymbol}`}
                             >
-                              ↩ Repeat
+                              {item.status === "failed" ? "↻ Retry" : "↩ Repeat"}
                             </button>
                           </div>
                         );
