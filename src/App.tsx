@@ -591,6 +591,7 @@ function App() {
   const navDrawerTimer = useRef<number | null>(null);
   const activityDrawerTimer = useRef<number | null>(null);
   const tokenSelectRef = useRef<HTMLDivElement | null>(null);
+  const activitySearchInputRef = useRef<HTMLInputElement | null>(null);
   const tokenSelectHighlightTimer = useRef<number | null>(null);
   const txToastInit = useRef(false);
   const txToastByTxid = useRef<Record<string, ActivityItem["status"]>>({});
@@ -5402,11 +5403,15 @@ function App() {
       if (event.key !== "/") return;
 
       event.preventDefault();
+      if (activityDrawerOpen) {
+        activitySearchInputRef.current?.focus();
+        return;
+      }
       setCommandPaletteOpen(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [activityDrawerOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -7134,6 +7139,7 @@ function App() {
               </div>
               <div className="activity-search-row">
                 <input
+                  ref={activitySearchInputRef}
                   className="activity-search"
                   value={activitySearch}
                   onChange={(e) => setActivitySearch(e.target.value)}
