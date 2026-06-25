@@ -33,6 +33,7 @@ import {
   type SetStateAction,
 } from "react";
 import { buildExplorerTxUrl } from "../lib/explorer";
+import { formatNumber } from "../lib/helper";
 
 type ActivityFilter =
   | "swap"
@@ -182,7 +183,18 @@ export default function ActivityPanel(props: ActivityPanelProps) {
       (best, i) => (i.ts > best ? i.ts : best),
       0,
     );
-    return { swaps, lp, pending, latest };
+    const feesBySymbol = activityItems.reduce(
+      (totals, i) => {
+        const fee = i.meta?.fee;
+        if (typeof fee === "number" && Number.isFinite(fee) && fee > 0) {
+          if (i.meta?.feeSymbol === "Y") totals.Y += fee;
+          else totals.X += fee;
+        }
+        return totals;
+      },
+      { X: 0, Y: 0 },
+    );
+    return { swaps, lp, pending, latest, feesBySymbol };
   }, [activityItems]);
 
   const copyCsv = async () => {
@@ -287,6 +299,24 @@ export default function ActivityPanel(props: ActivityPanelProps) {
               <span className="chip ghost activity-stat-chip activity-stat-latest" title={new Date(activityStats.latest).toLocaleString()}>
                 last {formatRelativeTime(activityStats.latest)}
               </span>
+              {(activityStats.feesBySymbol.X > 0 || activityStats.feesBySymbol.Y > 0) && (
+                <span
+                  className="chip ghost activity-stat-chip activity-stat-fees"
+                  title="Total fees paid across all recorded activity"
+                >
+                  fees{" "}
+                  {[
+                    activityStats.feesBySymbol.X > 0
+                      ? `${formatNumber(activityStats.feesBySymbol.X)} X`
+                      : null,
+                    activityStats.feesBySymbol.Y > 0
+                      ? `${formatNumber(activityStats.feesBySymbol.Y)} Y`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" + ")}
+                </span>
+              )}
             </div>
           )}
         </div>
