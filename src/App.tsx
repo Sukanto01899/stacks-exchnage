@@ -331,6 +331,7 @@ function App() {
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
   const [activityDrawerClosing, setActivityDrawerClosing] = useState(false);
   const [copiedDrawerTxid, setCopiedDrawerTxid] = useState<string | null>(null);
+  const [copiedSummaryId, setCopiedSummaryId] = useState<string | null>(null);
   const [activityFilter, setActivityFilter] =
     useState<ActivityFilter>("all");
   const [activitySearch, setActivitySearch] = useState("");
@@ -1271,6 +1272,12 @@ function App() {
     const timer = window.setTimeout(() => setCopiedDrawerTxid(null), 1500);
     return () => window.clearTimeout(timer);
   }, [copiedDrawerTxid]);
+
+  useEffect(() => {
+    if (!copiedSummaryId) return;
+    const timer = window.setTimeout(() => setCopiedSummaryId(null), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copiedSummaryId]);
 
   const handleOpenTokenSelector = useCallback(() => {
     if (activeTab !== "swap") {
@@ -3865,6 +3872,27 @@ function App() {
     setSwapDirection(meta.fromSymbol === "X" ? "x-to-y" : "y-to-x");
     setSwapInput(String(+meta.amountIn.toFixed(6)));
     setActiveTab("swap");
+  };
+
+  const buildActivitySummary = (item: ActivityItem) => {
+    const meta = item.meta;
+    const parts: string[] = [];
+    if (
+      item.kind === "swap" &&
+      meta?.fromSymbol &&
+      meta?.toSymbol &&
+      isFiniteNumber(meta.amountIn) &&
+      isFiniteNumber(meta.amountOut)
+    ) {
+      parts.push(
+        `Swap ${formatNumber(meta.amountIn)} ${meta.fromSymbol} → ${formatNumber(meta.amountOut)} ${meta.toSymbol}`,
+      );
+    } else {
+      parts.push(item.message);
+    }
+    parts.push(item.status);
+    if (item.txid) parts.push(item.txid);
+    return parts.join(" · ");
   };
 
   const handleApprove = async (
@@ -7314,6 +7342,18 @@ function App() {
                                 Copy
                               </>
                             )}
+                          </button>
+                          <button
+                            className="chip ghost"
+                            type="button"
+                            onClick={() => {
+                              void copyToClipboard("Summary", buildActivitySummary(item));
+                              setCopiedSummaryId(item.id);
+                            }}
+                            aria-label="Copy activity summary"
+                            title={buildActivitySummary(item)}
+                          >
+                            {copiedSummaryId === item.id ? "Summary copied" : "Copy summary"}
                           </button>
                           <button
                             className="chip ghost"
