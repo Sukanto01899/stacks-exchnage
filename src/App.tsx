@@ -1555,6 +1555,21 @@ function App() {
       status: latest.status,
     };
   }, [activityItems]);
+  const activityFeesBySymbol = useMemo(
+    () =>
+      activityItems.reduce(
+        (totals, item) => {
+          const fee = item.meta?.fee;
+          if (typeof fee === "number" && Number.isFinite(fee) && fee > 0) {
+            if (item.meta?.feeSymbol === "Y") totals.Y += fee;
+            else totals.X += fee;
+          }
+          return totals;
+        },
+        { X: 0, Y: 0 },
+      ),
+    [activityItems],
+  );
   const filteredActivityItems = useMemo(() => {
     if (activityFilter === "all") return activityItems;
     if (
@@ -6966,6 +6981,26 @@ function App() {
               <div>
                 <p className="eyebrow">Activity</p>
                 <h2>Transactions</h2>
+                {(activityFeesBySymbol.X > 0 || activityFeesBySymbol.Y > 0) && (
+                  <div className="activity-stats-chips">
+                    <span
+                      className="chip ghost activity-stat-chip activity-stat-fees"
+                      title="Total fees paid across all recorded activity"
+                    >
+                      fees{" "}
+                      {[
+                        activityFeesBySymbol.X > 0
+                          ? `${formatNumber(activityFeesBySymbol.X)} X`
+                          : null,
+                        activityFeesBySymbol.Y > 0
+                          ? `${formatNumber(activityFeesBySymbol.Y)} Y`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" + ")}
+                    </span>
+                  </div>
+                )}
               </div>
               <button
                 className="nav-drawer-close"
@@ -7208,12 +7243,32 @@ function App() {
               </p>
             ) : (
               <div className="activity-drawer-list">
-                {activityDrawerItems.slice(0, activityLimit).map((item) => (
+                {activityDrawerItems.slice(0, activityLimit).map((item) => {
+                  const pendingAgeMs =
+                    item.status === "submitted"
+                      ? Math.max(0, activityNow - (item.submittedAt || item.ts))
+                      : 0;
+                  const isStuck = pendingAgeMs > 30 * 60_000;
+                  const pendingAgeLabel =
+                    pendingAgeMs > 0
+                      ? pendingAgeMs < 60_000
+                        ? "<1m"
+                        : `${Math.floor(pendingAgeMs / 60_000)}m`
+                      : null;
+                  return (
                   <div className="activity-drawer-item" key={item.id}>
                     <div className="activity-drawer-main">
                       <span className={`chip ghost status-${item.status}`}>
                         {item.status}
                       </span>
+                      {pendingAgeLabel && (
+                        <span
+                          className={`chip pending-age-badge${isStuck ? " is-stuck" : ""}`}
+                          title={`Pending for ${pendingAgeLabel}`}
+                        >
+                          {pendingAgeLabel}
+                        </span>
+                      )}
                       <strong>{item.message}</strong>
                     </div>
                     <div className="activity-drawer-meta">
@@ -7329,8 +7384,14 @@ function App() {
                           : ""}
                       </p>
                     ) : null}
+                    {isStuck && (
+                      <p className="muted small pending-stuck-warn">
+                        Taking longer than expected — check the explorer or try resubmitting.
+                      </p>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
                 {activityDrawerItems.length > activityLimit && (
                   <button
                     className="tiny ghost activity-load-more"

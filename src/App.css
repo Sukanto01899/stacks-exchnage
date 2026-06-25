@@ -2823,7 +2823,8 @@ h3 {
   background: rgba(90, 156, 255, 0.18);
 }
 
-.activity-stat-latest {
+.activity-stat-latest,
+.activity-stat-fees {
   color: var(--text-muted);
   cursor: default;
 }
