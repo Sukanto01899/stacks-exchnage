@@ -271,6 +271,16 @@ export default function TokenDiscoverPanel(props: TokenDiscoverPanelProps) {
               ? `${tokenRows.length} of ${mergedTokens.length} tokens`
               : `${mergedTokens.length} tokens`}
           </span>
+          {favorites.length > 0 && (
+            <span className="chip ghost token-discover-count" title="Favorited tokens">
+              ★ {favorites.length}
+            </span>
+          )}
+          {watchlist.length > 0 && (
+            <span className="chip ghost token-discover-count" title="Watchlisted tokens">
+              Watch {watchlist.length}
+            </span>
+          )}
         </div>
         <div className="token-discover-controls">
           <select
