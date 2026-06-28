@@ -119,6 +119,17 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
     setSize("100");
   };
 
+  const handleFlipDirection = () => {
+    setDirection((prev) => (prev === "long" ? "short" : "long"));
+    if (entryNum === null) return;
+    if (stopNum !== null) {
+      setStop(String(Number((2 * entryNum - stopNum).toFixed(6))));
+    }
+    if (targetNum !== null) {
+      setTarget(String(Number((2 * entryNum - targetNum).toFixed(6))));
+    }
+  };
+
   const handleQuickStop = (percent: number) => {
     if (entryNum === null) return;
     const multiplier = direction === "long" ? 1 - percent : 1 + percent;
@@ -201,6 +212,14 @@ const TradeSimulatorPanel = ({ markets, formatNumber }: Props) => {
               onClick={() => setDirection("short")}
             >
               Short
+            </button>
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={handleFlipDirection}
+              title="Switch direction and mirror stop/target around entry"
+            >
+              Flip direction
             </button>
           </div>
         </div>
