@@ -173,6 +173,7 @@ const PriceBoardPanel = ({
   const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState("");
   const [presets, setPresets] = useState<AlertPreset[]>(DEFAULT_PRESETS);
+  const [presetsCopied, setPresetsCopied] = useState(false);
   const [rows, setRows] = useState<MarketRow[]>(() =>
     buildInitialRows(markets),
   );
@@ -612,6 +613,15 @@ const PriceBoardPanel = ({
     );
   };
 
+  const handleCopyPresets = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(presets, null, 2));
+      setPresetsCopied(true);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
+
   const handleAddPreset = () => {
     const id = `p-${Date.now().toString(36)}`;
     setPresets((prev) => [
@@ -636,6 +646,12 @@ const PriceBoardPanel = ({
       })),
     );
   };
+
+  useEffect(() => {
+    if (!presetsCopied) return;
+    const timer = window.setTimeout(() => setPresetsCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [presetsCopied]);
 
   useEffect(() => {
     if (!modal) return;
@@ -833,9 +849,18 @@ const PriceBoardPanel = ({
             <p className="eyebrow">Alert builder</p>
             <h3>Presets</h3>
           </div>
-          <button className="tiny ghost" type="button" onClick={handleAddPreset}>
-            Add preset
-          </button>
+          <div className="mini-actions">
+            <button
+              className="tiny ghost"
+              type="button"
+              onClick={() => void handleCopyPresets()}
+            >
+              {presetsCopied ? "Copied!" : "Copy presets"}
+            </button>
+            <button className="tiny ghost" type="button" onClick={handleAddPreset}>
+              Add preset
+            </button>
+          </div>
         </div>
         <div className="alert-builder-grid">
           {presets.map((preset) => (
