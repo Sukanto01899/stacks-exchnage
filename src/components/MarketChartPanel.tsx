@@ -331,6 +331,10 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
     }
   };
 
+  const removeDrawing = (id: string) => {
+    setDrawings((prev) => prev.filter((drawing) => drawing.id !== id));
+  };
+
   const valueToY = (value: number, values: number[], height: number, padding: number) => {
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -456,6 +460,28 @@ const MarketChartPanel = ({ markets, formatNumber }: Props) => {
             Clear
           </button>
         </div>
+        {drawings.length > 0 && (
+          <div className="chip-row">
+            {drawings.map((drawing, index) => (
+              <span key={drawing.id} className="chip ghost recent-swap-chip">
+                <span className="recent-swap-chip-pick">
+                  {drawing.type === "hline"
+                    ? `H-line ${formatNumber(drawing.y)}`
+                    : `Trend #${index + 1} ${formatNumber(drawing.y1)} → ${formatNumber(drawing.y2)}`}
+                </span>
+                <button
+                  className="recent-swap-chip-remove"
+                  type="button"
+                  onClick={() => removeDrawing(drawing.id)}
+                  aria-label="Remove this drawing"
+                  title="Remove this drawing"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="market-chart-canvas">
