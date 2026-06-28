@@ -196,6 +196,15 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                 >
                   Custom
                 </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => setCustomX("")}
+                  disabled={!customX}
+                  aria-label={`Clear ${tokenLabels.x} custom allowance`}
+                >
+                  Clear
+                </button>
               </div>
               <button
                 className="tiny ghost"
@@ -272,6 +281,15 @@ export default function ApprovalManager(props: ApprovalManagerProps) {
                   }
                 >
                   Custom
+                </button>
+                <button
+                  className="tiny ghost"
+                  type="button"
+                  onClick={() => setCustomY("")}
+                  disabled={!customY}
+                  aria-label={`Clear ${tokenLabels.y} custom allowance`}
+                >
+                  Clear
                 </button>
               </div>
               <button
