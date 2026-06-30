@@ -52,6 +52,7 @@ type PoolListPanelProps = {
   resolvedStacksNetwork: string;
   formatCompactNumber: (value: number) => string;
   formatNumber: (value: number) => string;
+  totalPoolCount?: number;
 };
 
 const SORT_OPTIONS: { value: "tvl" | "volume" | "fees" | "apr"; label: string }[] = [
@@ -107,6 +108,7 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     resolvedStacksNetwork,
     formatCompactNumber,
     formatNumber,
+    totalPoolCount,
   } = props;
 
   const isDefaultFilters =
@@ -151,7 +153,13 @@ export default function PoolListPanel(props: PoolListPanelProps) {
     <section className="pool-list-panel">
       <div className="pool-list-head">
         <h2 className="pool-list-title">Pools</h2>
-        <span className="chip ghost">{pools.length} pools</span>
+        {totalPoolCount !== undefined && totalPoolCount !== pools.length ? (
+          <span className="chip ghost" title={`${totalPoolCount} pools total`}>
+            {pools.length} of {totalPoolCount} pools
+          </span>
+        ) : (
+          <span className="chip ghost">{pools.length} pools</span>
+        )}
         <div className="mini-actions">
           <button
             className="tiny ghost"

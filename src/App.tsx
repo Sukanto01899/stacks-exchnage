@@ -8277,6 +8277,7 @@ function App() {
                   resolvedStacksNetwork={RESOLVED_STACKS_NETWORK}
                   formatCompactNumber={formatCompactNumber}
                   formatNumber={formatNumber}
+                  totalPoolCount={poolsDirectory.length}
                 />
               ) : (
                 <Suspense
