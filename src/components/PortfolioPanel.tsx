@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 type PortfolioMetrics = {
   has24h: boolean;
   pnl24X: number | null;
@@ -55,6 +57,34 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
     portfolioUsd = null,
     usdAvailable = false,
   } = props;
+
+  const [positionCopied, setPositionCopied] = useState(false);
+
+  useEffect(() => {
+    if (!positionCopied) return;
+    const timer = window.setTimeout(() => setPositionCopied(false), 1200);
+    return () => window.clearTimeout(timer);
+  }, [positionCopied]);
+
+  const handleCopyPositionCsv = async () => {
+    const header = "pool_share_pct,lp_x,lp_y,value_x,value_y,holdings_x,holdings_y,pnl_24h_x_pct,pnl_24h_y_pct,il_pct";
+    const row = [
+      (poolShare * 100).toFixed(4),
+      lpPosition.x,
+      lpPosition.y,
+      portfolioTotals.valueInX,
+      portfolioTotals.valueInY,
+      portfolioTotals.totalX,
+      portfolioTotals.totalY,
+      portfolioMetrics.pnl24X ?? "",
+      portfolioMetrics.pnl24Y ?? "",
+      portfolioMetrics.ilPercent ?? "",
+    ].join(",");
+    try {
+      await navigator.clipboard.writeText(`${header}\n${row}`);
+      setPositionCopied(true);
+    } catch {}
+  };
 
   const isEmpty =
     walletConnected &&
@@ -141,6 +171,14 @@ export default function PortfolioPanel(props: PortfolioPanelProps) {
           <span className="chip ghost">
             {portfolioMetrics.has24h ? "24h window" : "Building 24h data"}
           </span>
+          <button
+            type="button"
+            className="tiny ghost"
+            onClick={() => void handleCopyPositionCsv()}
+            title="Copy position as CSV"
+          >
+            {positionCopied ? "Copied!" : "Copy CSV"}
+          </button>
         </div>
       </div>
       <div className="portfolio-grid">
