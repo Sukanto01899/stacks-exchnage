@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ActivityItem, PoolSnapshot, PoolState } from "../type";
 import { isFiniteNumber } from "../lib/number";
 
@@ -41,6 +41,7 @@ type AnalyticsPanelProps = {
   formatNumber: (value: number) => string;
   formatSignedPercent: (value: number | null) => string;
   formatCompactNumber: (value: number) => string;
+  lastPoolRefreshAt?: number | null;
 };
 
 export default function AnalyticsPanel(props: AnalyticsPanelProps) {
@@ -61,7 +62,23 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
     formatNumber,
     formatSignedPercent,
     formatCompactNumber,
+    lastPoolRefreshAt,
   } = props;
+
+  const [nowTs, setNowTs] = useState(Date.now);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTs(Date.now()), 10_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const refreshAgeLabel = useMemo(() => {
+    if (!lastPoolRefreshAt) return null;
+    const ms = Math.max(0, nowTs - lastPoolRefreshAt);
+    if (ms < 60_000) return `${Math.floor(ms / 1000)}s ago`;
+    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+    return `${Math.floor(ms / 3_600_000)}h ago`;
+  }, [lastPoolRefreshAt, nowTs]);
 
   const [lpRange, setLpRange] = useState<
     "1h" | "24h" | "7d" | "30d" | "90d" | "all"
@@ -189,11 +206,18 @@ export default function AnalyticsPanel(props: AnalyticsPanelProps) {
           <p className="eyebrow">Pool Analytics</p>
           <h3>Price, reserves, activity</h3>
         </div>
-        <span className="chip ghost">
-          {analytics.chartPoints.length > 1
-            ? "Local 7d history"
-            : "Collecting data"}
-        </span>
+        <div className="chip-row">
+          <span className="chip ghost">
+            {analytics.chartPoints.length > 1
+              ? "Local 7d history"
+              : "Collecting data"}
+          </span>
+          {refreshAgeLabel && (
+            <span className="chip ghost" title="Time since last pool data refresh">
+              Updated {refreshAgeLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="analytics-grid">

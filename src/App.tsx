@@ -8305,6 +8305,7 @@ function App() {
                     formatNumber={formatNumber}
                     formatSignedPercent={formatSignedPercent}
                     formatCompactNumber={formatCompactNumber}
+                    lastPoolRefreshAt={lastPoolRefreshAt}
                   />
                 </Suspense>
               )}
